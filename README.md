@@ -5,4 +5,4 @@ PyTorchModels \
 	- ImageClassification \
 	- NLP \
 	- Detection \
-	- Segmentation \
+	- Segmentation 
