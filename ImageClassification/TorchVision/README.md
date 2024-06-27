@@ -41,8 +41,8 @@
   > ImageNet 数据集构建方式：
   >
   > 1. 从[官方网站](http://www.image-net.org/)下载数据集，可以得到两个`.tar`文件：
-  > ILSVRC2012_img_train.tar (about 138 GB)
-  > ILSVRC2012_img_val.tar (about 6.3 GB)
+  > - ILSVRC2012_img_train.tar (about 138 GB)
+  > - ILSVRC2012_img_val.tar (about 6.3 GB)
   >
   > 2. 使用[该脚本](https://github.com/pytorch/examples/blob/main/imagenet/extract_ILSVRC.sh)进行提取。
   > 
