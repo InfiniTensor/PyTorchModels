@@ -75,13 +75,21 @@
 
 ### 无互联网连接时
 - 使用预训练模型时，需要提前**手动下载模型文件**。以 `bert-base-uncased` 为例，到[官方 repo](https://hf-mirror.com/google-bert/bert-base-uncased/tree/main)下载如下几个文件，并将其放到同一目录下，例如 `./bert-base-uncased`：
-  - `config.json`
-  - `pytorch_model.bin`
-  - `tokenizer_config.json`
-  - `tokenizer.json`
-  - `vocab.txt`
+```
+  ./bert-base-uncased/
+  ├── config.json
+  ├── pytorch_model.bin
+  ├── tokenizer_config.json
+  ├── tokenizer.json
+  └── vocab.txt
+```
+- 需要手动下载[SQuAD v2.0 数据集](https://rajpurkar.github.io/SQuAD-explorer/)放在指定同一目录下，目录结构为：
+```
+   squad/
+   ├── dev-v2.0.json
+   └── train-v2.0.json
+```
 - 其他无互联网连接时才需要的前置条件（**已经配齐，不需要做额外收集**）：
-  - 需要手动[SQuAD v2.0 数据集](https://rajpurkar.github.io/SQuAD-explorer/)，由于文件大小并不大，已经一同放在 `./squad/` 目录下。
   - 需要本地调用 `evaluate` 库中 `metrics` 模块的[代码](https://github.com/huggingface/evaluate/tree/main/metrics)，主要需要的是与 SQuAD 数据集相关的两个目录，已经一同放在 `./metrics/` 目录下。
   - 需要本地调用 SQuAD v2.0 数据集的[处理代码](https://hf-mirror.com/datasets/rajpurkar/squad_v2/tree/main)，已经一同放在 `./squad_v2.py`。
   
@@ -117,18 +125,20 @@ torchrun \
 无互联网连接时，需要指定模型文件路径和数据集路径。假设已提前将上述 `bert-base-uncased` 模型文件下载好并存放在 `./bert-base-uncased/` 目录下。可以参考 `run_train_offline.sh` 的实现。
 
 ```bash
-export CUDA_VISIBLE_DEVICES=0,1,2,3
-WORKING_DIR=$(pwd)
+export CUDA_VISIBLE_DEVICES=0
+export SQUAD_PATH=./squad
+
+MODEL_PATH=./bert-base-uncased
 
 torchrun \
     --nproc_per_node=4 \
     qa.py \
-    --model_name_or_path $WORKING_DIR/bert-base-uncased \
-    --config_name $WORKING_DIR/bert-base-uncased \
-    --tokenizer_name $WORKING_DIR/bert-base-uncased/ \
-    --train_file $WORKING_DIR/squad/train-v2.0.json \
-    --validation_file $WORKING_DIR/squad/dev-v2.0.json \
-    --test_file $WORKING_DIR/squad/dev-v2.0.json \
+    --model_name_or_path $MODEL_PATH \
+    --config_name $MODEL_PATH \
+    --tokenizer_name $MODEL_PATH \
+    --train_file $SQUAD_PATH/train-v2.0.json \
+    --validation_file $SQUAD_PATH/dev-v2.0.json \
+    --test_file $SQUAD_PATH/dev-v2.0.json \
     --version_2_with_negative \
     --per_device_train_batch_size 10 \
     --do_eval \
@@ -192,19 +202,20 @@ torchrun \
 
 ```bash
 export CUDA_VISIBLE_DEVICES=0
-WORKING_DIR=$(pwd)
+export SQUAD_PATH=./squad
+
+MODEL_PATH=./bert-base-uncased
 
 torchrun \
     --nproc_per_node=1 \
     qa.py \
-    --model_name_or_path $WORKING_DIR/bert-base-uncased \
-    --config_name $WORKING_DIR/bert-base-uncased \
-    --tokenizer_name $WORKING_DIR/bert-base-uncased/ \
-    --train_file $WORKING_DIR/squad/train-v2.0.json \
-    --validation_file $WORKING_DIR/squad/dev-v2.0.json \
-    --test_file $WORKING_DIR/squad/dev-v2.0.json \
+    --model_name_or_path $MODEL_PATH \
+    --config_name $MODEL_PATH \
+    --tokenizer_name $MODEL_PATH \
+    --train_file $SQUAD_PATH/train-v2.0.json \
+    --validation_file $SQUAD_PATH/dev-v2.0.json \
+    --test_file $SQUAD_PATH/dev-v2.0.json \
     --version_2_with_negative \
-    --per_device_eval_batch_size 10 \
     --do_eval \
     --output_dir /tmp/debug_squad/ \
 ```

@@ -1,16 +1,24 @@
 # 无互联网连接时
 export CUDA_VISIBLE_DEVICES=0,1,2,3
-WORKING_DIR=$(pwd)
+export SQUAD_PATH=./squad
+
+# 模型文件目录路径，路径下需要包含：
+#   config.json
+#   pytorch_model.bin
+#   tokenizer_config.json
+#   tokenizer.json
+#   vocab.txt
+MODEL_PATH=./bert-base-uncased
 
 torchrun \
     --nproc_per_node=4 \
     qa.py \
-    --model_name_or_path $WORKING_DIR/bert-base-uncased \
-    --config_name $WORKING_DIR/bert-base-uncased \
-    --tokenizer_name $WORKING_DIR/bert-base-uncased/ \
-    --train_file $WORKING_DIR/squad/train-v2.0.json \
-    --validation_file $WORKING_DIR/squad/dev-v2.0.json \
-    --test_file $WORKING_DIR/squad/dev-v2.0.json \
+    --model_name_or_path $MODEL_PATH \
+    --config_name $MODEL_PATH \
+    --tokenizer_name $MODEL_PATH \
+    --train_file $SQUAD_PATH/train-v2.0.json \
+    --validation_file $SQUAD_PATH/dev-v2.0.json \
+    --test_file $SQUAD_PATH/dev-v2.0.json \
     --version_2_with_negative \
     --per_device_train_batch_size 10 \
     --learning_rate 3e-5 \

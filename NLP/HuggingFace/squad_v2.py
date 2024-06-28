@@ -2,6 +2,7 @@
 
 
 import json
+import os
 
 import datasets
 from datasets.tasks import QuestionAnsweringExtractive
@@ -28,10 +29,10 @@ combines the 100,000 questions in SQuAD1.1 with over 50,000 unanswerable questio
  also determine when no answer is supported by the paragraph and abstain from answering.
 """
 
-_URL = "/home/bolunz/Github/transformers/examples/pytorch/question-answering/squad/"
+_URL = os.getenv('SQUAD_PATH')
 _URLS = {
-    "train": _URL + "train-v2.0.json",
-    "dev": _URL + "dev-v2.0.json",
+    "train": os.path.join(_URL, "train-v2.0.json"),
+    "dev":  os.path.join(_URL, "dev-v2.0.json"),
 }
 
 
