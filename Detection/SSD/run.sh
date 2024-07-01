@@ -6,12 +6,16 @@
 # 确保脚本在遇到错误时停止执行
 set -e
 
-# 运行create_data_lists.py
-echo "正在运行 create_data_lists.py..."
+# execute create_data_lists.py
+echo "executing create_data_lists.py..."
 python create_data_lists.py
 
-# 运行train.py
-echo "正在运行 train.py..."
+# execute train.py
+echo "executing train.py..."
 python train.py
 
-echo "所有脚本执行完毕。"
+# execute detect.py
+echo "executing detect.py..."
+python detect.py
+
+echo "finished"
