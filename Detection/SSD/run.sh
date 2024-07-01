@@ -6,6 +6,8 @@
 # 确保脚本在遇到错误时停止执行
 set -e
 
+ln -s ../data /data1/shared/Dataset/PascalVOC
+
 # execute create_data_lists.py
 echo "executing create_data_lists.py..."
 python create_data_lists.py
