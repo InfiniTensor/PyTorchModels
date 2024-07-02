@@ -3,7 +3,7 @@ import torch
 import torch.optim as optim
 from pathlib import Path
 from torch import nn
-from torchvision import transforms, utils, datasets
+from torchvision import transforms, datasets
 import argparse
 
 from unet import UNet
@@ -43,25 +43,28 @@ parser.add_argument("--input_size", default=256, type=int,
                     help="Input size")
 parser.add_argument("--classes", type=int, default=22, 
                     help="Num of classes")
+parser.add_argument("--dataset_path", type=str, default="./data")
+parser.add_argument("--VOC_year", type=str, default="2007")
 args = parser.parse_args()
 
 
-data_folder = "data"
-model_folder = Path("model")
+data_folder = "./data"
+model_folder = Path("./model")
 model_folder.mkdir(exist_ok=True)
-model_path = "model/unet-voc.pt"
+model_path = "./model/unet-voc.pt"
 saving_interval = 10
 
 epochs = args.epochs
 input_size = args.input_size
 classes = args.classes
 batch_size = args.batch_size
+year = args.VOC_year
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 transform = transforms.Compose([transforms.Resize((input_size, input_size)), transforms.ToTensor(), transforms.Grayscale()])
 dataset = datasets.VOCSegmentation(
     data_folder,
-    year="2007",
+    year=year,
     download=True,
     image_set="train",
     transform=transform,
