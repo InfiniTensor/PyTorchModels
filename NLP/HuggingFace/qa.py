@@ -55,6 +55,8 @@ from transformers import (
 from transformers.utils import check_min_version, send_example_telemetry
 from transformers.utils.versions import require_version
 
+from profiler import Profiler
+
 
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
 check_min_version("4.37.0.dev0")
@@ -311,6 +313,11 @@ def parse_args():
             ' `"wandb"`, `"comet_ml"` and `"clearml"`. Use `"all"` (default) to report to all integrations. '
             "Only applicable when `--with_tracking` is passed."
         ),
+    )
+    parser.add_argument(
+        "--profile",
+        action="store_true",
+        help="Do profile"
     )
     args = parser.parse_args()
 
@@ -860,6 +867,8 @@ def main():
 
         # update the progress_bar if load from checkpoint
         progress_bar.update(completed_steps)
+        
+        profiler = Profiler() if (args.profile and accelerator.is_local_main_process) else None
 
         for epoch in range(starting_epoch, args.num_train_epochs):
             model.train()
@@ -870,6 +879,11 @@ def main():
                 active_dataloader = accelerator.skip_first_batches(train_dataloader, resume_step)
             else:
                 active_dataloader = train_dataloader
+            
+            if profiler:
+                profiler.reset()
+                profiler.start()
+            
             for step, batch in enumerate(active_dataloader):
                 with accelerator.accumulate(model):
                     outputs = model(**batch)
@@ -887,6 +901,9 @@ def main():
                 if accelerator.sync_gradients:
                     progress_bar.update(1)
                     completed_steps += 1
+                    
+                if profiler:
+                    profiler.update(total_batch_size)
 
                 if isinstance(checkpointing_steps, int):
                     if completed_steps % checkpointing_steps == 0:
@@ -897,6 +914,10 @@ def main():
 
                 if completed_steps >= args.max_train_steps:
                     break
+            
+            if profiler:
+                profiler.end()
+                print(f"Train throughput for epoch {epoch} is {profiler.throughput()} samples/s!")
 
             if args.checkpointing_steps == "epoch":
                 output_dir = f"epoch_{epoch}"

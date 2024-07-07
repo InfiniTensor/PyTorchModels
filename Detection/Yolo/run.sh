@@ -17,6 +17,8 @@ cd datasets
 ln -s /data1/shared/Dataset/coco/ ./
 cd ../
 
+mkdir -p ~/.config/Ultralytics/
+cp ./Arial.ttf ~/.config/Ultralytics/Arial.ttf
 
 VALID_OPTIONS=("yolov5s" "yolov5m" "yolov5l" "yolov5x" "yolov5n") 
 # 读取用户输入 
@@ -44,7 +46,20 @@ if $is_valid; then
     fi  
     # 训练
     echo "训练..." 
-    python3 train.py --data coco.yaml --epochs 300 --weights '' --cfg "${model_option}.yaml"  --batch-size 1
+#    python3 train.py --data coco.yaml --epochs 300 --weights '' --cfg "${model_option}.yaml"  --batch-size 64
+    python -m torch.distributed.run \
+        --nproc_per_node 4 train.py \
+        --batch 64 \
+        --img 640 \
+        --epoch 25 \
+        --data coco.yaml \
+        --weights "" \
+        --cfg "models/${model_option}.yaml" \
+        --device 0,1,2,3 \
+        --nosave \
+        --noval \
+        --workers 16 \
+        --profile
     # 验证
     echo "验证..."
     if [ -f "${model_option}.pt" ]; then  

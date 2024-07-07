@@ -59,7 +59,7 @@ from utils.general import (
 from utils.metrics import ConfusionMatrix, ap_per_class, box_iou
 from utils.plots import output_to_target, plot_images, plot_val_study
 from utils.torch_utils import select_device, smart_inference_mode
-
+from profiler import Profiler
 
 def save_one_txt(predn, save_conf, shape, file):
     """Saves one detection result to a txt file in normalized xywh format, optionally including confidence."""
@@ -155,6 +155,7 @@ def run(
     plots=True,
     callbacks=Callbacks(),
     compute_loss=None,
+    profile=False,
 ):
     # Initialize/load model and set device
     training = model is not None
@@ -273,6 +274,12 @@ def run(
     jdict, stats, ap, ap_class = [], [], [], []
     callbacks.run("on_val_start")
     pbar = tqdm(dataloader, desc=s, bar_format=TQDM_BAR_FORMAT)  # progress bar
+    
+    if profile:
+        profiler = Profiler()
+        profiler.reset()
+        profiler.start()
+    
     for batch_i, (im, targets, paths, shapes) in enumerate(pbar):
         callbacks.run("on_val_batch_start")
         with dt[0]:
@@ -311,6 +318,9 @@ def run(
                 max_det=max_det,
             )
 
+        if profile:
+            profiler.update(batch_size)
+        
         # Metrics
         for si, pred in enumerate(preds):
             labels = targets[targets[:, 0] == si, 1:]
@@ -367,19 +377,10 @@ def run(
                 )  # append to COCO-JSON dictionary
             callbacks.run("on_val_image_end", pred, predn, path, names, im[si])
 
-        # Plot images
-        if plots and batch_i < 3:
-            plot_images(
-                im, targets, paths, save_dir / f"val_batch{batch_i}_labels.jpg", names
-            )  # labels
-            plot_images(
-                im,
-                output_to_target(preds),
-                paths,
-                save_dir / f"val_batch{batch_i}_pred.jpg",
-                names,
-            )  # pred
-
+        if profile:
+            profiler.stop()
+            print(f"Eval throughput is {profiler.throughput()} samples/s!")
+            
         callbacks.run("on_val_batch_end", batch_i, im, targets, paths, shapes, preds)
 
     # Compute metrics
@@ -548,6 +549,9 @@ def parse_opt():
     )
     parser.add_argument(
         "--dnn", action="store_true", help="use OpenCV DNN for ONNX inference"
+    )
+    parser.add_argument(
+        "--profile", action="store_true", help="Profile or not"
     )
     opt = parser.parse_args()
     opt.data = check_yaml(opt.data)  # check YAML
