@@ -10,4 +10,5 @@ python main.py \
     --world-size 1 \
     --rank 0 \
     --batch-size 64 \
+    --profile \
     /data1/shared/Dataset/imagenet2012

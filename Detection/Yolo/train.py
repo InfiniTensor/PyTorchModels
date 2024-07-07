@@ -93,6 +93,7 @@ from utils.torch_utils import (
     smart_resume,
     torch_distributed_zero_first,
 )
+from profiler import Profiler
 
 LOCAL_RANK = int(
     os.getenv("LOCAL_RANK", -1)
@@ -389,6 +390,9 @@ def train(hyp, opt, device, callbacks):
         f"Logging results to {colorstr('bold', save_dir)}\n"
         f"Starting training for {epochs} epochs..."
     )
+    
+    profiler = Profiler() if (opt.profile and RANK in {-1, 0}) else None
+    
     for epoch in range(
         start_epoch, epochs
     ):  # epoch ------------------------------------------------------------------
@@ -430,6 +434,11 @@ def train(hyp, opt, device, callbacks):
         if RANK in {-1, 0}:
             pbar = tqdm(pbar, total=nb, bar_format=TQDM_BAR_FORMAT)  # progress bar
         optimizer.zero_grad()
+        
+        if profiler:
+            profiler.reset()
+            profiler.start()
+
         for i, (
             imgs,
             targets,
@@ -504,6 +513,9 @@ def train(hyp, opt, device, callbacks):
                 if ema:
                     ema.update(model)
                 last_opt_step = ni
+            
+            if profiler:
+                profiler.update(batch_size)
 
             # Log
             if RANK in {-1, 0}:
@@ -526,6 +538,10 @@ def train(hyp, opt, device, callbacks):
                     return
             # end batch ------------------------------------------------------------------------------------------------
 
+        if profiler:
+            profiler.stop()
+            print(f"Train throughput for epoch {epoch} is {profiler.throughput()} samples/s!")
+        
         # Scheduler
         lr = [x["lr"] for x in optimizer.param_groups]  # for loggers
         scheduler.step()
@@ -815,6 +831,7 @@ def parse_opt(known=False):
         "--ndjson-console", action="store_true", help="Log ndjson to console"
     )
     parser.add_argument("--ndjson-file", action="store_true", help="Log ndjson to file")
+    parser.add_argument("--profile", action="store_true", help="Do profile")
 
     return parser.parse_known_args()[0] if known else parser.parse_args()
 
