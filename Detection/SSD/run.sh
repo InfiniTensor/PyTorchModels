@@ -6,7 +6,15 @@
 # 确保脚本在遇到错误时停止执行
 set -e
 
-ln -s ../data /data1/shared/Dataset/PascalVOC
+export CUDA_VISIBLE_DEVICES=2
+
+# 检查软连接是否已经存在了
+if [ -e "../data/VOCdevkit" ]; then
+    echo "../data/VOCdevkit exists"
+else
+    # 创建软连接
+    ln -s  /data1/shared/Dataset/VOCdevkit ../data
+fi
 
 # execute create_data_lists.py
 echo "executing create_data_lists.py..."
