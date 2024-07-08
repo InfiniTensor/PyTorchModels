@@ -34,4 +34,4 @@
 *.pyc
 __pycache__/
 *.log
-data/*.json
+*/data/*.json
