@@ -14,7 +14,7 @@ if [ -d "datasets" ]; then
 fi
 mkdir datasets
 cd datasets
-ln -s /data1/shared/Dataset/coco/ ./
+ln -s /data1/shared/Dataset/coco/ ../data
 cd ../
 
 mkdir -p ~/.config/Ultralytics/

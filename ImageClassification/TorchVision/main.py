@@ -144,18 +144,24 @@ def main_worker(gpu, ngpus_per_node, args):
             args.rank = args.rank * ngpus_per_node + gpu
         dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
                                 world_size=args.world_size, rank=args.rank)
+
+    model_kwargs = {}
+    if args.arch in ["googlenet", "inception_v3"] :
+        model_kwargs["aux_logits"] = False
     # create model
     if args.pretrained:
         print("=> using pre-trained model '{}'".format(args.arch))
-        model = models.__dict__[args.arch](pretrained=True)
+        model_kwargs["pretrained"] = True
+        model = models.__dict__[args.arch](**model_kwargs)
     else:
         print("=> creating model '{}'".format(args.arch))
-        model = models.__dict__[args.arch]()
+        model_kwargs["pretrained"] = False
+        model = models.__dict__[args.arch](**model_kwargs)
         # load weights
         if args.weights is not None:
             model.load_state_dict(torch.load(args.weights))
 
-    if not torch.cuda.is_available() and not torch.backends.mps.is_available():
+    if not torch.cuda.is_available():
         print('using CPU, this will be slow')
     elif args.distributed:
         # For multiprocessing distributed, DistributedDataParallel constructor
@@ -179,9 +185,9 @@ def main_worker(gpu, ngpus_per_node, args):
     elif args.gpu is not None and torch.cuda.is_available():
         torch.cuda.set_device(args.gpu)
         model = model.cuda(args.gpu)
-    elif torch.backends.mps.is_available():
-        device = torch.device("mps")
-        model = model.to(device)
+    # elif torch.backends.mps.is_available():
+    #     device = torch.device("mps")
+    #     model = model.to(device)
     else:
         # DataParallel will divide and allocate batch_size to all available GPUs
         if args.arch.startswith('alexnet') or args.arch.startswith('vgg'):
@@ -195,8 +201,8 @@ def main_worker(gpu, ngpus_per_node, args):
             device = torch.device('cuda:{}'.format(args.gpu))
         else:
             device = torch.device("cuda")
-    elif torch.backends.mps.is_available():
-        device = torch.device("mps")
+    # elif torch.backends.mps.is_available():
+    #     device = torch.device("mps")
     else:
         device = torch.device("cpu")
     # define loss function (criterion), optimizer, and learning rate scheduler
@@ -280,7 +286,7 @@ def main_worker(gpu, ngpus_per_node, args):
     profiler = Profiler() if (args.profile and gpu == 0) else None
     
     if args.evaluate:
-        validate(val_loader, model, criterion, profiler, args)
+        validate(val_loader, model, criterion, profiler, args, ngpus_per_node)
         return
 
     for epoch in range(args.start_epoch, args.epochs):
@@ -291,7 +297,7 @@ def main_worker(gpu, ngpus_per_node, args):
         train(train_loader, model, criterion, optimizer, profiler, epoch, device, args, ngpus_per_node)
 
         # evaluate on validation set
-        acc1 = validate(val_loader, model, criterion, args)
+        acc1 = validate(val_loader, model, criterion, profiler, args, ngpus_per_node)
         
         scheduler.step()
         
@@ -383,9 +389,9 @@ def validate(val_loader, model, criterion, profiler, args, ngpus_per_node):
                 i = base_progress + i
                 if args.gpu is not None and torch.cuda.is_available():
                     images = images.cuda(args.gpu, non_blocking=True)
-                if torch.backends.mps.is_available():
-                    images = images.to('mps')
-                    target = target.to('mps')
+                # if torch.backends.mps.is_available():
+                #     images = images.to('mps')
+                #     target = target.to('mps')
                 if torch.cuda.is_available():
                     target = target.cuda(args.gpu, non_blocking=True)
 
@@ -479,8 +485,8 @@ class AverageMeter(object):
     def all_reduce(self):
         if torch.cuda.is_available():
             device = torch.device("cuda")
-        elif torch.backends.mps.is_available():
-            device = torch.device("mps")
+        # elif torch.backends.mps.is_available():
+        #     device = torch.device("mps")
         else:
             device = torch.device("cpu")
         total = torch.tensor([self.sum, self.count], dtype=torch.float32, device=device)
