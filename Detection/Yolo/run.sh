@@ -20,6 +20,8 @@ cd ../
 mkdir -p ~/.config/Ultralytics/
 cp ./Arial.ttf ~/.config/Ultralytics/Arial.ttf
 
+model_path=""
+
 VALID_OPTIONS=("yolov5s" "yolov5m" "yolov5l" "yolov5x" "yolov5n") 
 # 读取用户输入 
 read -p "请输入一个模型选项（yolov5s, yolov5m, yolov5l, yolov5x, yolov5n）: " model_option 
@@ -35,17 +37,9 @@ done
 # 检查输入是否有效，并据此运行脚本  
 if $is_valid; then  
     echo "使用模型选项: $model_option"  
-    # 推理
-    echo "推理..."
-    # 检查 detect.py 是否存在以及 weights 文件是否存在  
-    if [ -f "${model_option}.pt" ]; then  
-        # 推理  
-        python3 detect.py --weights "${model_option}.pt" --source data/images/zidane.jpg  
-    else  
-        echo "模型权重文件不存在。"  
-    fi  
+    
     # 训练
-    echo "训练..." 
+    echo "Training $model_option START" 
 #    python3 train.py --data coco.yaml --epochs 300 --weights '' --cfg "${model_option}.yaml"  --batch-size 64
     python -m torch.distributed.run \
         --nproc_per_node 4 train.py \
@@ -58,15 +52,15 @@ if $is_valid; then
         --device 0,1,2,3 \
         --nosave \
         --noval \
-        --workers 16 \
-        --profile
+        --workers 16 
+    echo "Training $model_option FINISHED"
     # 验证
     echo "验证..."
-    if [ -f "${model_option}.pt" ]; then  
+    if [ -f $model_path ]; then  
         # 推理  
-        python3 val.py --weights "${model_option}.pt" --data coco.yaml --img 640 
+        python3 val.py --weights $model_path --data coco.yaml --img 640 
     else  
-        echo "模型权重文件不存在。"  
+        echo "Model path $model_path not exists "  
     fi  
     
 else  
