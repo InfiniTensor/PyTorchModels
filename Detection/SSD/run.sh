@@ -1,12 +1,12 @@
 #!/bin/bash
 
 # 这个脚本用于运行Python脚本
-# 数据集放在同级目录下  /VOCdevkit/
+# 数据集放在同级目录下  /data1/shared/Dataset/VOCdevkit 
 
 # 确保脚本在遇到错误时停止执行
 set -e
 
-export CUDA_VISIBLE_DEVICES=2
+export CUDA_VISIBLE_DEVICES=0
 
 # 检查软连接是否已经存在了
 if [ -e "../data/VOCdevkit" ]; then
@@ -26,6 +26,6 @@ python train.py
 
 # execute detect.py
 echo "executing detect.py..."
-python detect.py
+python eval.py
 
 echo "finished"
