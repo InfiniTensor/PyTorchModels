@@ -1,3 +1,4 @@
+
 #!/bin/bash
 
 # 这个脚本用于运行Python脚本
@@ -16,16 +17,29 @@ else
     ln -s  /data1/shared/Dataset/VOCdevkit ../data
 fi
 
+ckpt_path="./checkpoint_ssd300.pth.tar"
+
+ckpt_url="https://cloud.tsinghua.edu.cn/seafhttp/files/9d78bd21-6e46-4677-b825-f03af94cec00/checkpoint_ssd300.pth.tar"
+
 # execute create_data_lists.py
 echo "executing create_data_lists.py..."
 python create_data_lists.py
 
-# execute train.py
-echo "executing train.py..."
-python train.py
+if [ -e $ckpt_path ]; then
+    echo "$ckpt_path exists"
+else
+    echo "Download $ckpt_path from url $ckpt_url"
+    # Download model ckpt from server
+    wget $ckpt_url
+fi
 
 # execute detect.py
-echo "executing detect.py..."
+echo "Evaluate SSD START"
 python eval.py
 
-echo "finished"
+rm $ckpt_path
+
+echo "Evaluate SSD FINISHED"
+
+
+# mAP 0.771

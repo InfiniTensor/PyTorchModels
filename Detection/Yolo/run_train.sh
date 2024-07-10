@@ -7,28 +7,37 @@
 # echo "配置环境..."
 # #pip install -r requirements.txt
 
-# 数据集准备
-echo "数据集准备..."
-if [ -d "datasets" ]; then
-    rm -rf datasets
-fi
-mkdir datasets
-cd datasets
-ln -s /data1/shared/Dataset/coco/ ../data
-cd ../
+set -e
 
+if [ -e "./runs" ]; then
+    rm -rf "./runs"
+fi
+
+export CUDA_VISIBLE_DEVICES=0,1,2,3
+
+if [ -e "../data/coco" ]; then
+    echo "../data/coco exists"
+else
+    ln -s /data1/shared/Dataset/coco/ ../data
+fi
+
+# CP Arial.ttf to local
 mkdir -p ~/.config/Ultralytics/
 cp ./Arial.ttf ~/.config/Ultralytics/Arial.ttf
 
-model_path=""
+MODELS=("yolov5n"
+        "yolov5s"
+        "yolov5m"
+        "yolov5l"
+        "yolov5x")
 
-VALID_OPTIONS=("yolov5s" "yolov5m" "yolov5l" "yolov5x" "yolov5n") 
 # 读取用户输入 
-read -p "请输入一个模型选项（yolov5s, yolov5m, yolov5l, yolov5x, yolov5n）: " model_option 
+model_option=$1
+
 # 检查输入是否有效  
 is_valid=false  
-for option in "${VALID_OPTIONS[@]}"; do  
-    if [[ "$model_option" == "$option" ]]; then  
+for model in "${MODELS[@]}"; do  
+    if [[ "$model_option" == "$model" ]]; then  
         is_valid=true  
         break  
     fi  
@@ -36,8 +45,7 @@ done
 
 # 检查输入是否有效，并据此运行脚本  
 if $is_valid; then  
-    echo "使用模型选项: $model_option"  
-    
+
     # 训练
     echo "Training $model_option START" 
 #    python3 train.py --data coco.yaml --epochs 300 --weights '' --cfg "${model_option}.yaml"  --batch-size 64
@@ -54,17 +62,8 @@ if $is_valid; then
         --noval \
         --workers 16 
     echo "Training $model_option FINISHED"
-    # 验证
-    echo "验证..."
-    if [ -f $model_path ]; then  
-        # 推理  
-        python3 val.py --weights $model_path --data coco.yaml --img 640 
-    else  
-        echo "Model path $model_path not exists "  
-    fi  
-    
+
 else  
-    echo "输入的模型选项无效，请确保输入yolov5s, yolov5m, 或 yolov5l中的一个。"  
+    echo "Choose model in yolov5n yolov5s yolov5m yolov5x yolov5n"  
 fi
 
-echo "所有脚本执行完毕。"
