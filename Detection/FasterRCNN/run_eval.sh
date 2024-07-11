@@ -25,4 +25,6 @@ echo "Evaluate FasterRCNN START"
 python eval.py main --load-path=$ckpt_path
 echo "Evaludate FasterRCNN FINISHED"
 
+rm $ckpt_path
+
 # mAP=0.6975
