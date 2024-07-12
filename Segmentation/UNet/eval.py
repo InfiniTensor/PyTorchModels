@@ -1,6 +1,7 @@
 import torch
 import argparse
 
+from pathlib import Path
 from unet import UNet
 from torchvision import transforms, datasets
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -25,20 +26,24 @@ parser.add_argument("--input_size", default=256, type=int,
                     help="Input size")
 parser.add_argument("--classes", type=int, default=22, 
                     help="Num of classes")
-parser.add_argument("--dataset_path", type=str, default="./data")
+parser.add_argument("--dataset_path", type=str, default="../data")
 parser.add_argument("--VOC_year", type=str, default="2007")
 args = parser.parse_args()
 
 data_folder = args.dataset_path
 year = args.VOC_year
-model_path = "./model/unet-voc.pt"
+model_path = Path("model") / f"unet_b4_ep50.pt"
 
-transform = transforms.Compose([transforms.Resize((args.input_size, args.input_size)), transforms.ToTensor(), transforms.Grayscale()])
+transform = transforms.Compose([
+    transforms.Resize((args.input_size, args.input_size)), 
+    transforms.Grayscale(),
+    transforms.ToTensor(), 
+])
 dataset = datasets.VOCSegmentation(
     data_folder,
     year=year,
-    download=True,
-    image_set="train",
+    download=False,
+    image_set="test",
     transform=transform,
     target_transform=transform,
 )
