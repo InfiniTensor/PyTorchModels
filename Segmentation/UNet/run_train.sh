@@ -26,12 +26,12 @@ echo "Training UNet START"
 # classes 模型输出类别数量
 python train.py \
        --dataset_path ../data \
-       --VOC_year 2007 \
+       --VOC_year 2012 \
        --batch_size 4 \
        --epochs 50 \
        --input_size 256 \
-       --classes 22 \
+       --classes 21 \
 
-rm -rf model
+# rm -rf model
 
 echo "Training UNet FINISHED"
