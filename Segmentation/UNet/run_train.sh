@@ -28,7 +28,7 @@ python train.py \
        --dataset_path ../data \
        --VOC_year 2007 \
        --batch_size 4 \
-       --epochs 50 \
+       --epochs 100 \
        --input_size 256 \
        --classes 21 \
 
