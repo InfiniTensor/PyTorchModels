@@ -26,7 +26,7 @@ echo "Training UNet START"
 # classes 模型输出类别数量
 python train.py \
        --dataset_path ../data \
-       --VOC_year 2012 \
+       --VOC_year 2007 \
        --batch_size 4 \
        --epochs 50 \
        --input_size 256 \
