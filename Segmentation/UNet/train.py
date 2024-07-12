@@ -50,11 +50,13 @@ def voc_colormap_to_label(mask):
 
 def train(model,
           epochs,
+          batch_size,
           datasetloader,
           device,
           optimizer,
           saving_interval,
           model_path):
+    model_dir = model_path.parent
     criterion = nn.CrossEntropyLoss()
     for epoch in range(epochs):
         print(f"Epoch {epoch}")
@@ -71,11 +73,10 @@ def train(model,
             loss.backward()
             optimizer.step()
             losses.append(loss.item())
-        print(sum(losses) /len(losses))
+        print(sum(losses) / len(losses))
         if (epoch + 1) % saving_interval == 0:
             print("Saving model")
-
-        torch.save(model.state_dict(), model_path)
+            torch.save(model.state_dict(), model_dir / f"unet_b{batch_size}_ep{epoch}.pt")
     torch.save(model.state_dict(), model_path)
     return
 
@@ -101,7 +102,7 @@ def main():
     model_folder = Path(args.saved_dir)
     model_folder.mkdir(exist_ok=True)
     model_path = model_folder / f"unet_b{args.batch_size}_ep{args.epochs}.pt"
-    saving_interval = 10
+    saving_interval = 50
 
     epochs = args.epochs
     input_size = args.input_size
@@ -113,7 +114,8 @@ def main():
     transform = transforms.Compose([
         transforms.Resize((input_size, input_size)),
         transforms.ToTensor(), 
-        ])
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
 
     target_transform = transforms.Compose([
         transforms.Resize((input_size, input_size)),
@@ -134,11 +136,10 @@ def main():
     model.to(device)
     if os.path.isfile(model_path):
         model.load_state_dict(torch.load(model_path, map_location=torch.device(device)))
-    optimizer = optim.RMSprop(
-        model.parameters(), lr=0.0001, weight_decay=1e-8, momentum=0.9
-    )
+    optimizer=optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-4)
     train(model,
           epochs,
+          batch_size,
           datasetloader,
           device,
           optimizer,
