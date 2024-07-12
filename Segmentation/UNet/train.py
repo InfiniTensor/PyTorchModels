@@ -43,15 +43,17 @@ parser.add_argument("--input_size", default=256, type=int,
                     help="Input size")
 parser.add_argument("--classes", type=int, default=22, 
                     help="Num of classes")
-parser.add_argument("--dataset_path", type=str, default="./data")
+parser.add_argument("--dataset_path", type=str, default="../data")
 parser.add_argument("--VOC_year", type=str, default="2007")
+parser.add_argument("--saved_dir", type=str, default="./model")
 args = parser.parse_args()
 
+print(args)
 
-data_folder = "./data"
-model_folder = Path("./model")
+data_folder = args.dataset_path 
+model_folder = Path(args.saved_dir)
 model_folder.mkdir(exist_ok=True)
-model_path = "./model/unet-voc.pt"
+model_path = model_folder / f"unet_b{args.batch_size}_ep{args.epochs}.pt"
 saving_interval = 10
 
 epochs = args.epochs
@@ -61,11 +63,15 @@ batch_size = args.batch_size
 year = args.VOC_year
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-transform = transforms.Compose([transforms.Resize((input_size, input_size)), transforms.ToTensor(), transforms.Grayscale()])
+transform = transforms.Compose([
+    transforms.Resize((input_size, input_size)),
+    transforms.Grayscale(),
+    transforms.ToTensor(), 
+    ])
 dataset = datasets.VOCSegmentation(
     data_folder,
     year=year,
-    download=True,
+    download=False,
     image_set="train",
     transform=transform,
     target_transform=transform,
