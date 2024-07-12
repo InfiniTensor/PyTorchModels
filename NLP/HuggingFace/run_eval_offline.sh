@@ -31,7 +31,7 @@ MODEL_PATH="./${model}"
 MODEL_URL=${MODELS[$model]}
 
 if [ -e ${MODEL_PATH} ]; then
-    echo "${MODEL_PATH}.zip exists"
+    echo "${MODEL_PATH} exists"
 else 
     echo "Download ${MODEL_PATH}.zip from url $MODEL_URL"
     wget $MODEL_URL
