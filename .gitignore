@@ -39,4 +39,4 @@ __pycache__/
 *.pt
 
 # Yolo runs
-Detection/Yolo/runs
+Detection/yolo/runs
