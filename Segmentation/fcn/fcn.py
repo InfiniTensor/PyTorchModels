@@ -113,6 +113,8 @@ def main():
                         help='Location of the dataset root directory.')
     parser.add_argument('--mode', default='both', type=str,
                         choices=['train', 'infer', 'both'], help='Mode to run: train, infer, or both.')
+    parser.add_argument('--num_classes', default=21, type=int,
+                        help='Class num')
     args = parser.parse_args()
 
     print(vars(args))
@@ -127,7 +129,7 @@ def main():
     ])
 
     target_transform = transforms.Compose([
-        transforms.Resize((input_size, input_size)),
+        transforms.Resize(input_size),
         transforms.Lambda(lambda img: voc_colormap_to_label(img))
     ])
 
@@ -144,7 +146,7 @@ def main():
     val_dataset = VOCSegmentation(
         root=args.dataset_root,
         year='2007',
-        image_set='val',
+        image_set='test',
         download=False,
         transform=transform,
         target_transform=target_transform
@@ -157,7 +159,11 @@ def main():
                             shuffle=False, num_workers=2, drop_last=True)
 
     # FCN modeling.
-    model = fcn_resnet50(pretrained=False)
+    if args.mode == "infer":
+        model = fcn_resnet50(pretrained=True, num_classes=args.num_classes)
+    else:
+        model = fcn_resnet50(pretrained=False, num_classes=args.num_classes)
+    
 
     # Move the model to the device.
     device = torch.device(args.device)
@@ -181,7 +187,7 @@ def main():
 
     if args.mode in ['infer', 'both']:
         print(f'[INFO] Start inference on {args.device}.')
-        evaluate(model, val_loader, device)
+        evaluate(model, args.num_classes, val_loader, device)
       
 if __name__ == "__main__":
     main()
