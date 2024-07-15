@@ -77,7 +77,7 @@ transform = transforms.Compose([
 
 target_transform = transforms.Compose([
     transforms.Resize(input_size),
-    transforms.ToTensor()
+    transforms.PILToTensor()
 ])
 
 # Dataset loading.
@@ -107,14 +107,13 @@ val_loader = DataLoader(val_dataset, batch_size=args.infer_batch_size,
 
 # DeepLabV3 modeling.
 model = deeplabv3_resnet50(pretrained=False)
-model.classifier[4] = nn.Conv2d(256, 21, kernel_size=(1, 1), stride=(1, 1))
 
 # Move the model to the device.
 device = torch.device(args.device)
 model.to(device)
 
 # Loss function and optimizer.
-criterion = nn.CrossEntropyLoss()
+criterion = nn.CrossEntropyLoss(ignore_index=255)
 optimizer = optim.SGD(model.parameters(), lr=0.001,
                       momentum=0.9, weight_decay=0.0005)
 
