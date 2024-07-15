@@ -105,7 +105,7 @@ def main():
     classes = args.classes
     batch_size = args.batch_size
     year = args.VOC_year
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     transform = transforms.Compose([
         transforms.Resize((input_size, input_size)),
@@ -136,6 +136,7 @@ def main():
         model.parameters(), lr=0.0001, weight_decay=1e-8, momentum=0.9
     )
     
+    print(f'[INFO] Start training on {device}.')
     train(model,
           epochs,
           batch_size,

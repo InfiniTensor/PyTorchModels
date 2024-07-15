@@ -14,9 +14,6 @@ else
     ln -s /data1/shared/Dataset/VOCdevkit ../data/VOCdevkit
 fi
 
-# 运行train.py
-echo "Training UNet START"
-
 # 参数解释
 # dataset_path 数据集保存位置
 # dataset_path
@@ -28,10 +25,6 @@ python train.py \
        --dataset_path ../data \
        --VOC_year 2007 \
        --batch_size 4 \
-       --epochs 100 \
+       --epochs 10 \
        --input_size 256 \
        --classes 21 \
-
-# rm -rf model
-
-echo "Training UNet FINISHED"
