@@ -37,6 +37,7 @@ __pycache__/
 # data/
 *.tar
 *.pt
+*.pth
 
 # Yolo runs
 Detection/yolo/runs
