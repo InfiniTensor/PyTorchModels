@@ -19,7 +19,80 @@
 - **ViT**: `vit_b_16`, `vit_b_32`, `vit_h_14`, `vit_l_16`, `vit_l_32`
 - **WideResNet**: `wide_resnet101_2`, `wide_resnet50_2`
 
+# 模型实际运行情况
+模型在 python==3.10.12 torch==1.11.0+cu113 torchvision==0.12.0+cu113 环境下的运行的实际情况如下表
 
+| Models             | Train Loss | Acc@1  | Acc@5  |
+| ------------------ | ---------- | ------ | ------ |
+| alexnet            |            | 56.550 | 79.088 |
+| convnext_base      |            | 83.706 | 96.732 |
+| convnext_large     |            | 84.120 | 96.880 |
+| convnext_small     |            | 83.302 | 96.546 |
+| convnext_tiny      |            | 82.136 | 95.944 |
+| densenet121        |            | 74.434 | 91.972 |
+| densenet161        |            | 77.092 | 93.558 |
+| densenet169        |            | 75.576 | 92.804 |
+| densenet201        |            | 76.882 | 93.374 |
+| efficientnet_b0    |            | 77.676 | 93.584 |
+| efficientnet_b1    |            | 77.594 | 93.596 |
+| efficientnet_b2    |            | 77.788 | 93.738 |
+| efficientnet_b3    |            | 78.548 | 94.376 |
+| efficientnet_b4    |            | 79.272 | 94.532 |
+| efficientnet_b5    |            | 73.148 | 90.940 |
+| efficientnet_b6    |            | 74.416 | 91.858 |
+| efficientnet_b7    |            | 73.926 | 91.568 |
+| googlenet          |            | 69.772 | 89.534 |
+| inception_v3       |            | 69.524 | 88.646 |
+| mnasnet0_5         |            | 67.754 | 87.490 |
+| mnasnet0_75        |
+| mnasnet1_0         |            | 73.468 | 91.522 |
+| mnasnet1_3         |
+| mobilenet_v2       |            | 71.868 | 90.306 |
+| mobilenet_v3_large |            | 74.056 | 91.342 |
+| mobilenet_v3_small |            | 67.666 | 87.416 |
+| regnet_x_16gf      |            | 80.060 | 94.946 |
+| regnet_x_1_6gf     |            | 77.042 | 93.440 |
+| regnet_x_32gf      |            | 80.614 | 95.238 |
+| regnet_x_3_2gf     |
+| regnet_x_400mf     |            | 72.820 | 90.964 |
+| regnet_x_800mf     |            | 75.198 | 92.338 |
+| regnet_x_8gf       |            | 79.314 | 94.688 |
+| regnet_y_128gf     |
+| regnet_y_16gf      |            | 80.426 | 95.244 |
+| regnet_y_1_6gf     |            | 77.942 | 93.978 |
+| regnet_y_32gf      |            | 80.874 | 95.350 |
+| regnet_y_3_2gf     |            | 78.942 | 94.566 |
+| regnet_y_400mf     |            | 74.034 | 91.718 |
+| regnet_y_800mf     |            | 76.400 | 93.144 |
+| regnet_y_8gf       |            | 80.020 | 95.048 |
+| resnet101          |            | 77.372 | 93.556 |
+| resnet152          |            | 78.326 | 94.060 |
+| resnet18           |            | 69.764 | 89.078 |
+| resnet34           |            | 73.296 | 91.416 |
+| resnet50           |            | 76.148 | 92.878 |
+| resnext101_32x8d   |            | 79.306 | 94.530 |
+| resnext50_32x4d    |            | 77.608 | 93.688 |
+| shufflenet_v2_x0_5 |            | 60.552 | 81.732 |
+| shufflenet_v2_x1_0 |            | 69.346 | 88.312 |
+| shufflenet_v2_x1_5 |
+| shufflenet_v2_x2_0 |
+| squeezenet1_0      |            | 58.102 | 80.418 |
+| squeezenet1_1      |            | 58.180 | 80.608 |
+| vgg11              |            | 69.046 | 88.632 |
+| vgg11_bn           |            | 70.382 | 89.810 |
+| vgg13              |            | 69.946 | 89.262 |
+| vgg13_bn           |            | 71.556 | 90.378 |
+| vgg16              |            | 71.580 | 90.394 |
+| vgg16_bn           |            | 73.382 | 91.504 |
+| vgg19              |            | 72.390 | 90.884 |
+| vgg19_bn           |            | 74.236 | 91.848 |
+| vit_b_16           |            | 81.068 | 95.318 |
+| vit_b_32           |            | 75.912 | 92.470 |
+| vit_l_16           |            | 79.688 | 94.546 |
+| vit_l_32           |            | 76.964 | 93.066 |
+| wide_resnet101_2   |            | 78.844 | 94.276 |
+| wide_resnet50_2    |            | 78.482 | 94.082 |
+ 
 ## 环境要求
 
 - `pip install -r requirements.txt`

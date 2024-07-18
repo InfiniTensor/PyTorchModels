@@ -21,6 +21,8 @@ import torchvision.transforms as transforms
 from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import Subset
 
+from profiler import Profiler
+
 model_names = sorted(name for name in models.__dict__
     if name.islower() and not name.startswith("__")
     and callable(models.__dict__[name]))
@@ -59,7 +61,7 @@ parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true',
                     help='evaluate model on validation set')
 parser.add_argument('--pretrained', dest='pretrained', action='store_true',
                     help='use pre-trained model')
-parser.add_argument('--weights', default='', type=str, metavar='PATH',
+parser.add_argument('--weights', default=None, type=str, metavar='PATH',
                     help='weights to initialize model(default: none)')
 parser.add_argument('--world-size', default=-1, type=int,
                     help='number of nodes for distributed training')
@@ -79,11 +81,12 @@ parser.add_argument('--multiprocessing-distributed', action='store_true',
                          'fastest way to use PyTorch for either single node or '
                          'multi node data parallel training')
 parser.add_argument('--dummy', action='store_true', help="use fake data to benchmark")
+parser.add_argument('--profile', action='store_true', help="use profiling")
 
 best_acc1 = 0
 
 
-def main():
+def main(): 
     args = parser.parse_args()
 
     if args.seed is not None:
@@ -141,18 +144,24 @@ def main_worker(gpu, ngpus_per_node, args):
             args.rank = args.rank * ngpus_per_node + gpu
         dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
                                 world_size=args.world_size, rank=args.rank)
+
+    model_kwargs = {}
+    if args.arch in ["googlenet", "inception_v3"] :
+        model_kwargs["aux_logits"] = False
     # create model
     if args.pretrained:
         print("=> using pre-trained model '{}'".format(args.arch))
-        model = models.__dict__[args.arch](pretrained=True)
+        model_kwargs["pretrained"] = True
+        model = models.__dict__[args.arch](**model_kwargs)
     else:
         print("=> creating model '{}'".format(args.arch))
-        model = models.__dict__[args.arch]()
+        model_kwargs["pretrained"] = False
+        model = models.__dict__[args.arch](**model_kwargs)
         # load weights
         if args.weights is not None:
             model.load_state_dict(torch.load(args.weights))
 
-    if not torch.cuda.is_available() and not torch.backends.mps.is_available():
+    if not torch.cuda.is_available():
         print('using CPU, this will be slow')
     elif args.distributed:
         # For multiprocessing distributed, DistributedDataParallel constructor
@@ -176,9 +185,9 @@ def main_worker(gpu, ngpus_per_node, args):
     elif args.gpu is not None and torch.cuda.is_available():
         torch.cuda.set_device(args.gpu)
         model = model.cuda(args.gpu)
-    elif torch.backends.mps.is_available():
-        device = torch.device("mps")
-        model = model.to(device)
+    # elif torch.backends.mps.is_available():
+    #     device = torch.device("mps")
+    #     model = model.to(device)
     else:
         # DataParallel will divide and allocate batch_size to all available GPUs
         if args.arch.startswith('alexnet') or args.arch.startswith('vgg'):
@@ -192,8 +201,8 @@ def main_worker(gpu, ngpus_per_node, args):
             device = torch.device('cuda:{}'.format(args.gpu))
         else:
             device = torch.device("cuda")
-    elif torch.backends.mps.is_available():
-        device = torch.device("mps")
+    # elif torch.backends.mps.is_available():
+    #     device = torch.device("mps")
     else:
         device = torch.device("cpu")
     # define loss function (criterion), optimizer, and learning rate scheduler
@@ -274,8 +283,10 @@ def main_worker(gpu, ngpus_per_node, args):
         val_dataset, batch_size=args.batch_size, shuffle=False,
         num_workers=args.workers, pin_memory=True, sampler=val_sampler)
 
+    profiler = Profiler() if (args.profile and gpu == 0) else None
+    
     if args.evaluate:
-        validate(val_loader, model, criterion, args)
+        validate(val_loader, model, criterion, profiler, args, ngpus_per_node)
         return
 
     for epoch in range(args.start_epoch, args.epochs):
@@ -283,10 +294,10 @@ def main_worker(gpu, ngpus_per_node, args):
             train_sampler.set_epoch(epoch)
 
         # train for one epoch
-        train(train_loader, model, criterion, optimizer, epoch, device, args)
+        train(train_loader, model, criterion, optimizer, profiler, epoch, device, args, ngpus_per_node)
 
         # evaluate on validation set
-        acc1 = validate(val_loader, model, criterion, args)
+        acc1 = validate(val_loader, model, criterion, profiler, args, ngpus_per_node)
         
         scheduler.step()
         
@@ -306,7 +317,7 @@ def main_worker(gpu, ngpus_per_node, args):
             }, is_best)
 
 
-def train(train_loader, model, criterion, optimizer, epoch, device, args):
+def train(train_loader, model, criterion, optimizer, profiler, epoch, device, args, ngpus_per_node):
     batch_time = AverageMeter('Time', ':6.3f')
     data_time = AverageMeter('Data', ':6.3f')
     losses = AverageMeter('Loss', ':.4e')
@@ -319,11 +330,15 @@ def train(train_loader, model, criterion, optimizer, epoch, device, args):
 
     # switch to train mode
     model.train()
+    
+    if profiler:
+        profiler.reset()
+        profiler.start()
 
     end = time.time()
     for i, (images, target) in enumerate(train_loader):
         # measure data loading time
-        data_time.update(time.time() - end)
+        data_time.update(time.time() - end)   
 
         # move data to the same device as model
         images = images.to(device, non_blocking=True)
@@ -343,6 +358,10 @@ def train(train_loader, model, criterion, optimizer, epoch, device, args):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+        
+        if profiler:
+            profiler.update(args.batch_size * ngpus_per_node)
+            # print(f"===================== {profiler.throughput()} =========")
 
         # measure elapsed time
         batch_time.update(time.time() - end)
@@ -350,9 +369,18 @@ def train(train_loader, model, criterion, optimizer, epoch, device, args):
 
         if i % args.print_freq == 0:
             progress.display(i + 1)
+    
+    if profiler: 
+        profiler.stop()     
+        print(f"Train throughput for epoch {epoch} is {profiler.throughput()} samples/s!")
+      
 
 
-def validate(val_loader, model, criterion, args):
+def validate(val_loader, model, criterion, profiler, args, ngpus_per_node):
+
+    if profiler:
+        profiler.reset()
+        profiler.start()
 
     def run_validate(loader, base_progress=0):
         with torch.no_grad():
@@ -361,15 +389,20 @@ def validate(val_loader, model, criterion, args):
                 i = base_progress + i
                 if args.gpu is not None and torch.cuda.is_available():
                     images = images.cuda(args.gpu, non_blocking=True)
-                if torch.backends.mps.is_available():
-                    images = images.to('mps')
-                    target = target.to('mps')
+                # if torch.backends.mps.is_available():
+                #     images = images.to('mps')
+                #     target = target.to('mps')
                 if torch.cuda.is_available():
                     target = target.cuda(args.gpu, non_blocking=True)
 
-                # compute output
-                output = model(images)
-                loss = criterion(output, target)
+                with torch.no_grad():
+                    # compute output
+                    output = model(images)
+                    loss = criterion(output, target)
+                
+                if profiler:
+                    profiler.update(args.batch_size * ngpus_per_node)
+                    # print(f"===================== {profiler.throughput()} =========")
 
                 # measure accuracy and record loss
                 acc1, acc5 = accuracy(output, target, topk=(1, 5))
@@ -383,6 +416,10 @@ def validate(val_loader, model, criterion, args):
 
                 if i % args.print_freq == 0:
                     progress.display(i + 1)
+            
+            if profiler: 
+                profiler.end()     
+                print(f"Evaluate throughput for is {profiler.throughput()} samples/s!")
 
     batch_time = AverageMeter('Time', ':6.3f', Summary.NONE)
     losses = AverageMeter('Loss', ':.4e', Summary.NONE)
@@ -448,8 +485,8 @@ class AverageMeter(object):
     def all_reduce(self):
         if torch.cuda.is_available():
             device = torch.device("cuda")
-        elif torch.backends.mps.is_available():
-            device = torch.device("mps")
+        # elif torch.backends.mps.is_available():
+        #     device = torch.device("mps")
         else:
             device = torch.device("cpu")
         total = torch.tensor([self.sum, self.count], dtype=torch.float32, device=device)

@@ -30,3 +30,14 @@
 *.exe
 *.out
 *.app
+
+*.pyc
+__pycache__/
+*.log
+# data/
+*.tar
+*.pt
+*.pth
+
+# Yolo runs
+Detection/yolo/runs
