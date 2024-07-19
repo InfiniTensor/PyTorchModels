@@ -147,7 +147,7 @@ def main_worker(gpu, ngpus_per_node, args):
 
     model_kwargs = {}
     if args.arch in ["googlenet", "inception_v3"] :
-        model_kwargs["aux_logits"] = True 
+        model_kwargs["aux_logits"] = False
     # create model
     if args.pretrained:
         print("=> using pre-trained model '{}'".format(args.arch))
