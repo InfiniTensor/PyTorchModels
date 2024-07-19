@@ -5,24 +5,56 @@
 
 set -e
 
-# 检查软连接是否已经存在了
+export CUDA_VISIBLE_DEVICES=0,1,2,3
+
+ARCH=""
+
+# Help message
+usage() {
+    echo "Usage: $0 -a ARCH"
+    echo "  -a ARCH, --arch ARCH       Model architecture (e.g., AlexNet, ResNet18, etc.)"
+    echo "  -h, --help                 Display this help and exit"
+    exit 1
+}
+
+# Parse command line arguments
+while getopts "a:h" opt; do
+    case $opt in
+        a) ARCH=$OPTARG ;;
+        h) usage ;;
+        *) usage ;;
+    esac
+done
+
+# Check ARCH parsing
+if [ -z "$ARCH" ]; then
+    echo "Error: Model architecture is required."
+    usage
+fi
+
+# Check dataset
 if [ -e "../data/imagenet2012" ]; then
-    echo "../data/imagenet2012 exists"
+    echo "Dataset ../data/imagenet2012 exists"
 else
-    # 创建软连接
+    # Link defaut dataset
     ln -s /data1/shared/Dataset/imagenet2012 ../data
 fi
 
-model=$1
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+# Define log file with ARCH included
+LOG_FILE="pytorch-${ARCH}-train-gpu0123.log"
+echo "Training Start: $(date +'%m/%d/%Y %T')" > ${LOG_FILE}
 
-# 单机四卡分布式训练
+
+# 4 card training
+echo "Training $ARCH..."
 python main.py \
-    -a $model \
+    -a $ARCH \
     --dist-backend 'nccl' \
     --dist-url "tcp://localhost:8828" \
     --multiprocessing-distributed \
     --world-size 1 \
     --rank 0 \
     --batch-size 64 \
-    ../data/imagenet2012
+    ../data/imagenet2012 2>&1 | tee -a $LOG_FILE
+
+echo "Training Finish: $(date + '%m/%d/%Y %T')" >> ${LOG_FILE}
