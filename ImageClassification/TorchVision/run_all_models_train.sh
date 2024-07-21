@@ -116,7 +116,7 @@ for model in "${models[@]}"; do
     echo "Training $model finish: $(date +'%m/%d/%Y %T')" >> ${LOG_FILE}
     
     # 等待输出缓冲区冲刷
-    sleep 5
+    sleep 20
 
 done
 
