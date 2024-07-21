@@ -98,7 +98,7 @@ models=(
 )
 
 # Define log file with ARCH included
-LOG_FILE="pytorch-all-eval-gpu0.log"
+LOG_FILE="pytorch-all-eval-gpu${CUDA_VISIBLE_DEVICES}.log"
 echo "Evaluating start: $(date +'%m/%d/%Y %T')" > ${LOG_FILE}
 
 
