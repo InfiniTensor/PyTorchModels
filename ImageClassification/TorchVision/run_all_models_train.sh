@@ -87,7 +87,7 @@ models=(
 )
 
 # Define log file with ARCH included
-LOG_FILE="pytorch-all-train-gpu0123.log"
+LOG_FILE="pytorch-all-train-gpu${CUDA_VISIBLE_DEVICES}.log"
 echo "Training start: $(date +'%m/%d/%Y %T')" > ${LOG_FILE}
 
 # 遍历所有模型
