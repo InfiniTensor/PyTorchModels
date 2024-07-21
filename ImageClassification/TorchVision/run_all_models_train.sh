@@ -87,12 +87,11 @@ models=(
 )
 
 # Define log file with ARCH included
-LOG_FILE="pytorch-all-train-gpu${CUDA_VISIBLE_DEVICES}.log"
-echo "Training start: $(date +'%m/%d/%Y %T')" > ${LOG_FILE}
+echo "Training start: $(date +'%m/%d/%Y %T')" 
 
 # 遍历所有模型
 for model in "${models[@]}"; do
-    echo "Training $model start: $(date +'%m/%d/%Y %T')" >> ${LOG_FILE}
+    echo "Training $model start: $(date +'%m/%d/%Y %T')"
     
     python main.py \
         -a $model \
@@ -102,7 +101,7 @@ for model in "${models[@]}"; do
         --world-size 1 \
         --rank 0 \
         --batch-size 64 \
-        ../data/imagenet2012 2>&1 | tee -a $LOG_FILE &
+        ../data/imagenet2012 &
 
     # 获取进程ID并保存
     pid=$!
@@ -113,7 +112,7 @@ for model in "${models[@]}"; do
     pkill -P $pid
     kill $pid
 
-    echo "Training $model finish: $(date +'%m/%d/%Y %T')" >> ${LOG_FILE}
+    echo "Training $model finish: $(date +'%m/%d/%Y %T')"
     
     # 等待输出缓冲区冲刷
     sleep 20

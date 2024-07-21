@@ -98,13 +98,12 @@ models=(
 )
 
 # Define log file with ARCH included
-LOG_FILE="pytorch-all-eval-gpu${CUDA_VISIBLE_DEVICES}.log"
-echo "Evaluating start: $(date +'%m/%d/%Y %T')" > ${LOG_FILE}
+echo "Evaluating start: $(date +'%m/%d/%Y %T')"
 
 
 # 遍历所有模型
 for model in "${models[@]}"; do
-    echo "Evaluating $model start: $(date +'%m/%d/%Y %T')" >> ${LOG_FILE}
+    echo "Evaluating $model start: $(date +'%m/%d/%Y %T')"
     
     python main.py \
     -a $model \
@@ -112,12 +111,12 @@ for model in "${models[@]}"; do
     --batch-size 64 \
     --pretrained \
     --evaluate \
-    ../data/imagenet2012 2>&1 | tee -a $LOG_FILE
+    ../data/imagenet2012 
 
     # 删除下载的 ckpt
     rm $HOME/.cache/torch/hub/checkpoints/${model}*.pth
 
-    echo "Evaluating $model finish: $(date +'%m/%d/%Y %T')" >> ${LOG_FILE}
+    echo "Evaluating $model finish: $(date +'%m/%d/%Y %T')"
     
     # 等待输出缓冲区冲刷
     sleep 5
