@@ -124,7 +124,9 @@ def main():
                             help='Class num')
     parser.add_argument('--saved_dir', default="model", type=str,
                             help='Dir to save model ckpt')
-
+    parser.add_argument('--saving_interval', default=5, type=int,
+                            help='Epoch interval to save model ckpt')
+    
     args = parser.parse_args()
 
     print(vars(args))
