@@ -3,6 +3,7 @@
 # 脚本用于运行 Torchvision 中所有分类模型的的训练
 # 数据集放在 /data1/shared/Dataset/imagenet2012
 
+export CUDA_VISIBLE_DEVICES=0,1,2,3
 
 # 检查软连接是否已经存在了
 if [ -e "../data/imagenet2012" ]; then
@@ -85,12 +86,13 @@ models=(
     wide_resnet50_2
 )
 
-# 环境变量设置
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+# Define log file with ARCH included
+echo "Training start: $(date +'%m/%d/%Y %T')" 
 
 # 遍历所有模型
 for model in "${models[@]}"; do
-    echo "Running model: $model START"
+    echo "Training $model start: $(date +'%m/%d/%Y %T')"
+    
     python main.py \
         -a $model \
         --dist-backend 'nccl' \
@@ -110,10 +112,10 @@ for model in "${models[@]}"; do
     pkill -P $pid
     kill $pid
 
-    echo "Running model: $model FINISHED"
+    echo "Training $model finish: $(date +'%m/%d/%Y %T')"
     
     # 等待输出缓冲区冲刷
-    sleep 5
+    sleep 20
 
 done
 
