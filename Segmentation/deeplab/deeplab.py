@@ -130,6 +130,10 @@ def main():
     args = parser.parse_args()
 
     print(vars(args))
+    
+    model_dir = Path(args.saved_dir)
+    if not model_dir.exists():
+        model_dir.mkdir(parents=True, exist_ok=True)
 
     # Data preprocessing.
     input_size = (args.image_size, args.image_size)
