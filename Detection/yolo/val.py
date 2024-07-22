@@ -434,7 +434,7 @@ def run(
         )  # annotations
         if not os.path.exists(anno_json):
             anno_json = os.path.join(
-                data["path"], "annotations", "instances_val2017.json"
+                data["path"],"images","annotations","instances_val2017.json"
             )
         pred_json = str(save_dir / f"{w}_predictions.json")  # predictions
         LOGGER.info(f"\nEvaluating pycocotools mAP... saving {pred_json}...")

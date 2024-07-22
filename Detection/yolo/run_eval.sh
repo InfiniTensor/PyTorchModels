@@ -10,9 +10,6 @@
 
 set -e
 
-if [ -e "./runs" ]; then
-    rm -rf "./runs"
-fi
 
 export CUDA_VISIBLE_DEVICES=0
 
@@ -69,7 +66,7 @@ if $is_valid; then
         echo "Model path $model_path not exists "  
     fi  
 
-    rm $model_path
+    # rm $model_path
     echo "Evaluate $model_option FINISHED"
 else  
     echo "Choose model in yolov5n yolov5s yolov5m yolov5x yolov5n"  
