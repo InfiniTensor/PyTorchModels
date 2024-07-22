@@ -40,10 +40,7 @@ else
     ln -s /data1/shared/Dataset/imagenet2012 ../data
 fi
 
-# Define log file with ARCH included
-LOG_FILE="pytorch-${ARCH}-train-gpu0123.log"
-echo "Training Start: $(date +'%m/%d/%Y %T')" > ${LOG_FILE}
-
+echo "Training Start: $(date +'%m/%d/%Y %T')" 
 
 # 4 card training
 echo "Training $ARCH..."
@@ -55,6 +52,6 @@ python main.py \
     --world-size 1 \
     --rank 0 \
     --batch-size 64 \
-    ../data/imagenet2012 2>&1 | tee -a $LOG_FILE
+    ../data/imagenet2012
 
-echo "Training Finish: $(date + '%m/%d/%Y %T')" >> ${LOG_FILE}
+echo "Training Finish: $(date +'%m/%d/%Y %T')"

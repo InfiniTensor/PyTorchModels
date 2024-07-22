@@ -40,9 +40,8 @@ else
     ln -s /data1/shared/Dataset/imagenet2012 ../data
 fi
 
-# Define log file with ARCH included
-LOG_FILE="pytorch-${ARCH}-eval-gpu0.log"
-echo "Evaluating Start: $(date +'%m/%d/%Y %T')" > ${LOG_FILE}
+
+echo "Evaluating Start: $(date +'%m/%d/%Y %T')"
 
 # 单机单卡推理
 echo "Evaluating $ARCH..."
@@ -52,6 +51,6 @@ python main.py \
     --batch-size 64 \
     --pretrained \
     --evaluate \
-    ../data/imagenet2012 2>&1 | tee -a $LOG_FILE
+    ../data/imagenet2012
 
-echo "Evaluating Finish: $(date + '%m/%d/%Y %T')" >> ${LOG_FILE}
+echo "Evaluating Finish: $(date +'%m/%d/%Y %T')" 
