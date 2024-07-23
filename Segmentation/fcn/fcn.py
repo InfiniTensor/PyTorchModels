@@ -6,6 +6,7 @@ import torch.nn as nn
 import numpy as np
 import torch.optim as optim
 import sys
+from pathlib import Path
 
 from torch.utils.data import DataLoader
 import torchvision.transforms as transforms
@@ -59,8 +60,11 @@ def train(model,
           train_loader,
           criterion, 
           optimizer, 
-          device):
+          device,
+          epoch,
+          args):
     model.train()
+    losses = []
     for images, targets in tqdm(train_loader):
         images = images.to(device)
         targets = targets.squeeze(1).long().to(device)
@@ -69,7 +73,12 @@ def train(model,
         loss = criterion(outputs, targets)
         loss.backward()
         optimizer.step()
-
+        losses.append(loss.item())
+    print(f"[INFO] Train [{epoch+1}/{args.train_epochs}] Loss: {sum(losses) / len(losses)}")
+    if (epoch + 1) % args.saving_interval == 0:
+        print("Saving model")
+        torch.save(model.state_dict(), Path(args.saved_dir) / f"fcn_b{args.train_batch_size}_ep{epoch}.pt")
+    return  
 
 # Function to evaluate the model.
 def evaluate(model,
@@ -115,9 +124,17 @@ def main():
                         choices=['train', 'infer', 'both'], help='Mode to run: train, infer, or both.')
     parser.add_argument('--num_classes', default=21, type=int,
                         help='Class num')
+    parser.add_argument('--saved_dir', default="model", type=str,
+                            help='Dir to save model ckpt')
+    parser.add_argument('--saving_interval', default=5, type=int,
+                            help='Epoch interval to save model ckpt')
     args = parser.parse_args()
 
     print(vars(args))
+    
+    model_dir = Path(args.saved_dir)
+    if not model_dir.exists():
+        model_dir.mkdir(parents=True, exist_ok=True)
 
     # Data preprocessing.
     input_size = (args.image_size, args.image_size)
@@ -181,7 +198,7 @@ def main():
             start_time = time.time()
             for epoch in range(args.train_epochs):
                 print(f'[INFO] Training epoch {epoch + 1}/{args.train_epochs}.')
-                train(model, train_loader, criterion, optimizer, device)
+                train(model, train_loader, criterion, optimizer, device, epoch, args)
             end_time = time.time()
             print(f'Training completed in {end_time - start_time:.2f} seconds.')
 

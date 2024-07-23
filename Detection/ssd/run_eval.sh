@@ -37,7 +37,7 @@ fi
 echo "Evaluate SSD START"
 python eval.py
 
-rm $ckpt_path
+# rm $ckpt_path
 
 echo "Evaluate SSD FINISHED"
 
