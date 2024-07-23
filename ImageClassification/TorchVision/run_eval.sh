@@ -53,6 +53,6 @@ python -u main.py \
     --pretrained \
     --gpu 0 \
     --evaluate \
-    ../data/imagenet2012 2>&1 | tee -a $LOG_FILE
+    ../data/imagenet2012
 
-echo "Evaluating Finish: $(date + '%m/%d/%Y %T')" >> ${LOG_FILE}
+echo "Evaluating Finish: $(date +'%m/%d/%Y %T')" 

@@ -6,7 +6,6 @@
 
 export ASCEND_RT_VISIBLE_DEVICES=4
 
-
 # 检查软连接是否已经存在了
 if [ -e "../data/imagenet2012" ]; then
     echo "../data/imagenet2012 exists"
@@ -15,7 +14,7 @@ else
     ln -s /data1/shared/Dataset/imagenet2012 ../data
 fi
 
-# 优先模型列表
+# # 优先模型列表
 # models=(
 #     resnet50
 #     vgg16
@@ -99,11 +98,15 @@ models=(
 )
 
 # 环境变量设置
-#export CUDA_VISIBLE_DEVICES=0
+
+# Define log file with ARCH included
+
+echo "Evaluating start: $(date +'%m/%d/%Y %T')"
+
 
 # 遍历所有模型
 for model in "${models[@]}"; do
-    echo "Running model: $model START"
+    echo "Evaluating $model start: $(date +'%m/%d/%Y %T')"
     
     python main.py \
     -a $model \
@@ -112,12 +115,12 @@ for model in "${models[@]}"; do
     --gpu 0 \
     --pretrained \
     --evaluate \
-    ../data/imagenet2012
+    ../data/imagenet2012 
 
     # 删除下载的 ckpt
     rm $HOME/.cache/torch/hub/checkpoints/${model}*.pth
 
-    echo "Running model: $model FINISHED"
+    echo "Evaluating $model finish: $(date +'%m/%d/%Y %T')"
     
     # 等待输出缓冲区冲刷
     sleep 5

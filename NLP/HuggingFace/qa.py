@@ -61,7 +61,7 @@ from torch_npu.contrib import transfer_to_npu
 
 
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
-check_min_version("4.37.0.dev0")
+# check_min_version("4.37.0.dev0")
 
 require_version("datasets>=1.8.0", "To fix: pip install -r examples/pytorch/question-answering/requirements.txt")
 
@@ -633,7 +633,7 @@ def main():
             ]
 
         return tokenized_examples
-    
+
     if "validation" not in raw_datasets:
         raise ValueError("--do_eval requires a validation dataset")
     eval_examples = raw_datasets["validation"]
@@ -732,7 +732,7 @@ def main():
         return EvalPrediction(predictions=formatted_predictions, label_ids=references)
 
     metric = evaluate.load("./metrics/squad_v2" if args.version_2_with_negative else "./metrics/squad")
-    
+
     # Create and fill numpy array of size len_of_validation_data * max_length_of_output_tensor
     def create_and_fill_np_array(start_or_end_logits, dataset, max_len):
         """
@@ -869,7 +869,7 @@ def main():
 
         # update the progress_bar if load from checkpoint
         progress_bar.update(completed_steps)
-        
+
         profiler = Profiler() if (args.profile and accelerator.is_local_main_process) else None
 
         for epoch in range(starting_epoch, args.num_train_epochs):
@@ -881,11 +881,11 @@ def main():
                 active_dataloader = accelerator.skip_first_batches(train_dataloader, resume_step)
             else:
                 active_dataloader = train_dataloader
-            
+
             if profiler:
                 profiler.reset()
                 profiler.start()
-            
+
             for step, batch in enumerate(active_dataloader):
                 with accelerator.accumulate(model):
                     outputs = model(**batch)
@@ -903,7 +903,7 @@ def main():
                 if accelerator.sync_gradients:
                     progress_bar.update(1)
                     completed_steps += 1
-                    
+
                 if profiler:
                     profiler.update(total_batch_size)
 
@@ -916,7 +916,7 @@ def main():
 
                 if completed_steps >= args.max_train_steps:
                     break
-            
+
             if profiler:
                 profiler.end()
                 print(f"Train throughput for epoch {epoch} is {profiler.throughput()} samples/s!")
