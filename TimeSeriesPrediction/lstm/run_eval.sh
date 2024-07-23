@@ -1,35 +1,20 @@
 #!/bin/bash
 
-# 这个脚本用于运行Python脚本
-# 数据集放在同级目录下  ./data
-
-# 确保脚本在遇到错误时停止执行
 set -e
 
 export CUDA_VISIBLE_DEVICES=0
 
-MODEL_DIR=./model
-DATASETS=(
-    "jenaclimate",
-    "electricity",
-    "airpassengers"
-)
-
+ckpt=$2
 dataset=$1
 
-# 检查输入是否有效  
-is_valid=false  
-for data in "${DATASETS[@]}"; do  
-    if [[ "$dataset" == "$data" ]]; then  
-        is_valid=true  
-        break  
-    fi  
-done  
+if [ -e "$ckpt" ]; then
+       echo "$ckpt exists, use it"
+else
+       echo "$ckpt not exists, please run train first"
+fi
 
-python lstm.py --mode infer \
-               --seq_length 24 \
-               --batch_size 16 \
-               --train_eval_split 0.8 \
-               --dataset $dataset \
-               --data ../data \
-               --weights $MODEL_DIR/lstm_${dataset}.pth \
+python -W ignore eval.py \
+       --dataset $dataset \
+       --model_path $ckpt \
+
+# bash run_eval.sh ../data/complete_data.csv ./checkpoints/lstm_best.pt
