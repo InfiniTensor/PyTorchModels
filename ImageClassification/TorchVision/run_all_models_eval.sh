@@ -4,6 +4,8 @@
 # 脚本用于运行 Torchvision 中所有分类模型的的推理
 # 数据集放在 /data1/shared/Dataset/imagenet2012/val
 
+export ASCEND_RT_VISIBLE_DEVICES=4
+
 
 # 检查软连接是否已经存在了
 if [ -e "../data/imagenet2012" ]; then
@@ -97,7 +99,7 @@ models=(
 )
 
 # 环境变量设置
-export CUDA_VISIBLE_DEVICES=0
+#export CUDA_VISIBLE_DEVICES=0
 
 # 遍历所有模型
 for model in "${models[@]}"; do
@@ -107,6 +109,7 @@ for model in "${models[@]}"; do
     -a $model \
     --world-size 1 \
     --batch-size 64 \
+    --gpu 0 \
     --pretrained \
     --evaluate \
     ../data/imagenet2012

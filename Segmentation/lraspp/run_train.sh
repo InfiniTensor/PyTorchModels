@@ -21,7 +21,7 @@ fi
 # VOC_year 指定解析数据集的方法
 # input_size 输入模型的图像大小
 # classes 模型输出类别数量
-python train.py \
+python -u train.py \
        --dataset_path ../data \
        --VOC_year 2007 \
        --batch_size 4 \

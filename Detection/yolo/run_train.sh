@@ -9,6 +9,8 @@
 
 set -e
 
+export ASCEND_RT_VISIBLE_DEVICES=0,1,2,3
+
 if [ -e "./runs" ]; then
     rm -rf "./runs"
 fi

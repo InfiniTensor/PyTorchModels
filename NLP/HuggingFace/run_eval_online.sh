@@ -5,7 +5,7 @@ export HF_ENDPOINT=https://hf-mirror.com
 torchrun \
     --nproc_per_node=1 \
     qa.py \
-    --model_name_or_path bert-base-uncased \
+    --model_name_or_path albert-base-v2 \
     --dataset_name squad_v2 \
     --version_2_with_negative \
     --per_device_eval_batch_size 10 \

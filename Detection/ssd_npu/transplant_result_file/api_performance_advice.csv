@@ -1,0 +1,71 @@
+File,Start Line,End Line,OP,Tips
+NA,NA,NA,torch_npu.npu.set_compile_mode,"If it is a dynamic shape scenario, it is recommended to set torch_npu.npu.set_compile_mode(jit_compile=False) above the training entry file; if it is a fixed shape scenario, it is recommended to set torch_npu.npu.set_compile_mode(jit_compile=True) above the training entry file.
+For more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000060.html"
+NA,NA,NA,TASK_QUEUE_ENABLE,"If you want to improve performance, please set environment variables 'export TASK_QUEUE_ENABLE=1'."
+NA,NA,NA,HCCL_OP_BASE_FFTS_MODE_ENABLE,"If you want to improve performance, please set environment variables 'export HCCL_OP_BASE_FFTS_MODE_ENABLE=TRUE'."
+detect.py,14,14,to,"To optimize communication between devices, it is recommended to set non_blocking to True.
+For more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000055.html"
+detect.py,40,40,to,"To optimize communication between devices, it is recommended to set non_blocking to True.
+For more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000055.html"
+detect.py,50,50,to,"To optimize communication between devices, it is recommended to set non_blocking to True.
+For more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000055.html"
+detect.py,58,58,to,"To optimize communication between devices, it is recommended to set non_blocking to True.
+For more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000055.html"
+train.py,56,57,torch.optim.SGD,"Try modifying to apex.optimizers.NpuFusedSGD.
+For more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000062.html"
+train.py,67,67,to,"To optimize communication between devices, it is recommended to set non_blocking to True.
+For more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000055.html"
+train.py,68,68,to,"To optimize communication between devices, it is recommended to set non_blocking to True.
+For more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000055.html"
+train.py,125,125,to,"To optimize communication between devices, it is recommended to set non_blocking to True.
+For more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000055.html"
+train.py,126,126,to,"To optimize communication between devices, it is recommended to set non_blocking to True.
+For more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000055.html"
+train.py,127,127,to,"To optimize communication between devices, it is recommended to set non_blocking to True.
+For more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000055.html"
+utils.py,172,173,to,"To optimize communication between devices, it is recommended to set non_blocking to True.
+For more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000055.html"
+utils.py,184,184,to,"To optimize communication between devices, it is recommended to set non_blocking to True.
+For more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000055.html"
+utils.py,202,203,to,"To optimize communication between devices, it is recommended to set non_blocking to True.
+For more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000055.html"
+utils.py,219,219,to,"To optimize communication between devices, it is recommended to set non_blocking to True.
+For more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000055.html"
+utils.py,220,220,to,"To optimize communication between devices, it is recommended to set non_blocking to True.
+For more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000055.html"
+utils.py,266,266,to,"To optimize communication between devices, it is recommended to set non_blocking to True.
+For more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000055.html"
+model.py,423,423,to,"To optimize communication between devices, it is recommended to set non_blocking to True.
+For more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000055.html"
+model.py,486,486,to,"To optimize communication between devices, it is recommended to set non_blocking to True.
+For more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000055.html"
+model.py,504,504,to,"To optimize communication between devices, it is recommended to set non_blocking to True.
+For more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000055.html"
+model.py,509,509,to,"To optimize communication between devices, it is recommended to set non_blocking to True.
+For more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000055.html"
+model.py,510,510,to,"To optimize communication between devices, it is recommended to set non_blocking to True.
+For more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000055.html"
+model.py,511,511,to,"To optimize communication between devices, it is recommended to set non_blocking to True.
+For more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000055.html"
+model.py,570,570,to,"To optimize communication between devices, it is recommended to set non_blocking to True.
+For more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000055.html"
+model.py,571,571,to,"To optimize communication between devices, it is recommended to set non_blocking to True.
+For more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000055.html"
+model.py,592,592,to,"To optimize communication between devices, it is recommended to set non_blocking to True.
+For more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000055.html"
+model.py,642,642,to,"To optimize communication between devices, it is recommended to set non_blocking to True.
+For more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000055.html"
+eval.py,23,23,to,"To optimize communication between devices, it is recommended to set non_blocking to True.
+For more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000055.html"
+eval.py,58,58,to,"To optimize communication between devices, it is recommended to set non_blocking to True.
+For more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000055.html"
+eval.py,62,62,to,"To optimize communication between devices, it is recommended to set non_blocking to True.
+For more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000055.html"
+eval.py,63,63,to,"To optimize communication between devices, it is recommended to set non_blocking to True.
+For more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000055.html"
+eval.py,72,72,to,"To optimize communication between devices, it is recommended to set non_blocking to True.
+For more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000055.html"
+eval.py,73,73,to,"To optimize communication between devices, it is recommended to set non_blocking to True.
+For more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000055.html"
+eval.py,74,74,to,"To optimize communication between devices, it is recommended to set non_blocking to True.
+For more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000055.html"

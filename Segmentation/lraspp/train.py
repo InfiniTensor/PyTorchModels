@@ -1,5 +1,6 @@
 import os
 import torch
+import torch_npu
 import torch.optim as optim
 import numpy as np
 from pathlib import Path
@@ -7,6 +8,7 @@ from torch import nn
 from torchvision import transforms, datasets
 import argparse
 from torchvision.models.segmentation import lraspp_mobilenet_v3_large
+from torch_npu.contrib import transfer_to_npu
 
 # Define the color map for VOC dataset
 VOC_COLORMAP = [

@@ -2,12 +2,13 @@
 
 set -e
 
-export CUDA_VISIBLE_DEVICES=0
+#export CUDA_VISIBLE_DEVICES=0
+export ASCEND_RT_VISIBLE_DEVICES=4
 
 if [ -e "../data/VOCdevkit" ]; then
     echo "../data/coco exists"
 else
-    ln -s /data1/shared/Dataset/VOCdevkit ../data
+    ln -s /data/Dataset/VOCdevkit ../data
 fi
 
 ckpt_path="./fasterrcnn.pth"

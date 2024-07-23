@@ -1,0 +1,2 @@
+File,Start Line,End Line,Api Type,Api Call Name,Affinity Api Name
+,603,603,special,input[condition] = value,torch_npu.contrib.function.npu_fast_condition_index_put

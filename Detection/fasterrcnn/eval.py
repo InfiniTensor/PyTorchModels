@@ -1,5 +1,7 @@
 from __future__ import  absolute_import
 
+import torch 
+import torch_npu 
 from tqdm import tqdm
 
 from utils.config import opt
@@ -9,6 +11,7 @@ from torch.utils import data as data_
 from trainer import FasterRCNNTrainer
 from utils import array_tool as at
 from utils.eval_tool import eval_detection_voc
+from torch_npu.contrib import transfer_to_npu
 
 # fix for ulimit
 # https://github.com/pytorch/pytorch/issues/973#issuecomment-346405667

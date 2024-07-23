@@ -28,6 +28,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
+import torch_npu
 from tqdm import tqdm
 
 FILE = Path(__file__).resolve()
@@ -60,6 +61,8 @@ from utils.metrics import ConfusionMatrix, ap_per_class, box_iou
 from utils.plots import output_to_target, plot_images, plot_val_study
 from utils.torch_utils import select_device, smart_inference_mode
 from profiler import Profiler
+from torch_npu.contrib import transfer_to_npu
+torch.npu.set_compile_mode(jit_compile=False)
 
 def save_one_txt(predn, save_conf, shape, file):
     """Saves one detection result to a txt file in normalized xywh format, optionally including confidence."""

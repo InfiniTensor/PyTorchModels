@@ -1,0 +1,100 @@
+2024-07-22 15:31:47 [INFO]    Initialing rules...
+2024-07-22 15:31:47 [INFO]    MsFmkTransplt start working now, please wait for a moment.
+2024-07-22 15:31:47 [INFO]    Analysis start...
+2024-07-22 15:31:47 [INFO]    [Progress:  0.00%]  Start analysis detect.py.
+2024-07-22 15:31:49 [INFO]    [Progress:  0.00%]  line: 14 ~ 14 Operation Type: SUGGESTION Message: to has a suggestion about performance
+2024-07-22 15:31:49 [INFO]    [Progress:  0.00%]  line: 40 ~ 40 Operation Type: SUGGESTION Message: to has a suggestion about performance
+2024-07-22 15:31:49 [INFO]    [Progress:  0.00%]  line: 50 ~ 50 Operation Type: SUGGESTION Message: to has a suggestion about performance
+2024-07-22 15:31:49 [INFO]    [Progress:  0.00%]  line: 58 ~ 58 Operation Type: SUGGESTION Message: to has a suggestion about performance
+2024-07-22 15:31:51 [INFO]    [Progress:  0.00%]  line: 1 ~ 1 Operation Type: INSERT Message: import torch_npu
+2024-07-22 15:31:51 [INFO]    [Progress:  0.00%]  line: 14 ~ 14 Operation Type: MODIFY Message: change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device
+2024-07-22 15:31:51 [INFO]    [Progress:  0.00%]  line: 40 ~ 40 Operation Type: MODIFY Message: change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device
+2024-07-22 15:31:51 [INFO]    [Progress:  0.00%]  Analysis detect.py complete.
+2024-07-22 15:31:51 [INFO]    [Progress: 14.29%]  Start analysis create_data_lists.py.
+2024-07-22 15:31:51 [INFO]    [Progress: 14.29%]  Analysis create_data_lists.py complete.
+2024-07-22 15:31:51 [INFO]    [Progress: 28.57%]  Start analysis train.py.
+2024-07-22 15:31:52 [INFO]    [Progress: 28.57%]  line: 56 ~ 57 Operation Type: SUGGESTION Message: torch.optim.SGD has a suggestion about performance
+2024-07-22 15:31:52 [INFO]    [Progress: 28.57%]  line: 67 ~ 67 Operation Type: SUGGESTION Message: to has a suggestion about performance
+2024-07-22 15:31:52 [INFO]    [Progress: 28.57%]  line: 68 ~ 68 Operation Type: SUGGESTION Message: to has a suggestion about performance
+2024-07-22 15:31:52 [INFO]    [Progress: 28.57%]  line: 125 ~ 125 Operation Type: SUGGESTION Message: to has a suggestion about performance
+2024-07-22 15:31:52 [INFO]    [Progress: 28.57%]  line: 126 ~ 126 Operation Type: SUGGESTION Message: to has a suggestion about performance
+2024-07-22 15:31:52 [INFO]    [Progress: 28.57%]  line: 127 ~ 127 Operation Type: SUGGESTION Message: to has a suggestion about performance
+2024-07-22 15:31:54 [INFO]    [Progress: 28.57%]  line: 2 ~ 2 Operation Type: INSERT Message: import torch_npu
+2024-07-22 15:31:54 [INFO]    [Progress: 28.57%]  line: 67 ~ 67 Operation Type: MODIFY Message: change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device
+2024-07-22 15:31:54 [INFO]    [Progress: 28.57%]  line: 68 ~ 68 Operation Type: MODIFY Message: change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device
+2024-07-22 15:31:54 [INFO]    [Progress: 28.57%]  line: 125 ~ 125 Operation Type: MODIFY Message: change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device
+2024-07-22 15:31:54 [INFO]    [Progress: 28.57%]  line: 126 ~ 126 Operation Type: MODIFY Message: change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device
+2024-07-22 15:31:54 [INFO]    [Progress: 28.57%]  line: 127 ~ 127 Operation Type: MODIFY Message: change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device
+2024-07-22 15:31:54 [INFO]    [Progress: 28.57%]  Analysis train.py complete.
+2024-07-22 15:31:54 [INFO]    [Progress: 42.86%]  Start analysis utils.py.
+2024-07-22 15:31:59 [INFO]    [Progress: 42.86%]  line: 172 ~ 173 Operation Type: SUGGESTION Message: to has a suggestion about performance
+2024-07-22 15:31:59 [INFO]    [Progress: 42.86%]  line: 184 ~ 184 Operation Type: SUGGESTION Message: to has a suggestion about performance
+2024-07-22 15:31:59 [INFO]    [Progress: 42.86%]  line: 202 ~ 203 Operation Type: SUGGESTION Message: to has a suggestion about performance
+2024-07-22 15:31:59 [INFO]    [Progress: 42.86%]  line: 219 ~ 219 Operation Type: SUGGESTION Message: to has a suggestion about performance
+2024-07-22 15:31:59 [INFO]    [Progress: 42.86%]  line: 220 ~ 220 Operation Type: SUGGESTION Message: to has a suggestion about performance
+2024-07-22 15:31:59 [INFO]    [Progress: 42.86%]  line: 266 ~ 266 Operation Type: SUGGESTION Message: to has a suggestion about performance
+2024-07-22 15:32:12 [INFO]    [Progress: 42.86%]  line: 3 ~ 3 Operation Type: INSERT Message: import torch_npu
+2024-07-22 15:32:12 [INFO]    [Progress: 42.86%]  line: 172 ~ 173 Operation Type: MODIFY Message: change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device
+2024-07-22 15:32:12 [INFO]    [Progress: 42.86%]  line: 184 ~ 184 Operation Type: MODIFY Message: change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device
+2024-07-22 15:32:12 [INFO]    [Progress: 42.86%]  line: 202 ~ 203 Operation Type: MODIFY Message: change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device
+2024-07-22 15:32:12 [INFO]    [Progress: 42.86%]  line: 219 ~ 219 Operation Type: MODIFY Message: change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device
+2024-07-22 15:32:12 [INFO]    [Progress: 42.86%]  line: 220 ~ 220 Operation Type: MODIFY Message: change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device
+2024-07-22 15:32:12 [INFO]    [Progress: 42.86%]  line: 266 ~ 266 Operation Type: MODIFY Message: change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device
+2024-07-22 15:32:13 [INFO]    [Progress: 42.86%]  Analysis utils.py complete.
+2024-07-22 15:32:13 [INFO]    [Progress: 57.14%]  Start analysis model.py.
+2024-07-22 15:32:17 [INFO]    [Progress: 57.14%]  line: 423 ~ 423 Operation Type: SUGGESTION Message: to has a suggestion about performance
+2024-07-22 15:32:17 [INFO]    [Progress: 57.14%]  line: 486 ~ 486 Operation Type: SUGGESTION Message: to has a suggestion about performance
+2024-07-22 15:32:17 [INFO]    [Progress: 57.14%]  line: 504 ~ 504 Operation Type: SUGGESTION Message: to has a suggestion about performance
+2024-07-22 15:32:17 [INFO]    [Progress: 57.14%]  line: 509 ~ 509 Operation Type: SUGGESTION Message: to has a suggestion about performance
+2024-07-22 15:32:17 [INFO]    [Progress: 57.14%]  line: 510 ~ 510 Operation Type: SUGGESTION Message: to has a suggestion about performance
+2024-07-22 15:32:17 [INFO]    [Progress: 57.14%]  line: 511 ~ 511 Operation Type: SUGGESTION Message: to has a suggestion about performance
+2024-07-22 15:32:17 [INFO]    [Progress: 57.14%]  line: 570 ~ 570 Operation Type: SUGGESTION Message: to has a suggestion about performance
+2024-07-22 15:32:17 [INFO]    [Progress: 57.14%]  line: 571 ~ 571 Operation Type: SUGGESTION Message: to has a suggestion about performance
+2024-07-22 15:32:17 [INFO]    [Progress: 57.14%]  line: 592 ~ 592 Operation Type: SUGGESTION Message: to has a suggestion about performance
+2024-07-22 15:32:17 [INFO]    [Progress: 57.14%]  line: 642 ~ 642 Operation Type: SUGGESTION Message: to has a suggestion about performance
+2024-07-22 15:32:18 [WARNING] [Progress: 57.14%]  line: 603 ~ 603 Operation Type: HAVE AFFINITY API Message: input[condition] = value has an affinity api that can be replaced!
+2024-07-22 15:32:34 [INFO]    [Progress: 57.14%]  line: 1 ~ 1 Operation Type: INSERT Message: import torch_npu
+2024-07-22 15:32:34 [INFO]    [Progress: 57.14%]  line: 423 ~ 423 Operation Type: MODIFY Message: change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device
+2024-07-22 15:32:34 [INFO]    [Progress: 57.14%]  line: 486 ~ 486 Operation Type: MODIFY Message: change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device
+2024-07-22 15:32:34 [INFO]    [Progress: 57.14%]  line: 504 ~ 504 Operation Type: MODIFY Message: change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device
+2024-07-22 15:32:34 [INFO]    [Progress: 57.14%]  line: 509 ~ 509 Operation Type: MODIFY Message: change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device
+2024-07-22 15:32:34 [INFO]    [Progress: 57.14%]  line: 510 ~ 510 Operation Type: MODIFY Message: change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device
+2024-07-22 15:32:34 [INFO]    [Progress: 57.14%]  line: 511 ~ 511 Operation Type: MODIFY Message: change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device
+2024-07-22 15:32:34 [INFO]    [Progress: 57.14%]  line: 570 ~ 570 Operation Type: MODIFY Message: change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device
+2024-07-22 15:32:34 [INFO]    [Progress: 57.14%]  line: 571 ~ 571 Operation Type: MODIFY Message: change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device
+2024-07-22 15:32:34 [INFO]    [Progress: 57.14%]  line: 592 ~ 592 Operation Type: MODIFY Message: change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device
+2024-07-22 15:32:34 [INFO]    [Progress: 57.14%]  line: 642 ~ 642 Operation Type: MODIFY Message: change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device
+2024-07-22 15:32:34 [INFO]    [Progress: 57.14%]  Analysis model.py complete.
+2024-07-22 15:32:34 [INFO]    [Progress: 71.43%]  Start analysis datasets.py.
+2024-07-22 15:32:36 [INFO]    [Progress: 71.43%]  line: 1 ~ 1 Operation Type: INSERT Message: import torch_npu
+2024-07-22 15:32:36 [INFO]    [Progress: 71.43%]  Analysis datasets.py complete.
+2024-07-22 15:32:36 [INFO]    [Progress: 85.71%]  Start analysis eval.py.
+2024-07-22 15:32:36 [INFO]    [Progress: 85.71%]  line: 23 ~ 23 Operation Type: SUGGESTION Message: to has a suggestion about performance
+2024-07-22 15:32:36 [INFO]    [Progress: 85.71%]  line: 58 ~ 58 Operation Type: SUGGESTION Message: to has a suggestion about performance
+2024-07-22 15:32:36 [INFO]    [Progress: 85.71%]  line: 62 ~ 62 Operation Type: SUGGESTION Message: to has a suggestion about performance
+2024-07-22 15:32:36 [INFO]    [Progress: 85.71%]  line: 63 ~ 63 Operation Type: SUGGESTION Message: to has a suggestion about performance
+2024-07-22 15:32:36 [INFO]    [Progress: 85.71%]  line: 72 ~ 72 Operation Type: SUGGESTION Message: to has a suggestion about performance
+2024-07-22 15:32:36 [INFO]    [Progress: 85.71%]  line: 73 ~ 73 Operation Type: SUGGESTION Message: to has a suggestion about performance
+2024-07-22 15:32:36 [INFO]    [Progress: 85.71%]  line: 74 ~ 74 Operation Type: SUGGESTION Message: to has a suggestion about performance
+2024-07-22 15:32:38 [INFO]    [Progress: 85.71%]  line: 5 ~ 5 Operation Type: INSERT Message: import torch_npu
+2024-07-22 15:32:38 [INFO]    [Progress: 85.71%]  line: 23 ~ 23 Operation Type: MODIFY Message: change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device
+2024-07-22 15:32:38 [INFO]    [Progress: 85.71%]  line: 58 ~ 58 Operation Type: MODIFY Message: change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device
+2024-07-22 15:32:38 [INFO]    [Progress: 85.71%]  line: 62 ~ 62 Operation Type: MODIFY Message: change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device
+2024-07-22 15:32:38 [INFO]    [Progress: 85.71%]  line: 63 ~ 63 Operation Type: MODIFY Message: change the arg at position 0 of function to to f'npu:{predicted_scores}' if isinstance(predicted_scores, int) else predicted_scores
+2024-07-22 15:32:38 [INFO]    [Progress: 85.71%]  line: 72 ~ 72 Operation Type: MODIFY Message: change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device
+2024-07-22 15:32:38 [INFO]    [Progress: 85.71%]  line: 73 ~ 73 Operation Type: MODIFY Message: change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device
+2024-07-22 15:32:38 [INFO]    [Progress: 85.71%]  line: 74 ~ 74 Operation Type: MODIFY Message: change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device
+2024-07-22 15:32:38 [INFO]    [Progress: 85.71%]  Analysis eval.py complete.
+2024-07-22 15:32:38 [INFO]    [Progress:100.00%]  MsFmkTransplt run success, welcome to the next use.
+2024-07-22 15:32:38 [INFO]    The detailed transplant result files are in the output path you defined, the relative path is ssd_msft.
++----------------------------+------------+
+|           files            | statistics |
++----------------------------+------------+
+| api_performance_advice.csv |     36     |
+|      cuda_op_list.csv      |     0      |
+|    unsupported_api.csv     |     0      |
+|      unknown_api.csv       |     29     |
+|  api_precision_advice.csv  |     0      |
+|      change_list.csv       |     36     |
+|   affinity_api_call.csv    |     1      |
++----------------------------+------------+

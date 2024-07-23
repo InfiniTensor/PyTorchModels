@@ -7,6 +7,8 @@ import warnings
 from enum import Enum
 
 import torch
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 import torch.backends.cudnn as cudnn
 import torch.distributed as dist
 import torch.multiprocessing as mp
@@ -22,6 +24,18 @@ from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import Subset
 
 from profiler import Profiler
+
+#from torchvision.models import efficientnet_b0, EfficientNet_B0_Weights
+from torchvision.models._api import WeightsEnum
+from torch.hub import load_state_dict_from_url
+
+def get_state_dict(self, *args, **kwargs):
+    kwargs.pop("check_hash")
+    return load_state_dict_from_url(self.url, *args, **kwargs)
+WeightsEnum.get_state_dict = get_state_dict
+
+#efficientnet_b0(weights=EfficientNet_B0_Weights.IMAGENET1K_V1)
+#efficientnet_b0(weights="DEFAULT")
 
 model_names = sorted(name for name in models.__dict__
     if name.islower() and not name.startswith("__")
@@ -146,8 +160,8 @@ def main_worker(gpu, ngpus_per_node, args):
                                 world_size=args.world_size, rank=args.rank)
 
     model_kwargs = {}
-    if args.arch in ["googlenet", "inception_v3"] :
-        model_kwargs["aux_logits"] = False
+    #if args.arch in ["googlenet", "inception_v3"] :
+    #    model_kwargs["aux_logits"] = False
     # create model
     if args.pretrained:
         print("=> using pre-trained model '{}'".format(args.arch))

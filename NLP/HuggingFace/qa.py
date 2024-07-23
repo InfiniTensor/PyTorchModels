@@ -30,6 +30,7 @@ import datasets
 import evaluate
 import numpy as np
 import torch
+import torch_npu
 from accelerate import Accelerator
 from accelerate.logging import get_logger
 from accelerate.utils import set_seed
@@ -56,6 +57,7 @@ from transformers.utils import check_min_version, send_example_telemetry
 from transformers.utils.versions import require_version
 
 from profiler import Profiler
+from torch_npu.contrib import transfer_to_npu
 
 
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.

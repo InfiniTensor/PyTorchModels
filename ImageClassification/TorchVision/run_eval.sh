@@ -5,7 +5,7 @@
 
 set -e
 
-export CUDA_VISIBLE_DEVICES=0
+#export CUDA_VISIBLE_DEVICES=0
 
 ARCH=""
 
@@ -41,16 +41,17 @@ else
 fi
 
 # Define log file with ARCH included
-LOG_FILE="pytorch-${ARCH}-eval-gpu0.log"
+LOG_FILE="pytorch-${ARCH}-eval-npu0.log"
 echo "Evaluating Start: $(date +'%m/%d/%Y %T')" > ${LOG_FILE}
 
 # 单机单卡推理
 echo "Evaluating $ARCH..."
-python main.py \
+python -u main.py \
     -a $ARCH \
     --world-size 1 \
     --batch-size 64 \
     --pretrained \
+    --gpu 0 \
     --evaluate \
     ../data/imagenet2012 2>&1 | tee -a $LOG_FILE
 

@@ -1,11 +1,15 @@
 import json
 import os
 import torch
+import torch_npu
 import random
 import xml.etree.ElementTree as ET
 import torchvision.transforms.functional as FT
+#from torch_npu.contrib import transfer_to_npu
+#torch.npu.set_compile_mode(jit_compile=False)
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+#device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("npu")
 
 # Label map
 voc_labels = ('aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car', 'cat', 'chair', 'cow', 'diningtable',
@@ -232,6 +236,12 @@ def calculate_mAP(det_boxes, det_labels, det_scores, true_boxes, true_labels, tr
 
             # 'ind' is the index of the object in these image-level tensors 'object_boxes', 'object_difficulties'
             # In the original class-level tensors 'true_class_boxes', etc., 'ind' corresponds to object with index...
+            true_class_boxes.to('npu')
+            #ind.to('npu')
+            print(ind.device)
+            print(true_class_boxes.device)
+            print(true_class_images.device)
+            print(this_image.device)
             original_ind = torch.LongTensor(range(true_class_boxes.size(0)))[true_class_images == this_image][ind]
             # We need 'original_ind' to update 'true_class_boxes_detected'
 
@@ -333,6 +343,17 @@ def gcxgcy_to_cxcy(gcxgcy, priors_cxcy):
     :return: decoded bounding boxes in center-size form, a tensor of size (n_priors, 4)
     """
 
+    #tmp0 = gcxgcy[:, :2] * priors_cxcy[:, 2:] / 10 + priors_cxcy[:, :2]
+    #print(gcxgcy.device)
+    priors_cxcy = priors_cxcy.to('npu')
+    #print(priors_cxcy.device)
+    #print(a.device)
+    #tmp0 = gcxgcy[:, :2] * priors_cxcy[:, :2]
+    #tmp1 = torch.exp(gcxgcy[:, 2:] / 5) * priors_cxcy[:, 2:] 
+    #tmp1 = gcxgcy[:, 2:] 
+
+    #return torch.cat([tmp0,  # c_x, c_y
+    #                  tmp1], 1)  # w, h
     return torch.cat([gcxgcy[:, :2] * priors_cxcy[:, 2:] / 10 + priors_cxcy[:, :2],  # c_x, c_y
                       torch.exp(gcxgcy[:, 2:] / 5) * priors_cxcy[:, 2:]], 1)  # w, h
 

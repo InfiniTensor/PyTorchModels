@@ -1,4 +1,5 @@
 import torch
+import torch_npu
 import argparse
 import numpy as np
 import sys
@@ -9,6 +10,7 @@ from torchvision.models.segmentation import lraspp_mobilenet_v3_large
 
 sys.path.append("../")
 from bench.evaluator import Evaluator
+from torch_npu.contrib import transfer_to_npu
 
 VOC_COLORMAP = [
     (0, 0, 0),        # Background

@@ -3,6 +3,7 @@ import os
 import time
 import sys
 import torch
+import torch_npu
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
@@ -11,6 +12,7 @@ import torchvision.transforms as transforms
 from torchvision.models.segmentation import deeplabv3_resnet50
 from torchvision.datasets import VOCSegmentation
 from tqdm import tqdm
+from torch_npu.contrib import transfer_to_npu
 
 sys.path.append("../")
 from bench.evaluator import Evaluator

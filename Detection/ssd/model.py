@@ -4,8 +4,11 @@ import torch.nn.functional as F
 from math import sqrt
 from itertools import product as product
 import torchvision
+import torch_npu
+#from torch_npu.contrib import transfer_to_npu
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+#device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("npu")
 
 
 class VGGBase(nn.Module):
@@ -326,6 +329,7 @@ class SSD300(nn.Module):
     """
 
     def __init__(self, n_classes):
+        print('init#################################################')
         super(SSD300, self).__init__()
 
         self.n_classes = n_classes
@@ -341,6 +345,8 @@ class SSD300(nn.Module):
 
         # Prior boxes
         self.priors_cxcy = self.create_prior_boxes()
+        print('#################################################')
+        print(self.priors_cxcy.device)
 
     def forward(self, image):
         """
@@ -374,6 +380,7 @@ class SSD300(nn.Module):
 
         :return: prior boxes in center-size coordinates, a tensor of dimensions (8732, 4)
         """
+        print('#################################################')
         fmap_dims = {'conv4_3': 38,
                      'conv7': 19,
                      'conv8_2': 10,
@@ -419,6 +426,8 @@ class SSD300(nn.Module):
                             prior_boxes.append([cx, cy, additional_scale, additional_scale])
 
         prior_boxes = torch.FloatTensor(prior_boxes).to(device)  # (8732, 4)
+        print('***********************************************')
+        print(prior_boxes.device)
         prior_boxes.clamp_(0, 1)  # (8732, 4); this line has no effect; see Remarks section in tutorial
 
         return prior_boxes
@@ -449,6 +458,8 @@ class SSD300(nn.Module):
 
         for i in range(batch_size):
             # Decode object coordinates from the form we regressed predicted boxes to
+            #print(predicted_locs.device)
+            #print(self.priors_cxcy.device)
             decoded_locs = cxcy_to_xy(
                 gcxgcy_to_cxcy(predicted_locs[i], self.priors_cxcy))  # (8732, 4), these are fractional pt. coordinates
 

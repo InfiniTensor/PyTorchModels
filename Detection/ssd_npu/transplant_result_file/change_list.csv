@@ -1,0 +1,37 @@
+File,Start Line,End Line,Operation Type,Message
+detect.py,1,1,INSERT,import torch_npu
+detect.py,14,14,MODIFY,"change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device"
+detect.py,40,40,MODIFY,"change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device"
+train.py,2,2,INSERT,import torch_npu
+train.py,67,67,MODIFY,"change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device"
+train.py,68,68,MODIFY,"change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device"
+train.py,125,125,MODIFY,"change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device"
+train.py,126,126,MODIFY,"change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device"
+train.py,127,127,MODIFY,"change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device"
+utils.py,3,3,INSERT,import torch_npu
+utils.py,172,173,MODIFY,"change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device"
+utils.py,184,184,MODIFY,"change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device"
+utils.py,202,203,MODIFY,"change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device"
+utils.py,219,219,MODIFY,"change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device"
+utils.py,220,220,MODIFY,"change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device"
+utils.py,266,266,MODIFY,"change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device"
+model.py,1,1,INSERT,import torch_npu
+model.py,423,423,MODIFY,"change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device"
+model.py,486,486,MODIFY,"change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device"
+model.py,504,504,MODIFY,"change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device"
+model.py,509,509,MODIFY,"change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device"
+model.py,510,510,MODIFY,"change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device"
+model.py,511,511,MODIFY,"change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device"
+model.py,570,570,MODIFY,"change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device"
+model.py,571,571,MODIFY,"change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device"
+model.py,592,592,MODIFY,"change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device"
+model.py,642,642,MODIFY,"change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device"
+datasets.py,1,1,INSERT,import torch_npu
+eval.py,5,5,INSERT,import torch_npu
+eval.py,23,23,MODIFY,"change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device"
+eval.py,58,58,MODIFY,"change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device"
+eval.py,62,62,MODIFY,"change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device"
+eval.py,63,63,MODIFY,"change the arg at position 0 of function to to f'npu:{predicted_scores}' if isinstance(predicted_scores, int) else predicted_scores"
+eval.py,72,72,MODIFY,"change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device"
+eval.py,73,73,MODIFY,"change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device"
+eval.py,74,74,MODIFY,"change the arg at position 0 of function to to f'npu:{device}' if isinstance(device, int) else device"

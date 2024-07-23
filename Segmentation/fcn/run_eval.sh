@@ -9,7 +9,7 @@ export CUDA_VISIBLE_DEVICES=0
 if [ -e "../data/VOCdevkit" ]; then
     echo "../data/VOCdevkit exists"
 else 
-    ln -s /data1/shared/Dataset/VOCdevkit ../data/VOCdevkit
+    ln -s /data/Dataset/VOCdevkit ../data/VOCdevkit
 fi
 
 python $SCRIPT_DIR/fcn.py \

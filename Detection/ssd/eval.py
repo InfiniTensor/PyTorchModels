@@ -2,6 +2,9 @@ from utils import *
 from datasets import PascalVOCDataset
 from tqdm import tqdm
 from pprint import PrettyPrinter
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
+torch.npu.set_compile_mode(jit_compile=False)
 
 # Good formatting when printing the APs for each class and mAP
 pp = PrettyPrinter()
@@ -11,7 +14,8 @@ data_folder = './data'
 keep_difficult = True  # difficult ground truth objects must always be considered in mAP calculation, because these objects DO exist!
 batch_size = 64
 workers = 4
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+#device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("npu")
 checkpoint = './checkpoint_ssd300.pth.tar'
 
 # Load model checkpoint that is to be evaluated
@@ -56,6 +60,8 @@ def evaluate(test_loader, model):
 
             # Forward prop.
             predicted_locs, predicted_scores = model(images)
+            predicted_locs = predicted_locs.to(device)
+            predicted_scores = predicted_scores.to(predicted_scores)
 
             # Detect objects in SSD output
             det_boxes_batch, det_labels_batch, det_scores_batch = model.detect_objects(predicted_locs, predicted_scores,
@@ -74,8 +80,15 @@ def evaluate(test_loader, model):
             true_boxes.extend(boxes)
             true_labels.extend(labels)
             true_difficulties.extend(difficulties)
+            break
 
         # Calculate mAP
+        print(det_boxes[0].device)
+        print(det_labels.device)
+        print(det_scores.device)
+        print(true_boxes.device)
+        print(true_labels.device)
+        print(true_difficulties.device)
         APs, mAP = calculate_mAP(det_boxes, det_labels, det_scores, true_boxes, true_labels, true_difficulties)
 
     # Print AP for each class

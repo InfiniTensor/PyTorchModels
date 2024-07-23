@@ -2,6 +2,7 @@ import argparse
 import os
 import time
 import torch
+import torch_npu
 import torch.nn as nn
 import numpy as np
 import torch.optim as optim
@@ -15,6 +16,7 @@ from tqdm import tqdm
 
 sys.path.append("../")
 from bench.evaluator import Evaluator
+from torch_npu.contrib import transfer_to_npu
 
 
 # Define the color map for VOC dataset

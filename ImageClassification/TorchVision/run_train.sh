@@ -5,7 +5,8 @@
 
 set -e
 
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+#export CUDA_VISIBLE_DEVICES=0,1,2,3
+export ASCEND_RT_VISIBLE_DEVICES=0,1,2,3
 
 ARCH=""
 
@@ -41,13 +42,13 @@ else
 fi
 
 # Define log file with ARCH included
-LOG_FILE="pytorch-${ARCH}-train-gpu0123.log"
+LOG_FILE="pytorch-${ARCH}-train-npu0123.log"
 echo "Training Start: $(date +'%m/%d/%Y %T')" > ${LOG_FILE}
 
 
 # 4 card training
 echo "Training $ARCH..."
-python main.py \
+python -u main.py \
     -a $ARCH \
     --dist-backend 'nccl' \
     --dist-url "tcp://localhost:8828" \
