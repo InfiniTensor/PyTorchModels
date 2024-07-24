@@ -28,6 +28,7 @@ from profiler import Profiler
 #from torchvision.models import efficientnet_b0, EfficientNet_B0_Weights
 from torchvision.models._api import WeightsEnum
 from torch.hub import load_state_dict_from_url
+torch.npu.set_compile_mode(jit_compile=True)
 
 def get_state_dict(self, *args, **kwargs):
     kwargs.pop("check_hash")

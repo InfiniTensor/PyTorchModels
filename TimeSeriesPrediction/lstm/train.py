@@ -1,5 +1,6 @@
 import os
 import torch
+import torch_npu
 import pandas as pd
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
@@ -9,6 +10,7 @@ import copy
 import numpy as np
 import argparse
 import logging
+from torch_npu.contrib import transfer_to_npu
 logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 class LSTM(nn.Module):

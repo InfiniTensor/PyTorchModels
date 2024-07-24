@@ -1,4 +1,6 @@
 import torch
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 import pandas as pd
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
@@ -76,9 +78,10 @@ def test_proc(para_dict,test_data,min_val,max_val):
     batch_size = para_dict["batch_size"]
     path = para_dict["model_path"]
     model = LSTM(input_size,hidden_size,num_layers,output_size,batch_size)
-    model.to(device)
+    #model.to(device)
     logger.info("loading models ......")
     model.load_state_dict(torch.load(path)['models'])
+    model.to(device)
     model.eval()
  
     pred = []#list
@@ -115,8 +118,8 @@ if __name__ == '__main__':
     
     para_dict = vars(args)
     
-    device="cuda"
-    torch.cuda.set_device(0)
+    device="npu"
+    torch.npu.set_device(0)
 
     data,L = read_data(para_dict['dataset'])
     # data = torch.Tensor(data).to(device)

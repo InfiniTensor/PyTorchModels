@@ -80,15 +80,8 @@ def evaluate(test_loader, model):
             true_boxes.extend(boxes)
             true_labels.extend(labels)
             true_difficulties.extend(difficulties)
-            break
 
         # Calculate mAP
-        print(det_boxes[0].device)
-        print(det_labels.device)
-        print(det_scores.device)
-        print(true_boxes.device)
-        print(true_labels.device)
-        print(true_difficulties.device)
         APs, mAP = calculate_mAP(det_boxes, det_labels, det_scores, true_boxes, true_labels, true_difficulties)
 
     # Print AP for each class

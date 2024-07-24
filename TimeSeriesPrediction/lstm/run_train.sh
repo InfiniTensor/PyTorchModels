@@ -9,7 +9,7 @@ epoch=$2
 batch_size=$3
 learning_rate=$4
 
-python -W ignore train.py \
+python -u -W ignore train.py \
        --dataset $dataset \
        --epoch $epoch \
        --batch_size $batch_size \
