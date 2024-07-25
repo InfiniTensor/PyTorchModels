@@ -147,9 +147,13 @@ class MASRTrainer(object):
         else:
             raise Exception('没有该模型：{}'.format(self.use_model))
 
+        print(resume_model)
+        print('***************************')
         assert os.path.exists(os.path.join(resume_model, 'model.pt')), "模型不存在！"
+        #model.cuda()
+        #.pt文件中有cuda
+        model.load_state_dict(torch.load(os.path.join(resume_model, 'model.pt'), map_location=torch.device('cpu')))
         model.cuda()
-        model.load_state_dict(torch.load(os.path.join(resume_model, 'model.pt')))
         model.eval()
 
         c = []
@@ -197,6 +201,7 @@ class MASRTrainer(object):
         local_rank = 0
         if nranks > 1:
             # 初始化NCCL环境
+            #dist.init_process_group(backend='nccl', init_method='tcp://127.0.0.1:23456', world_size=4, rank=local_rank)
             dist.init_process_group(backend='nccl')
             local_rank = dist.get_rank()
         if local_rank == 0:
@@ -296,9 +301,6 @@ class MASRTrainer(object):
                 for batch_id, (inputs, labels, input_lens, label_lens) in enumerate(train_loader):
                     inputs = inputs.cuda()
                     labels = labels.cuda()
-                    print('************************************************')
-                    print(inputs.device)
-                    print(input_lens)
                     out, out_lens, _, _ = model(inputs, input_lens)
                     out = out.log_softmax(2)
                     out = out.permute(1, 0, 2)

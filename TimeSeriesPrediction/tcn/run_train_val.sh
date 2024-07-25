@@ -1,0 +1,1 @@
+python pmnist_test.py

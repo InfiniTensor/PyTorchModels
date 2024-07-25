@@ -7,7 +7,7 @@ from masr.utils.utils import add_arguments, print_arguments, prepare_dataset
 
 parser = argparse.ArgumentParser(description=__doc__)
 add_arg = functools.partial(add_arguments, argparser=parser)
-add_arg("target_dir", str, "./cache/", "存放音频文件的目录 (默认: %(default)s)")
+add_arg("target_dir", str, "../data/", "存放音频文件的目录 (默认: %(default)s)")
 add_arg('annotation_path', str, './cache/annotation/', '标注文件的路径')
 add_arg('train_manifest', str, './cache/manifest.train', '训练数据的数据列表路径')
 add_arg('test_manifest', str, './cache/manifest.test', '测试数据的数据列表路径')
