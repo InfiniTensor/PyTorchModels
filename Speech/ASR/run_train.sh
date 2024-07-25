@@ -5,7 +5,7 @@ if [ -e "./cache/data_thchs30" ]; then
 else
     # 创建软连接
     mkdir ./cache
-    ln -s /data1/shared/Dataset/data_thchs30 ./cache/data_thchs30
+    ln -s /data/Dataset/data_thchs30 ./cache/data_thchs30
     # ln -s /home/qinyiqun/data_thchs30 ../data/data_thchs30
 fi
 

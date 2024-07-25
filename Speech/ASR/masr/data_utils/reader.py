@@ -2,12 +2,14 @@ import json
 import sys
 from datetime import datetime
 
+#import torch_npu
 import numpy as np
 from torch.utils.data import Dataset
 
 from masr.data_utils.featurizer.speech_featurizer import SpeechFeaturizer
 from masr.data_utils.normalizer import FeatureNormalizer
 from masr.data_utils.speech import SpeechSegment
+#from torch_npu.contrib import transfer_to_npu
 
 
 # 音频数据加载器

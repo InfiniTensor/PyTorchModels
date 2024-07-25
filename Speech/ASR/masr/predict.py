@@ -3,11 +3,13 @@ import sys
 
 import numpy as np
 import torch
+import torch_npu
 
 from masr.data_utils.audio import AudioSegment
 from masr.data_utils.featurizer.audio_featurizer import AudioFeaturizer
 from masr.data_utils.featurizer.text_featurizer import TextFeaturizer
 from masr.data_utils.ctc_greedy_decoder import greedy_decoder
+from torch_npu.contrib import transfer_to_npu
 
 
 class Predictor:

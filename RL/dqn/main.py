@@ -2,7 +2,8 @@ import torch,os
 import torch.nn as nn  
 import torch.optim as optim  
 import numpy as np  
-import gym
+#import gym
+import gymnasium as gym
 import argparse
 from torch.utils.data import DataLoader, TensorDataset 
 import logging

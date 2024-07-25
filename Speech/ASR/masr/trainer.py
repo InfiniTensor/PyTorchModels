@@ -9,6 +9,7 @@ from datetime import datetime
 from datetime import timedelta
 
 import torch
+import torch_npu
 import torch.distributed as dist
 from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import DataLoader
@@ -27,6 +28,7 @@ from masr.model_utils.utils import DeepSpeech2ModelExport
 from masr.utils.metrics import cer, wer
 from masr.utils.utils import create_manifest, count_manifest, compute_mean_std
 from masr.utils.utils import labels_to_string
+from torch_npu.contrib import transfer_to_npu
 
 os.environ['MASTER_ADDR'] = 'localhost'
 os.environ['MASTER_PORT'] = '14514'
@@ -294,6 +296,9 @@ class MASRTrainer(object):
                 for batch_id, (inputs, labels, input_lens, label_lens) in enumerate(train_loader):
                     inputs = inputs.cuda()
                     labels = labels.cuda()
+                    print('************************************************')
+                    print(inputs.device)
+                    print(input_lens)
                     out, out_lens, _, _ = model(inputs, input_lens)
                     out = out.log_softmax(2)
                     out = out.permute(1, 0, 2)

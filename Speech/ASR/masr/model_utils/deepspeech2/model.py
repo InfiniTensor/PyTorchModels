@@ -1,7 +1,9 @@
 from torch import nn
+#import torch_npu
 
 from masr.model_utils.deepspeech2.conv import ConvStack
 from masr.model_utils.deepspeech2.rnn import RNNStack
+#from torch_npu.contrib import transfer_to_npu
 
 __all__ = ['deepspeech2', 'deepspeech2_big']
 
