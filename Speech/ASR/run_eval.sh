@@ -1,12 +1,15 @@
 #!/bin/bash
 
-if [ -e "./cache/data_thchs30" ]; then
-    echo "./cache/data_thchs30 exists"
+if [ -e "../data/data_thchs30" ]; then
+    echo "../data/data_thchs30 exists"
 else
-    # 创建软连接
-    mkdir ./cache
-    ln -s /data1/shared/Dataset/data_thchs30 ./cache/data_thchs30
-    # ln -s /home/qinyiqun/data_thchs30 ../data/data_thchs30
+    ln -s /data1/shared/Dataset/data_thchs30 ../data_thchs30
+fi
+
+if [ -e "./cache" ]; then
+    echo "./cache exists"
+else
+    mkdir cache
 fi
 
 python data_preprocess.py
