@@ -8,9 +8,9 @@ import copy
 import numpy as np
 import argparse
 import logging
+from lstm import CustomLSTM
 logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
-
 
 
 class LSTM(nn.Module):
@@ -22,7 +22,7 @@ class LSTM(nn.Module):
         self.output_size = output_size
         self.batch_size = batch_size
         self.num_directions = 1
-        self.lstm = nn.LSTM(self.input_size,self.hidden_size,self.num_layers,batch_first=True)
+        self.lstm = CustomLSTM(self.input_size,self.hidden_size,self.num_layers,batch_first=True)
         self.linear = nn.Linear(self.hidden_size,self.output_size)
  
     def forward(self,inputseq):
