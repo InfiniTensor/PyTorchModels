@@ -1,5 +1,52 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+
+class CustomLSTMCell(nn.Module):
+    def __init__(self, input_size, hidden_size, bias=True):
+        super(CustomLSTMCell, self).__init__()
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+
+        self.weight_ih = nn.Parameter(torch.Tensor(4 * hidden_size, input_size))
+        self.weight_hh = nn.Parameter(torch.Tensor(4 * hidden_size, hidden_size))
+        
+        if bias:
+            self.bias_ih = nn.Parameter(torch.Tensor(4 * hidden_size))
+            self.bias_hh = nn.Parameter(torch.Tensor(4 * hidden_size))
+        else:
+            self.register_parameter('bias_ih', None)
+            self.register_parameter('bias_hh', None)
+
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        std = 1.0 / self.hidden_size ** 0.5
+        for weight in self.parameters():
+            nn.init.uniform_(weight, -std, std)
+
+    def forward(self, x, hx):
+        h, c = hx
+        # Linear transformations
+        gates = (torch.mm(x, self.weight_ih.t()) + self.bias_ih +
+                 torch.mm(h, self.weight_hh.t()) + self.bias_hh)
+
+        # Split the gates into their respective components
+        i_gate, f_gate, g_gate, o_gate = gates.chunk(4, 1)
+
+        # Apply nonlinearities
+        i_gate = torch.sigmoid(i_gate)
+        f_gate = torch.sigmoid(f_gate)
+        g_gate = torch.tanh(g_gate)
+        o_gate = torch.sigmoid(o_gate)
+
+        # Update cell state
+        c_next = f_gate * c + i_gate * g_gate
+        # Compute hidden state
+        h_next = o_gate * torch.tanh(c_next)
+
+        return h_next, c_next
+
 
 class CustomLSTM(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers=1, bias=True, batch_first=False, dropout=0.0, bidirectional=False, proj_size=0):
@@ -18,7 +65,7 @@ class CustomLSTM(nn.Module):
         self.lstm_cells = nn.ModuleList()
         for layer in range(num_layers):
             input_dim = input_size if layer == 0 else hidden_size * self.num_directions
-            lstm_cell = nn.LSTMCell(input_dim, hidden_size, bias=bias)
+            lstm_cell = CustomLSTMCell(input_dim, hidden_size, bias=bias)
             self.lstm_cells.append(lstm_cell)
         
         # Initialize projection layer if proj_size > 0
