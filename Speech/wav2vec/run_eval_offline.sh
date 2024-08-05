@@ -7,7 +7,6 @@ else
 fi
 
 export CUDA_VISIBLE_DEVICES=0
-export HF_ENDPOINT=https://hf-mirror.com
 export LIBRISPEECH_PATH="../data/LibriSpeech"
 
 MODEL_PATH="./wav2vec2-large-lv60"
