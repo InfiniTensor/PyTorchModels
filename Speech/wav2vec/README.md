@@ -45,6 +45,7 @@
   - `export HF_ENDPOINT=https://hf-mirror.com`
 
 ### 无互联网连接时
+- 需要本地调用 evaluate 库中 metrics 模块的代码，主要需要的是与 WER(Word Error Rate) 指标相关的代码，已经放在 ./metrics/ 目录下（**已经配齐，不需要做额外收集**）。
 - 使用预训练模型时，需要提前**手动下载模型文件**。以 `wav2vec2-large-lv60` 为例，到[官方 repo](https://hf-mirror.com/facebook/wav2vec2-large-lv60)下载如下几个文件，并将其放到同一目录下，例如 `./wav2vec2-large-lv60`：
 ```
   ./wav2vec2-large-lv60/
