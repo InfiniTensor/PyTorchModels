@@ -692,8 +692,11 @@ def main():
     # instantiate a data collator and the trainer
 
     # Define evaluation metrics during training, *i.e.* word error rate, character error rate
-    eval_metrics = {metric: evaluate.load(metric, cache_dir=model_args.cache_dir) for metric in data_args.eval_metrics}
-
+    if model_args.online:
+        eval_metrics = {metric: evaluate.load(metric, cache_dir=model_args.cache_dir) for metric in data_args.eval_metrics}
+    else:
+        eval_metrics = {metric: evaluate.load("./metrics/wer", cache_dir=model_args.cache_dir) for metric in data_args.eval_metrics}
+    
     # for large datasets it is advised to run the preprocessing on a
     # single machine first with ``args.preprocessing_only`` since there will mostly likely
     # be a timeout when running the script in distributed mode.
