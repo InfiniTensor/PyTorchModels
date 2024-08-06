@@ -39,7 +39,18 @@
        ├── ...
 	```
   运行脚本中必须显示指定 `LIBRISPEECH_PATH` 环境变量为上述数据集的路径，代码中会读取该环境变量加载数据。
-
+- 运行常见报错（来自 `evaluate` 库）：
+  ```
+  ImportError: /${YOUR_PYTHON_PATH}/site-packages/sklearn/__check_build/../../scikit_learn.libs/libgomp-d22c30c5.so.1.0.0: cannot allocate memory in static TLS block
+  ___________________________________________________________________________
+  Contents of /${YOUR_PYTHON_PATH}/site-packages/sklearn/__check_build:
+  __init__.py               _check_build.cpython-36m-aarch64-linux-gnu.so__pycache__
+  setup.py
+  ___________________________________________________________________________
+  It seems that scikit-learn has not been built correctly.
+  ```
+  这种情况下需要在环境变量中添加：`export LD_PRELOAD=$LD_PRELOAD:/PATH/TO/libgomp-d22c30c5.so.1.0.0`
+  
 ### 有互联网连接时
 - 使用互联网连接 HuggingFaceHub 时，需要更换国内镜像源：
   - `export HF_ENDPOINT=https://hf-mirror.com`
