@@ -1,43 +1,51 @@
 #!/bin/bash
 
-# 脚本用于运行 Torchvision 中所有分类模型的的训练
-# 数据集放在 /data1/shared/Dataset/imagenet2012
+# 脚本用于运行 Torchvision 中所有分类模型的训练
+# 数据集目录和模型架构均由环境变量指定：
+#   - ARCH: 必须指定的模型架构 (自动转换为小写)
+#   - DATA_DIR: 必须指定的数据集目录
 
 set -e
 
 export CUDA_VISIBLE_DEVICES=0,1,2,3
 
-ARCH=""
+# 读取环境变量，并将 ARCH 转换为小写
+ARCH=${ARCH:-""}
+ARCH=$(echo "$ARCH" | tr '[:upper:]' '[:lower:]')  # 转换为小写
+DATA_DIR=${DATA_DIR:-""}
 
 # Help message
 usage() {
-    echo "Usage: $0 -a ARCH"
-    echo "  -a ARCH, --arch ARCH       Model architecture (e.g., AlexNet, ResNet18, etc.)"
-    echo "  -h, --help                 Display this help and exit"
+    echo "Usage: ARCH=<model> DATA_DIR=<dataset_path> $0"
+    echo "  - ARCH (required)          Model architecture (e.g., alexnet, resnet18, etc.)"
+    echo "  - DATA_DIR (required)      Path to the dataset directory"
+    echo "  - Example: ARCH=ResNet18 DATA_DIR=/path/to/imagenet2012 $0"
     exit 1
 }
 
-# Parse command line arguments
-while getopts "a:h" opt; do
-    case $opt in
-        a) ARCH=$OPTARG ;;
-        h) usage ;;
-        *) usage ;;
-    esac
-done
-
-# Check ARCH parsing
+# 检查环境变量是否已设置
 if [ -z "$ARCH" ]; then
-    echo "Error: Model architecture is required."
+    echo "Error: ARCH (model architecture) is required."
     usage
 fi
 
-# Check dataset
+if [ -z "$DATA_DIR" ]; then
+    echo "Error: DATA_DIR (dataset path) is required."
+    usage
+fi
+
+# 确保数据集路径存在
+if [ ! -d "$DATA_DIR" ]; then
+    echo "Error: Dataset directory '$DATA_DIR' does not exist."
+    exit 1
+fi
+
+# 软链接数据目录
 if [ -e "../data/imagenet2012" ]; then
     echo "Dataset ../data/imagenet2012 exists"
 else
-    # Link defaut dataset
-    ln -s /data1/shared/Dataset/imagenet2012 ../data
+    echo "Linking dataset from $DATA_DIR to ../data/imagenet2012"
+    ln -s "$DATA_DIR" ../data
 fi
 
 echo "Training Start: $(date +'%m/%d/%Y %T')" 
@@ -45,7 +53,7 @@ echo "Training Start: $(date +'%m/%d/%Y %T')"
 # 4 card training
 echo "Training $ARCH..."
 python main.py \
-    -a $ARCH \
+    -a "$ARCH" \
     --dist-backend 'nccl' \
     --dist-url "tcp://localhost:8828" \
     --multiprocessing-distributed \
@@ -55,3 +63,4 @@ python main.py \
     ../data/imagenet2012
 
 echo "Training Finish: $(date +'%m/%d/%Y %T')"
+
