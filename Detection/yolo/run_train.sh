@@ -1,69 +1,73 @@
 #!/bin/bash
 
-# 确保脚本在遇到错误时停止执行
-#set -e
-
-# # 配置环境
-# echo "配置环境..."
-# #pip install -r requirements.txt
+# 脚本用于运行 YOLOv5 训练
+# 依赖以下环境变量：
+#   - MODEL: 必须指定的模型架构 (自动转换为小写)
+#   - DATA_DIR: 必须指定的数据集目录
 
 set -e
 
-if [ -e "./runs" ]; then
-    rm -rf "./runs"
-fi
-
 export CUDA_VISIBLE_DEVICES=0,1,2,3
 
-if [ -e "../data/coco" ]; then
-    echo "../data/coco exists"
-else
-    ln -s /data1/shared/Dataset/coco/ ../data
+# 读取环境变量，并将 MODEL 转换为小写
+MODEL=${MODEL:-"yolov5s"}
+MODEL=$(echo "$MODEL" | tr '[:upper:]' '[:lower:]')  # 转换为小写
+DATA_DIR=${DATA_DIR:-""}
+
+# Help message
+usage() {
+    echo "Usage: MODEL=<model> DATA_DIR=<dataset_path> $0"
+    echo "  - MODEL (required)         YOLOv5 model variant (e.g., yolov5n, yolov5s, etc.)"
+    echo "  - DATA_DIR (required)      Path to the dataset directory"
+    echo "  - Example: MODEL=yolov5s DATA_DIR=/path/to/coco $0"
+    exit 1
+}
+
+# 检查环境变量是否已设置
+if [ -z "$MODEL" ]; then
+    echo "Error: MODEL (YOLOv5 model variant) is required."
+    usage
 fi
 
-# CP Arial.ttf to local
+if [ -z "$DATA_DIR" ]; then
+    echo "Error: DATA_DIR (dataset path) is required."
+    usage
+fi
+
+# 确保数据集路径存在
+if [ ! -d "$DATA_DIR" ]; then
+    echo "Error: Dataset directory '$DATA_DIR' does not exist."
+    exit 1
+fi
+
+# 软链接数据目录
+if [ -e "../data/coco" ]; then
+    echo "Dataset ../data/coco exists"
+else
+    echo "Linking dataset from $DATA_DIR to ../data/coco"
+    ln -s "$DATA_DIR" ../data
+fi
+
+# 复制字体文件
 mkdir -p ~/.config/Ultralytics/
 cp ./Arial.ttf ~/.config/Ultralytics/Arial.ttf
 
-MODELS=("yolov5n"
-        "yolov5s"
-        "yolov5m"
-        "yolov5l"
-        "yolov5x")
+echo "Training Start: $(date +'%m/%d/%Y %T')"
 
-# 读取用户输入 
-model_option=$1
+# 运行 YOLOv5 训练
+echo "Training $MODEL..."
+python -m torch.distributed.run \
+    --nproc_per_node 4 train.py \
+    --batch 64 \
+    --img 640 \
+    --epoch 25 \
+    --data coco.yaml \
+    --weights "" \
+    --cfg "models/${MODEL}.yaml" \
+    --device 0,1,2,3 \
+    --nosave \
+    --noval \
+    --workers 16
 
-# 检查输入是否有效  
-is_valid=false  
-for model in "${MODELS[@]}"; do  
-    if [[ "$model_option" == "$model" ]]; then  
-        is_valid=true  
-        break  
-    fi  
-done  
-
-# 检查输入是否有效，并据此运行脚本  
-if $is_valid; then  
-
-    # 训练
-    echo "Training $model_option START" 
-#    python3 train.py --data coco.yaml --epochs 300 --weights '' --cfg "${model_option}.yaml"  --batch-size 64
-    python -m torch.distributed.run \
-        --nproc_per_node 4 train.py \
-        --batch 64 \
-        --img 640 \
-        --epoch 25 \
-        --data coco.yaml \
-        --weights "" \
-        --cfg "models/${model_option}.yaml" \
-        --device 0,1,2,3 \
-        --nosave \
-        --noval \
-        --workers 16 
-    echo "Training $model_option FINISHED"
-
-else  
-    echo "Choose model in yolov5n yolov5s yolov5m yolov5x yolov5n"  
-fi
+echo "Training Finish: $(date +'%m/%d/%Y %T')"
 

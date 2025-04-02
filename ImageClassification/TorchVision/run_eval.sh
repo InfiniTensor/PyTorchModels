@@ -40,14 +40,6 @@ if [ ! -d "$DATA_DIR" ]; then
     exit 1
 fi
 
-# 软链接数据目录
-if [ -e "../data/imagenet2012" ]; then
-    echo "Dataset ../data/imagenet2012 exists"
-else
-    echo "Linking dataset from $DATA_DIR to ../data/imagenet2012"
-    ln -s "$DATA_DIR" ../data
-fi
-
 echo "Evaluating Start: $(date +'%m/%d/%Y %T')"
 
 # 单机单卡推理
@@ -58,6 +50,6 @@ python main.py \
     --batch-size 64 \
     --pretrained \
     --evaluate \
-    ../data/imagenet2012
+    $DATA_DIR 
 
 echo "Evaluating Finish: $(date +'%m/%d/%Y %T')"

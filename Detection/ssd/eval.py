@@ -1,3 +1,5 @@
+import argparse
+import torch
 from utils import *
 from datasets import PascalVOCDataset
 from tqdm import tqdm
@@ -6,30 +8,21 @@ from pprint import PrettyPrinter
 # Good formatting when printing the APs for each class and mAP
 pp = PrettyPrinter()
 
-# Parameters
-data_folder = './data'
-keep_difficult = True  # difficult ground truth objects must always be considered in mAP calculation, because these objects DO exist!
-batch_size = 64
-workers = 4
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-checkpoint = './checkpoint_ssd300.pth.tar'
+# Command-line argument parsing
+def parse_args():
+    parser = argparse.ArgumentParser(description="Evaluate SSD model")
+    
+    # Adding arguments
+    parser.add_argument('--data', type=str, default='./data', help='Path to dataset folder')
+    parser.add_argument('--keep_difficult', type=bool, default=True, help='Whether to keep difficult objects in mAP calculation')
+    parser.add_argument('--batch_size', type=int, default=64, help='Batch size for evaluation')
+    parser.add_argument('--workers', type=int, default=4, help='Number of workers for DataLoader')
+    parser.add_argument('--device', type=str, choices=['cpu', 'cuda'], default='cuda', help='Device to run the model on (cpu or cuda)')
+    parser.add_argument('--checkpoint', type=str, default='./checkpoint_ssd300.pth.tar', help='Path to model checkpoint')
 
-# Load model checkpoint that is to be evaluated
-checkpoint = torch.load(checkpoint)
-model = checkpoint['model']
-model = model.to(device)
+    return parser.parse_args()
 
-# Switch to eval mode
-model.eval()
-
-# Load test data
-test_dataset = PascalVOCDataset(data_folder,
-                                split='test',
-                                keep_difficult=keep_difficult)
-test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False,
-                                          collate_fn=test_dataset.collate_fn, num_workers=workers, pin_memory=True)
-
-
+# Main evaluation function
 def evaluate(test_loader, model):
     """
     Evaluate.
@@ -61,7 +54,6 @@ def evaluate(test_loader, model):
             det_boxes_batch, det_labels_batch, det_scores_batch = model.detect_objects(predicted_locs, predicted_scores,
                                                                                        min_score=0.01, max_overlap=0.45,
                                                                                        top_k=200)
-            # Evaluation MUST be at min_score=0.01, max_overlap=0.45, top_k=200 for fair comparision with the paper's results and other repos
 
             # Store this batch's results for mAP calculation
             boxes = [b.to(device) for b in boxes]
@@ -83,6 +75,28 @@ def evaluate(test_loader, model):
 
     print('\nMean Average Precision (mAP): %.3f' % mAP)
 
-
 if __name__ == '__main__':
+    # Parse command-line arguments
+    args = parse_args()
+
+    # Set device (CPU or GPU)
+    device = torch.device(args.device if torch.cuda.is_available() else 'cpu')
+
+    # Load model checkpoint
+    checkpoint = torch.load(args.checkpoint)
+    model = checkpoint['model']
+    model = model.to(device)
+
+    # Switch to eval mode
+    model.eval()
+
+    # Load test data
+    test_dataset = PascalVOCDataset(args.data,
+                                    split='test',
+                                    keep_difficult=args.keep_difficult)
+    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False,
+                                              collate_fn=test_dataset.collate_fn, num_workers=args.workers, pin_memory=True)
+
+    # Evaluate the model
     evaluate(test_loader, model)
+

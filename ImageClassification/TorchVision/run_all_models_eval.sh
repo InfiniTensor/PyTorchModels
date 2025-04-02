@@ -31,14 +31,6 @@ if [ ! -d "$DATA_DIR" ]; then
     exit 1
 fi
 
-# 软链接数据目录
-if [ -e "../data/imagenet2012" ]; then
-    echo "Dataset ../data/imagenet2012 exists"
-else
-    echo "Linking dataset from $DATA_DIR to ../data/imagenet2012"
-    ln -s "$DATA_DIR" ../data
-fi
-
 # 模型列表
 models=(
     alexnet convnext_base convnext_large convnext_small convnext_tiny
@@ -70,7 +62,7 @@ for model in "${models[@]}"; do
         --batch-size 64 \
         --pretrained \
         --evaluate \
-        ../data/imagenet2012 
+        $DATA_DIR
 
     # 删除下载的 ckpt
     rm -f "$HOME/.cache/torch/hub/checkpoints/${model}"*.pth
