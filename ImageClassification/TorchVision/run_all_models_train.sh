@@ -1,21 +1,25 @@
 #!/bin/bash
 
-# 脚本用于运行 Torchvision 中所有分类模型的训练
+# 脚本用于在寒武纪MLU上运行 Torchvision 中所有分类模型的训练
 # 数据集目录由环境变量指定：
 #   - DATA_DIR: 必须指定的数据集目录 (包含训练数据)
+#   - MLU_VISIBLE_DEVICES: 可选的MLU设备列表 (默认为0,1,2,3)
 
 set -e
 
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+# 设置寒武纪MLU
+export MLU_VISIBLE_DEVICES=${MLU_VISIBLE_DEVICES:-"0,1,2,3"}
 
-# 读取环境变量
-DATA_DIR=${DATA_DIR:-""}
+# 读取并清理环境变量
+DATA_DIR=$(echo "$DATA_DIR" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
+DATA_DIR=${DATA_DIR%/}  
 
 # Help message
 usage() {
-    echo "Usage: DATA_DIR=<dataset_path> $0"
-    echo "  - DATA_DIR (required)      Path to the dataset directory"
-    echo "  - Example: DATA_DIR=/path/to/imagenet2012 $0"
+    echo "Usage: DATA_DIR=<dataset_path> [MLU_VISIBLE_DEVICES=<mlu_devices>] $0"
+    echo "  - DATA_DIR (required)      Path to the dataset directory (e.g., /dataset/ILSVRC2012)"
+    echo "  - MLU_VISIBLE_DEVICES      Comma-separated list of MLU devices (default: 0,1,2,3)"
+    echo "  - Example: DATA_DIR=/dataset/ILSVRC2012 MLU_VISIBLE_DEVICES=0,1,2,3 $0"
     exit 1
 }
 
@@ -28,6 +32,15 @@ fi
 # 确保数据集路径存在
 if [ ! -d "$DATA_DIR" ]; then
     echo "Error: Dataset directory '$DATA_DIR' does not exist."
+    exit 1
+fi
+
+# 检查数据集结构
+if [ ! -d "${DATA_DIR}/train" ]; then
+    echo "ERROR: Dataset missing 'train' subdirectory:"
+    echo "  - Required: ${DATA_DIR}/train/"
+    echo "Found contents:"
+    ls -l "$DATA_DIR"
     exit 1
 fi
 
@@ -54,23 +67,27 @@ echo "Training start: $(date +'%m/%d/%Y %T')"
 
 # 遍历所有模型
 for model in "${models[@]}"; do
+    echo "===================================================================="
     echo "Training $model start: $(date +'%m/%d/%Y %T')"
     
     python main.py \
         -a "$model" \
-        --dist-backend 'nccl' \
-        --dist-url "tcp://localhost:8828" \
+        --device mlu \
+        --dist-backend cncl \
+        --dist-url "tcp://localhost:8830" \
         --multiprocessing-distributed \
         --world-size 1 \
         --rank 0 \
         --batch-size 64 \
-        $DATA_DIR &
+        --workers 0 \
+        --cnmix \
+        "$DATA_DIR" &
 
-    # 获取进程 ID
+    # 获取进程ID
     pid=$!
 
-    # 运行 10 分钟
-    sleep 600 
+    # 运行10分钟
+    sleep 600
 
     # 终止训练进程及其子进程
     echo "Stopping training process (PID: $pid)..."
@@ -78,7 +95,10 @@ for model in "${models[@]}"; do
     kill "$pid" 2>/dev/null || true
 
     echo "Training $model finish: $(date +'%m/%d/%Y %T')"
+    echo "===================================================================="
 
     # 等待缓冲区刷新
     sleep 20
 done
+
+
