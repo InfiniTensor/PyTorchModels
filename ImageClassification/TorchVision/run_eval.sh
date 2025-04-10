@@ -7,7 +7,7 @@
 
 set -e
 
-export CUDA_VISIBLE_DEVICES=0
+export ASCEND_RT_VISIBLE_DEVICES=0
 
 # 读取环境变量，并将 ARCH 转换为小写
 ARCH=${ARCH:-""}
@@ -48,8 +48,9 @@ python main.py \
     -a "$ARCH" \
     --world-size 1 \
     --batch-size 64 \
-    --pretrained \
     --evaluate \
+    --dummy \
+    --gpu 1 \
     $DATA_DIR 
 
 echo "Evaluating Finish: $(date +'%m/%d/%Y %T')"

@@ -3,10 +3,8 @@
 # 脚本用于运行 Torchvision 中所有分类模型的推理
 # 数据集目录由环境变量指定：
 #   - DATA_DIR: 必须指定的数据集目录 (包含 val 子目录)
-
-set -e
-
-export CUDA_VISIBLE_DEVICES=0
+# 命令示例： DATA_DIR=../data/imagenet2012 nohup bash run_all_models_eval.sh > output.log 2>&1 &
+export ASCEND_RT_VISIBLE_DEVICES=0
 
 # 读取环境变量
 DATA_DIR=${DATA_DIR:-""}
@@ -33,7 +31,8 @@ fi
 
 # 模型列表
 models=(
-    alexnet convnext_base convnext_large convnext_small convnext_tiny
+    alexnet convnext_base
+    convnext_large convnext_small convnext_tiny
     densenet121 densenet161 densenet169 densenet201
     efficientnet_b0 efficientnet_b1 efficientnet_b2 efficientnet_b3
     efficientnet_b4 efficientnet_b5 efficientnet_b6 efficientnet_b7
@@ -46,9 +45,14 @@ models=(
     resnet18 resnet34 resnet50 resnext101_32x8d resnext50_32x4d
     shufflenet_v2_x0_5 shufflenet_v2_x1_0 shufflenet_v2_x1_5 shufflenet_v2_x2_0
     squeezenet1_0 squeezenet1_1 vgg11 vgg11_bn vgg13 vgg13_bn vgg16
-    vgg16_bn vgg19 vgg19_bn vit_b_16 vit_b_32 vit_l_16 vit_l_32
+    vgg16_bn vgg19 vgg19_bn 
+    # vit_b_16 vit_b_32 vit_l_16 vit_l_32 These 4 models seems to have error when inferring
     wide_resnet101_2 wide_resnet50_2
 )
+
+# 创建日志目录
+LOG_DIR="model_eval_logs"
+mkdir -p "$LOG_DIR"
 
 echo "Evaluating start: $(date +'%m/%d/%Y %T')"
 
@@ -56,19 +60,33 @@ echo "Evaluating start: $(date +'%m/%d/%Y %T')"
 for model in "${models[@]}"; do
     echo "Evaluating $model start: $(date +'%m/%d/%Y %T')"
     
+    # 为每个模型创建单独的日志文件
+    LOG_FILE="$LOG_DIR/${model}_eval.log"
+    
+    # 使用 || true 确保命令失败不会终止脚本
     python main.py \
         -a "$model" \
         --world-size 1 \
         --batch-size 64 \
         --pretrained \
         --evaluate \
-        $DATA_DIR
+        --dummy \
+        --gpu 1 \
+        $DATA_DIR > "$LOG_FILE" 2>&1 || {
+            echo "Error: Evaluation failed for model $model, check $LOG_FILE for details"
+            # 继续执行下一个模型
+            continue
+        }
 
     # 删除下载的 ckpt
-    rm -f "$HOME/.cache/torch/hub/checkpoints/${model}"*.pth
+    rm -f "$HOME/.cache/torch/hub/checkpoints/${model}"*.pth || {
+        echo "Warning: Failed to remove checkpoint for model $model"
+    }
 
     echo "Evaluating $model finish: $(date +'%m/%d/%Y %T')"
-    
+
     # 等待输出缓冲区冲刷
     sleep 5
 done
+
+echo "All evaluations completed: $(date +'%m/%d/%Y %T')"

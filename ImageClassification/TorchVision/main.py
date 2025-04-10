@@ -7,6 +7,7 @@ import warnings
 from enum import Enum
 
 import torch
+import torch_npu
 import torch.backends.cudnn as cudnn
 import torch.distributed as dist
 import torch.multiprocessing as mp
@@ -20,6 +21,7 @@ import torchvision.models as models
 import torchvision.transforms as transforms
 from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import Subset
+from torch_npu.contrib import transfer_to_npu
 
 from profiler import Profiler
 
@@ -69,7 +71,7 @@ parser.add_argument('--rank', default=-1, type=int,
                     help='node rank for distributed training')
 parser.add_argument('--dist-url', default='tcp://224.66.41.62:23456', type=str,
                     help='url used to set up distributed training')
-parser.add_argument('--dist-backend', default='nccl', type=str,
+parser.add_argument('--dist-backend', default='hccl', type=str,
                     help='distributed backend')
 parser.add_argument('--seed', default=None, type=int,
                     help='seed for initializing training. ')
@@ -88,6 +90,12 @@ best_acc1 = 0
 
 def main(): 
     args = parser.parse_args()
+
+    # 打印所有参数
+    print("\n============= 所有运行参数 =============")
+    for arg in vars(args):
+        print(f"{arg}: {getattr(args, arg)}")
+    print("=======================================\n")
 
     if args.seed is not None:
         random.seed(args.seed)
@@ -111,8 +119,9 @@ def main():
 
     if torch.cuda.is_available():
         ngpus_per_node = torch.cuda.device_count()
-        if ngpus_per_node == 1 and args.dist_backend == "nccl":
-            warnings.warn("nccl backend >=2.5 requires GPU count>1, see https://github.com/NVIDIA/nccl/issues/103 perhaps use 'gloo'")
+        # It's inherited from cuda version, but we're not sure about ascend, so ignore it.
+        # if ngpus_per_node == 1 and args.dist_backend == "hccl":
+        #     warnings.warn("hccl backend >=2.5 requires GPU count>1, see https://github.com/NVIDIA/nccl/issues/103 perhaps use 'gloo'")
     else:
         ngpus_per_node = 1
 
@@ -146,7 +155,7 @@ def main_worker(gpu, ngpus_per_node, args):
                                 world_size=args.world_size, rank=args.rank)
 
     model_kwargs = {}
-    if args.arch in ["googlenet", "inception_v3"] :
+    if args.arch in ["googlenet", "inception_v3"] and not args.evaluate:
         model_kwargs["aux_logits"] = False
     # create model
     if args.pretrained:
