@@ -31,8 +31,7 @@ fi
 
 # 模型列表
 models=(
-    alexnet convnext_base
-    convnext_large convnext_small convnext_tiny
+    alexnet convnext_base convnext_large convnext_small convnext_tiny
     densenet121 densenet161 densenet169 densenet201
     efficientnet_b0 efficientnet_b1 efficientnet_b2 efficientnet_b3
     efficientnet_b4 efficientnet_b5 efficientnet_b6 efficientnet_b7

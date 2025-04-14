@@ -50,7 +50,7 @@ python main.py \
     --batch-size 64 \
     --evaluate \
     --dummy \
-    --gpu 1 \
+    --gpu 0 \
     $DATA_DIR 
 
 echo "Evaluating Finish: $(date +'%m/%d/%Y %T')"
