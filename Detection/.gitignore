@@ -1,0 +1,19 @@
+ssd/ssd_mlu/models/data/example.jpg
+fasterrcnn/fasterrcnn_mlu/models/runs/
+fasterrcnn/fasterrcnn_mlu/models/configs/caffe2/
+fasterrcnn/fasterrcnn_mlu/models/configs/cityscapes/
+fasterrcnn/fasterrcnn_mlu/models/configs/dcn/
+fasterrcnn/fasterrcnn_mlu/models/configs/e2e_faster_rcnn_R_101_FPN_1x.yaml
+fasterrcnn/fasterrcnn_mlu/models/configs/gn_baselines/
+fasterrcnn/fasterrcnn_mlu/models/configs/pascal_voc/
+ fasterrcnn/fasterrcnn_mlu/models/configs/quick_schedules/
+fasterrcnn/fasterrcnn_mlu/models/configs/retinanet/
+ fasterrcnn/fasterrcnn_mlu/models/configs/test_time_aug/
+ fasterrcnn/fasterrcnn_mlu/models/data/
+ ssd/ssd_mlu/models/data/scripts/
+ssd/ssd_mlu/models/param_infer.txt
+fasterrcnn/fasterrcnn_mlu/models/configs/quick_schedules/
+fasterrcnn/fasterrcnn_mlu/models/configs/test_time_aug/
+fasterrcnn/fasterrcnn_mlu/models/data/
+ssd/ssd_mlu/models/data/scripts//
+ssd/ssd_mlu/models/data/scripts/
