@@ -7,7 +7,7 @@
 
 set -e
 
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+export ASCEND_RT_VISIBLE_DEVICES=0,1,2,3
 
 # 读取环境变量，并将 ARCH 转换为小写
 ARCH=${ARCH:-""}
@@ -47,13 +47,13 @@ echo "Training Start: $(date +'%m/%d/%Y %T')"
 echo "Training $ARCH..."
 python main.py \
     -a "$ARCH" \
-    --dist-backend 'nccl' \
+    --dist-backend 'hccl' \
     --dist-url "tcp://localhost:8828" \
     --multiprocessing-distributed \
     --world-size 1 \
     --rank 0 \
     --batch-size 64 \
+    --dummy \
     $DATA_DIR 
 
 echo "Training Finish: $(date +'%m/%d/%Y %T')"
-
