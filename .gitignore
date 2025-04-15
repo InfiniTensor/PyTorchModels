@@ -44,3 +44,4 @@ Detection/yolo/runs
 
 *.state
 cache
+Detection/fasterrcnn/fasterrcnn_mlu/run_scripts/R-101.pkl
