@@ -1,4 +1,6 @@
 from torch import nn
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 from utils import *
 import torch.nn.functional as F
 from math import sqrt

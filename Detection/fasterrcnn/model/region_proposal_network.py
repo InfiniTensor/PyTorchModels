@@ -1,5 +1,7 @@
 import numpy as np
 from torch.nn import functional as F
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 import torch as t
 from torch import nn
 
@@ -173,6 +175,8 @@ def _enumerate_shifted_anchor_torch(anchor_base, feat_stride, height, width):
     # !TODO: add support for torch.CudaTensor
     # xp = cuda.get_array_module(anchor_base)
     import torch as t
+    import torch_npu
+    from torch_npu.contrib import transfer_to_npu
     shift_y = t.arange(0, height * feat_stride, feat_stride)
     shift_x = t.arange(0, width * feat_stride, feat_stride)
     shift_x, shift_y = xp.meshgrid(shift_x, shift_y)

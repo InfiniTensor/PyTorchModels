@@ -3,6 +3,8 @@ import os
 from collections import namedtuple
 import time
 from torch.nn import functional as F
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 from model.utils.creator_tool import AnchorTargetCreator, ProposalTargetCreator
 
 from torch import nn

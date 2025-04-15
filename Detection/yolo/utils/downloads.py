@@ -8,6 +8,8 @@ from pathlib import Path
 
 import requests
 import torch
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 
 
 def is_url(url, check=True):

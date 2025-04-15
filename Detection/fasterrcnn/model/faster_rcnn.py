@@ -1,6 +1,8 @@
 from __future__ import  absolute_import
 from __future__ import division
 import torch as t
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 import numpy as np
 from utils import array_tool as at
 from model.utils.bbox_tools import loc2bbox

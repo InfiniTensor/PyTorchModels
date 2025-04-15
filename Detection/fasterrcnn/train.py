@@ -6,6 +6,8 @@ from utils.config import opt
 from data.dataset import Dataset, TestDataset, inverse_normalize
 from model import FasterRCNNVGG16
 from torch.utils import data as data_
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 from trainer import FasterRCNNTrainer
 from utils import array_tool as at
 from utils.eval_tool import eval_detection_voc

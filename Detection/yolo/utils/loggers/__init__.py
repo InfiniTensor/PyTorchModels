@@ -8,6 +8,8 @@ from pathlib import Path
 
 import pkg_resources as pkg
 import torch
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 
 from utils.general import LOGGER, colorstr, cv2
 from utils.loggers.clearml.clearml_utils import ClearmlLogger
@@ -20,6 +22,8 @@ RANK = int(os.getenv("RANK", -1))
 
 try:
     from torch.utils.tensorboard import SummaryWriter
+    import torch_npu
+    from torch_npu.contrib import transfer_to_npu
 except ImportError:
 
     def SummaryWriter(*args):

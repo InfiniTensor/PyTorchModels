@@ -36,6 +36,8 @@ import sys
 from pathlib import Path
 
 import torch
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # YOLOv5 root directory

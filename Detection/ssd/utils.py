@@ -1,6 +1,8 @@
 import json
 import os
 import torch
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 import random
 import xml.etree.ElementTree as ET
 import torchvision.transforms.functional as FT

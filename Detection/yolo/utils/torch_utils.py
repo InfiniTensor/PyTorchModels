@@ -12,6 +12,8 @@ from copy import deepcopy
 from pathlib import Path
 
 import torch
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
@@ -251,6 +253,8 @@ def sparsity(model):
 def prune(model, amount=0.3):
     """Prunes Conv2d layers in a model to a specified sparsity using L1 unstructured pruning."""
     import torch.nn.utils.prune as prune
+    import torch_npu
+    from torch_npu.contrib import transfer_to_npu
 
     for name, m in model.named_modules():
         if isinstance(m, nn.Conv2d):
