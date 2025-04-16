@@ -6,10 +6,12 @@
 
 set -e
 
-export CUDA_VISIBLE_DEVICES=0
+# 设置寒武纪MLU可见设备
+export MLU_VISIBLE_DEVICES=${MLU_VISIBLE_DEVICES:-"0"}
 
-# 读取环境变量
-DATA_DIR=${DATA_DIR:-""}
+# 读取并清理环境变量
+DATA_DIR=$(echo "$DATA_DIR" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
+DATA_DIR=${DATA_DIR%/}
 
 # Help message
 usage() {
@@ -62,6 +64,7 @@ for model in "${models[@]}"; do
         --batch-size 64 \
         --pretrained \
         --evaluate \
+	--workers 0 \
         $DATA_DIR
 
     # 删除下载的 ckpt
