@@ -24,6 +24,8 @@ if str(ROOT) not in sys.path:
 import numpy as np
 import tensorflow as tf
 import torch
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 import torch.nn as nn
 from tensorflow import keras
 

@@ -7,7 +7,7 @@
 
 set -e
 
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+export ASCEND_RT_VISIBLE_DEVICES=1,2,3
 
 # 读取环境变量，并将 MODEL 转换为小写
 MODEL=${MODEL:-"yolov5s"}
@@ -57,17 +57,17 @@ echo "Training Start: $(date +'%m/%d/%Y %T')"
 # 运行 YOLOv5 训练
 echo "Training $MODEL..."
 python -m torch.distributed.run \
-    --nproc_per_node 4 train.py \
+    --nproc_per_node 2 train.py \
     --batch 64 \
     --img 640 \
     --epoch 25 \
     --data coco.yaml \
     --weights "" \
     --cfg "models/${MODEL}.yaml" \
-    --device 0,1,2,3 \
+    --device 0,1 \
     --nosave \
     --noval \
-    --workers 16
+    --workers 4
 
 echo "Training Finish: $(date +'%m/%d/%Y %T')"
 

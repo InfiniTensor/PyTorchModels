@@ -1,5 +1,7 @@
 import time
 import torch.backends.cudnn as cudnn
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 import torch.optim
 import torch.utils.data
 from model import SSD300, MultiBoxLoss

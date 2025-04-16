@@ -7,6 +7,8 @@ import random
 import cv2
 import numpy as np
 import torch
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 from torch.utils.data import DataLoader
 
 from ..augmentations import augment_hsv, copy_paste, letterbox

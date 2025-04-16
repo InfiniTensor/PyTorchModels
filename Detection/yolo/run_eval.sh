@@ -7,7 +7,7 @@
 
 set -e
 
-export CUDA_VISIBLE_DEVICES=0
+export ASCEND_RT_VISIBLE_DEVICES=3
 
 # 读取环境变量，并将 MODEL 转换为小写
 MODEL=${MODEL:-"yolov5s"}
@@ -54,11 +54,11 @@ cp ./Arial.ttf ~/.config/Ultralytics/Arial.ttf
 
 # 模型权重下载地址
 declare -A MODELS
-MODELS["yolov5n"]="https://cloud.tsinghua.edu.cn/seafhttp/files/ed37cef3-e656-4bbe-868d-b640ca9645f1/yolov5n.pt"
-MODELS["yolov5s"]="https://cloud.tsinghua.edu.cn/seafhttp/files/6739c917-1494-4c26-93bd-4f7d50f02f2e/yolov5s.pt"
-MODELS["yolov5m"]="https://cloud.tsinghua.edu.cn/seafhttp/files/3f3a1cf9-3e74-43bd-9ed1-dfd9396246c6/yolov5m.pt"
-MODELS["yolov5l"]="https://cloud.tsinghua.edu.cn/seafhttp/files/91ba88be-99b8-47fd-8c34-8914f66d840e/yolov5l.pt"
-MODELS["yolov5x"]="https://cloud.tsinghua.edu.cn/seafhttp/files/927abf57-76c8-4f27-97a7-948e9d2f7f90/yolov5x.pt"
+MODELS["yolov5n"]="https://cloud.tsinghua.edu.cn/seafhttp/files/98850b2d-5172-46fb-b939-7a2b67f31a5b/yolov5n.pt"
+MODELS["yolov5s"]="https://cloud.tsinghua.edu.cn/seafhttp/files/cf26c65c-7d5f-4cec-aaa5-3613c5b43774/yolov5s.pt"
+MODELS["yolov5m"]="https://cloud.tsinghua.edu.cn/seafhttp/files/c4dd8cb0-4479-4027-917f-0a196cd998c2/yolov5m.pt"
+MODELS["yolov5l"]="https://cloud.tsinghua.edu.cn/seafhttp/files/eb9069d0-31b8-4728-98a6-4f69e8773f53/yolov5l.pt"
+MODELS["yolov5x"]="https://cloud.tsinghua.edu.cn/seafhttp/files/c2e3422a-00de-456a-a13a-c94100c7ab5b/yolov5x.pt"
 
 # 检查模型是否有效
 if [[ -z "${MODELS[$MODEL]}" ]]; then
@@ -80,7 +80,7 @@ echo "Evaluation Start: $(date +'%m/%d/%Y %T')"
 
 echo "Evaluating $MODEL..."
 if [ -f "$MODEL_PATH" ]; then
-    python3 val.py --weights "$MODEL_PATH" --data coco.yaml --img 640
+    python3 val.py --device 0 --workers 2 --weights "$MODEL_PATH" --data coco.yaml --img 640
 else
     echo "Error: Model path $MODEL_PATH does not exist."
     exit 1

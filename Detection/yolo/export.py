@@ -58,6 +58,8 @@ from pathlib import Path
 
 import pandas as pd
 import torch
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 from torch.utils.mobile_optimizer import optimize_for_mobile
 
 FILE = Path(__file__).resolve()

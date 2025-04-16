@@ -1,6 +1,8 @@
 from __future__ import  absolute_import
 from __future__ import  division
 import torch as t
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 from data.voc_dataset import VOCBboxDataset
 from skimage import transform as sktsf
 from torchvision import transforms as tvtsf

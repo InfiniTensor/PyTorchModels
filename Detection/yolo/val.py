@@ -28,6 +28,8 @@ from pathlib import Path
 
 import numpy as np
 import torch
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 from tqdm import tqdm
 
 FILE = Path(__file__).resolve()

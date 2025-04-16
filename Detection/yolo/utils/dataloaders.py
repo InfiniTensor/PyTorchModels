@@ -19,6 +19,8 @@ from urllib.parse import urlparse
 import numpy as np
 import psutil
 import torch
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 import torch.nn.functional as F
 import torchvision
 import yaml

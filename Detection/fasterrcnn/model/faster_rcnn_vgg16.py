@@ -1,5 +1,7 @@
 from __future__ import  absolute_import
 import torch as t
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 from torch import nn
 from torchvision.models import vgg16
 from torchvision.ops import RoIPool

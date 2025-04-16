@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 
 from .. import threaded
 from ..general import xywh2xyxy

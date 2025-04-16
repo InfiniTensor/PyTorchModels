@@ -5,6 +5,8 @@ import argparse
 import io
 
 import torch
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 from flask import Flask, request
 from PIL import Image
 

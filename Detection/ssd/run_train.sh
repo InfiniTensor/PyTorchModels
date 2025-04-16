@@ -7,8 +7,7 @@
 set -e
 
 # 设置 CUDA 设备
-export CUDA_VISIBLE_DEVICES=0
-
+export ASCEND_RT_VISIBLE_DEVICES=1,2
 # 获取环境变量，并将 ARCH 转换为小写
 DATA_DIR=${DATA_DIR:-""}
 
@@ -41,6 +40,6 @@ python create_data_lists.py --voc07_path=$DATA_DIR/VOC2007 --voc12_path=$DATA_DI
 
 # 执行训练
 echo "Training SSD START"
-python train.py
+python train.py --workers=2
 
 echo "Training SSD FINISHED"

@@ -1,6 +1,8 @@
 # code from ruotian luo
 # https://github.com/ruotianluo/pytorch-faster-rcnn
 import torch
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 from torch.utils.model_zoo import load_url
 from torchvision import models
 
