@@ -30,6 +30,8 @@ import datasets
 import evaluate
 import numpy as np
 import torch
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 from accelerate import Accelerator
 from accelerate.logging import get_logger
 from accelerate.utils import set_seed

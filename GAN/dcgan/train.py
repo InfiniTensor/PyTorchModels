@@ -3,6 +3,8 @@ import argparse
 import os
 import random
 import torch
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 import torch.nn as nn
 import torch.nn.parallel
 import torch.backends.cudnn as cudnn
