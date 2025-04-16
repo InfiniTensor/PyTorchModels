@@ -10,6 +10,15 @@ from torchvision.models.segmentation import lraspp_mobilenet_v3_large
 sys.path.append("../")
 from bench.evaluator import Evaluator
 
+def is_mlu_available():
+    if hasattr(torch, 'is_mlu_available'):
+        return torch.is_mlu_available()
+    try:
+        import torch_mlu
+        return torch.mlu.is_available()
+    except:
+        return False
+
 VOC_COLORMAP = [
     (0, 0, 0),        # Background
     (128, 0, 0),      # Aeroplane
@@ -71,9 +80,10 @@ def eval(model,
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--device", type=str, default=("cuda" if torch.cuda.is_available() else "cpu"),
-                        choices=["cuda", "cpu"], 
-                        help="Device to use for training and inference.")
+    parser.add_argument('--device', type=str,
+                       default="mlu" if is_mlu_available() else ("cuda" if torch.cuda.is_available() else "cpu"),
+                       choices=['cuda', 'cpu', 'mlu'],
+                       help='Device to use for training and inference.')
     parser.add_argument("--input_size", default=256, type=int,
                         help="Input size")
     parser.add_argument("--dataset_path", type=str, default="../data")
@@ -81,6 +91,19 @@ def main():
     parser.add_argument("--num_classes", type=int, default=21)
     args = parser.parse_args()
 
+    try:
+        if args.device == "mlu":
+            args.device = torch.device("mlu:0")
+            _ = torch.tensor([1.0]).to(args.device)
+            print("MLU device initialized successfully")
+        else:
+            args.device = torch.device(args.device)
+    except Exception as e:
+        print(f"Device initialization failed: {e}")
+        args.device = torch.device("cpu")
+        print("Fall back to CPU")
+
+    print(f"Using device: {args.device}")
     print(vars(args))
 
     data_folder = args.dataset_path
@@ -98,17 +121,17 @@ def main():
     ])
 
     dataset = datasets.VOCSegmentation(
-        data_folder,
+        root="/dataset",
         year=year,
         download=False,
-        image_set="test",
+        image_set="val",
         transform=transform,
-        target_transform=target_transform
+        target_transform=target_transform,
     )
     datasetloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True)
 
     # Prepare model
-    model = lraspp_mobilenet_v3_large(pretrained=True, num_classes=args.num_classes) 
+    model = lraspp_mobilenet_v3_large(pretrained=False,num_classes=args.num_classes) 
     
     print(f'[INFO] Start inference on {args.device}.')
     eval(model, args.num_classes, datasetloader, args.device)

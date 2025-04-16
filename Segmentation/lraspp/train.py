@@ -8,6 +8,15 @@ from torchvision import transforms, datasets
 import argparse
 from torchvision.models.segmentation import lraspp_mobilenet_v3_large
 
+def is_mlu_available():
+    if hasattr(torch, 'is_mlu_available'):
+        return torch.is_mlu_available()
+    try:
+        import torch_mlu
+        return torch.mlu.is_available()
+    except:
+        return False
+
 # Define the color map for VOC dataset
 VOC_COLORMAP = [
     (0, 0, 0),        # Background
@@ -90,8 +99,30 @@ def main():
     parser.add_argument("--dataset_path", type=str, default="../data")
     parser.add_argument("--VOC_year", type=str, default="2007")
     parser.add_argument("--saved_dir", type=str, default="./model")
+    parser.add_argument('--device', type=str,
+                       default="mlu" if is_mlu_available() else ("cuda" if torch.cuda.is_available() else "cpu"),
+                       choices=['cuda', 'cpu', 'mlu'],
+                       help='Device to use for training and inference.')
+
     args = parser.parse_args()
 
+    try:
+        if args.device == "mlu":
+            args.device = torch.device("mlu:0")
+            test_tensor = torch.tensor([1.0]).to(args.device)
+            print(f"Successfully initialized MLU device: {args.device}")
+        elif args.device == "cuda":
+            args.device = torch.device("cuda")
+            print(f"Using CUDA device: {args.device}")
+        else:
+            args.device = torch.device("cpu")
+            print("Using CPU")
+    except Exception as e:
+        print(f"Device initialization failed: {e}")
+        args.device = torch.device("cpu")
+        print("Fall back to CPU")
+    
+    print(f"Final device: {args.device}")
     print(args)
     
     data_folder = args.dataset_path
@@ -119,7 +150,7 @@ def main():
     ])
  
     dataset = datasets.VOCSegmentation(
-        data_folder,
+        root="/dataset",
         year=year,
         download=False,
         image_set="train",
@@ -128,20 +159,20 @@ def main():
     )
     datasetloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
     
-    model = lraspp_mobilenet_v3_large(weights=None, num_classes=classes)
-    model.to(device)
+    model = lraspp_mobilenet_v3_large(weights=None, weights_backbone=None, num_classes=args.classes)
+    model.to(args.device)
     if os.path.isfile(model_path):
         model.load_state_dict(torch.load(model_path, map_location=torch.device(device)))
     optimizer = optim.RMSprop(
         model.parameters(), lr=0.0001, weight_decay=1e-8, momentum=0.9
     )
     
-    print(f'[INFO] Start training on {device}.')
+    print(f'[INFO] Start training on {args.device}.')
     train(model,
           epochs,
           batch_size,
           datasetloader,
-          device,
+          args.device,
           optimizer,
           saving_interval,
           model_path,

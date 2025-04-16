@@ -103,7 +103,15 @@ def evaluate(model,
         print(evaluator.Mean_Intersection_over_Union())
 
 
-def main():    
+def main():   
+    def check_mlu_support():
+        if not hasattr(torch, 'mlu'):
+            return False
+        try:
+            x = torch.tensor([1.0]).mlu()
+            return True
+        except:
+            return False
     # Argument parsing.
     parser = argparse.ArgumentParser()
     parser.add_argument('--train-batch-size', default=4, type=int,
@@ -112,11 +120,14 @@ def main():
                         help='Default value is 2. Set 0 to this argument if you want an untrained network.')
     parser.add_argument('--infer-batch-size', default=1, type=int,
                         help='Default value is 1.')
-    parser.add_argument('--device', default=torch.device("cuda" if torch.cuda.is_available() else "cpu"), type=str,
-                        choices=['cuda', 'cpu'], help='Device to use for training and inference.')
+    mlu_available = check_mlu_support()
+    parser.add_argument('--device', 
+                      default="mlu" if mlu_available else "cpu",
+                      type=str,
+                      choices=['mlu', 'cpu'])
     parser.add_argument('--image-size', default=256, type=int,
                         help='The width and height of an image.')
-    parser.add_argument('--dataset-root', default=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data'), type=str,
+    parser.add_argument('--dataset-root', default='/dataset/VOC2007', type=str,
                         help='Location of the dataset root directory.')
     parser.add_argument('--mode', default='both', type=str,
                         choices=['train', 'infer', 'both'], help='Mode to run: train, infer, or both.')
@@ -129,8 +140,19 @@ def main():
     
     args = parser.parse_args()
 
-    print(vars(args))
-    
+    try:
+        import torch_mlu
+        if args.device == "mlu" and torch.mlu.is_available():
+            args.device = torch.device('mlu:0')
+            print(f"Successfully initialized MLU device: {args.device}")
+        else:
+            args.device = torch.device('cpu')
+            print("MLU not available, falling back to CPU")
+    except Exception as e:
+        print(f"MLU initialization failed: {e}")
+        args.device = torch.device('cpu')
+        print("Fall back to CPU")
+
     model_dir = Path(args.saved_dir)
     if not model_dir.exists():
         model_dir.mkdir(parents=True, exist_ok=True)
@@ -151,7 +173,7 @@ def main():
 
     # Dataset loading.
     train_dataset = VOCSegmentation(
-        root=args.dataset_root,
+        root="/dataset",
         year='2007',
         image_set='train',
         download=False,
@@ -160,9 +182,9 @@ def main():
     )
 
     val_dataset = VOCSegmentation(
-        root=args.dataset_root,
+        root="/dataset",
         year='2007',
-        image_set='test',
+        image_set='val',
         download=False,
         transform=transform,
         target_transform=target_transform
@@ -176,9 +198,9 @@ def main():
 
     # DeepLabV3 modeling.
     if args.mode == "infer":
-        model = deeplabv3_resnet50(pretrained=True,  num_classes=args.num_classes)
+        model = deeplabv3_resnet50(pretrained=False, weights_backbone=None, num_classes=args.num_classes)
     else:
-        model = deeplabv3_resnet50(pretrained=False,  num_classes=args.num_classes)
+        model = deeplabv3_resnet50(pretrained=False, weights_backbone=None, num_classes=args.num_classes)
 
     # Move the model to the device.
     device = torch.device(args.device)
