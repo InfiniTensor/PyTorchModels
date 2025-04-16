@@ -27,6 +27,6 @@ else
     mkdir "$OUTPUT_DIR"
 fi
 
-export CUDA_VISIBLE_DEVICES=0
+export ASCEND_RT_VISIBLE_DEVICES=1
 
 python3 train.py --dataset lsun --dataroot "$DATA_DIR" --cuda

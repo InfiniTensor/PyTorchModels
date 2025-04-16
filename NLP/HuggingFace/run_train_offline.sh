@@ -1,5 +1,5 @@
 # 无互联网连接时
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+export ASCEND_RT_VISIBLE_DEVICES=1,2,3
 # export HF_ENDPOINT=https://hf-mirror.com
 
 # 检查软连接是否已经存在了
@@ -23,8 +23,8 @@ model=$1
 
 declare -A MODELS
 
-MODELS["bert-base-uncased"]="https://cloud.tsinghua.edu.cn/seafhttp/files/43a04f17-98d4-495b-9150-0a2512c61bcf/bert-base-uncased.zip"
-MODELS["albert-base-v2"]="https://cloud.tsinghua.edu.cn/seafhttp/files/4d9ee599-95a6-452d-a501-aa38f51e4060/albert-base-v2.zip"
+MODELS["bert-base-uncased"]="https://cloud.tsinghua.edu.cn/seafhttp/files/fb07c1c6-97c5-4b6a-ab5e-c969487a2b0e/bert-base-uncased.zip"
+MODELS["albert-base-v2"]="https://cloud.tsinghua.edu.cn/seafhttp/files/dea2b22e-2cd8-42a9-8994-7894c8a5fa72/albert-base-v2.zip"
 
 # MODEL_PATH="./bert-base-uncased"
 MODEL_PATH="./${model}"
@@ -39,7 +39,7 @@ else
 fi
 
 torchrun \
-    --nproc_per_node=4 \
+    --nproc_per_node=1 \
     qa.py \
     --model_name_or_path $MODEL_PATH \
     --config_name $MODEL_PATH \

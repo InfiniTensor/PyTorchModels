@@ -1,12 +1,6 @@
-"""TODO(squad_v2): Add a description here."""
-
-
 import json
 import os
-
 import datasets
-from datasets.tasks import QuestionAnsweringExtractive
-
 
 # TODO(squad_v2): BibTeX citation
 _CITATION = """\
@@ -53,7 +47,7 @@ class SquadV2(datasets.GeneratorBasedBuilder):
 
     # TODO(squad_v2): Set up version.
     BUILDER_CONFIGS = [
-        SquadV2Config(name="squad_v2", version=datasets.Version("2.0.0"), description="SQuAD plaint text version 2"),
+        SquadV2Config(name="squad_v2", version=datasets.Version("2.0.0"), description="SQuAD plain text version 2"),
     ]
 
     def _info(self):
@@ -84,11 +78,6 @@ class SquadV2(datasets.GeneratorBasedBuilder):
             # Homepage of the dataset for documentation
             homepage="https://rajpurkar.github.io/SQuAD-explorer/",
             citation=_CITATION,
-            task_templates=[
-                QuestionAnsweringExtractive(
-                    question_column="question", context_column="context", answers_column="answers"
-                )
-            ],
         )
 
     def _split_generators(self, dl_manager):
@@ -132,3 +121,4 @@ class SquadV2(datasets.GeneratorBasedBuilder):
                                 "text": answers,
                             },
                         }
+

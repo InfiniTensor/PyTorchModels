@@ -1,9 +1,9 @@
 # 有互联网连接时
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+export ASCEND_RT_VISIBLE_DEVICES=1,2,3
 export HF_ENDPOINT=https://hf-mirror.com
 
 torchrun \
-    --nproc_per_node=4 \
+    --nproc_per_node=2 \
     qa.py \
     --model_name_or_path bert-base-uncased \
     --dataset_name squad_v2 \
