@@ -10,9 +10,19 @@ logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(le
 logger = logging.getLogger(__name__)
 
 os.environ['SDL_VIDEODRIVER'] = 'dummy'  
-# 设定GPU  
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  
-  
+
+#修改设备优先使用MLU
+def get_device():
+    if hasattr(torch, 'is_mlu_available') and torch.is_mlu_available():
+        logger.info("MLU device detected and will be used")
+        return torch.device("mlu")
+    else:
+        logger.info("No accelerator found, using CPU")
+        return torch.device("cpu")
+
+device = get_device()
+logger.info(f"Using device: {device}")
+
 # DQN模型  
 class DQN(nn.Module):  
     def __init__(self, n_states, n_actions):  
@@ -63,10 +73,15 @@ def train(save_path,num_episodes,lr):
             # 直接用于训练  
             optimizer.zero_grad()  
             q_values = q_net(state)  
-            q_value = q_values.gather(1, torch.tensor([[action]], dtype=torch.int64).to(device))  
+
+            action_tensor = torch.tensor([[action]], dtype=torch.long).to(device)
+            q_value = q_values.gather(1, action_tensor)  
+
             next_q_values = q_net(next_state).detach().max(1)[0].unsqueeze(1)
             done_float = torch.tensor(done, dtype=torch.float32).to(device)
             q_target = reward + gamma * next_q_values * (1 - done_float.float())  
+            q_target = q_target.view(-1, 1)
+            
             loss = loss_fn(q_value, q_target)  
             loss.backward()  
             optimizer.step()  
@@ -98,7 +113,7 @@ def infer(model_path):
     
     # 初始化状态  
     state = env.reset()[0]
-    state = torch.tensor([state], dtype=torch.float32).to(device)  
+    state = torch.from_numpy(np.array(state, dtype=np.float32)).unsqueeze(0).to(device)
     
     # 推理过程  
     done = False
