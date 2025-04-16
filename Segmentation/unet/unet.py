@@ -62,6 +62,7 @@ class UpLayer(nn.Module):
 class UNet(nn.Module):
     def __init__(self, dimensions=2):
         super(UNet, self).__init__()
+        torch.set_default_tensor_type(torch.FloatTensor)
         self.conv1 = DoubleConv(3, 64)
         self.down1 = DownLayer(64, 128)
         self.down2 = DownLayer(128, 256)

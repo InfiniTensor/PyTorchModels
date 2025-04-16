@@ -17,6 +17,14 @@ from tqdm import tqdm
 sys.path.append("../")
 from bench.evaluator import Evaluator
 
+mlu_available = False
+if hasattr(torch, 'mlu'):
+    try:
+        dummy = torch.tensor([1.]).mlu()
+        mlu_available = True
+        del dummy
+    except:
+        mlu_available = False
 
 # Define the color map for VOC dataset
 VOC_COLORMAP = [
@@ -114,8 +122,11 @@ def main():
                         help='Default value is 2. Set 0 to this argument if you want an untrained network.')
     parser.add_argument('--infer-batch-size', default=1, type=int,
                         help='Default value is 1.')
-    parser.add_argument('--device', default=torch.device("cuda" if torch.cuda.is_available() else "cpu"), type=str,
-                        choices=['cuda', 'cpu'], help='Device to use for training and inference.')
+    parser.add_argument('--device', 
+                       default="mlu" if mlu_available else ("cuda" if torch.cuda.is_available() else "cpu"), 
+                       type=str,
+                       choices=['cuda', 'cpu', 'mlu'], 
+                       help='Device to use for training and inference.')
     parser.add_argument('--image-size', default=256, type=int,
                         help='The width and height of an image.')
     parser.add_argument('--dataset-root', default=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data'), type=str,
@@ -129,6 +140,19 @@ def main():
     parser.add_argument('--saving_interval', default=5, type=int,
                             help='Epoch interval to save model ckpt')
     args = parser.parse_args()
+
+    try:
+        import torch_mlu
+        if args.device == "mlu" and torch.mlu.is_available():
+            args.device = torch.device('mlu:0')
+            print(f"Successfully initialized MLU device: {args.device}")
+        else:
+            args.device = torch.device('cpu')
+            print("MLU not available, falling back to CPU")
+    except Exception as e:
+        print(f"MLU initialization failed: {e}")
+        args.device = torch.device('cpu')
+        print("Fall back to CPU")
 
     print(vars(args))
     
@@ -152,7 +176,7 @@ def main():
 
     # Dataset loading.
     train_dataset = VOCSegmentation(
-        root=args.dataset_root,
+        root="/dataset",
         year='2007',
         image_set='train',
         download=False,
@@ -161,7 +185,7 @@ def main():
     )
 
     val_dataset = VOCSegmentation(
-        root=args.dataset_root,
+        root="/dataset",
         year='2007',
         image_set='test',
         download=False,
@@ -177,7 +201,7 @@ def main():
 
     # FCN modeling.
     if args.mode == "infer":
-        model = fcn_resnet50(pretrained=True, num_classes=args.num_classes)
+        model = fcn_resnet50(pretrained=False, num_classes=args.num_classes)
     else:
         model = fcn_resnet50(pretrained=False, num_classes=args.num_classes)
     

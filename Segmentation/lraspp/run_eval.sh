@@ -6,13 +6,14 @@
 # 确保脚本在遇到错误时停止执行
 set -e
 
-export CUDA_VISIBLE_DEVICES=0
+export MLU_VISIBLE_DEVICES=0
 
-if [ -e "../data/VOCdevkit" ]; then
-    echo "../data/VOCdevkit exists"
-else 
-    ln -s /data1/shared/Dataset/VOCdevkit ../data/VOCdevkit
-fi
+DATASET_ROOT="/dataset/VOC2007"
+[ ! -d "$DATASET_ROOT/VOCdevkit" ] && {
+    echo "创建数据集符号链接..."
+    mkdir -p $(dirname "$DATASET_ROOT")
+    ln -sf /data1/shared/Dataset/VOCdevkit "$DATASET_ROOT/VOCdevkit"
+}
 
 # 参数解释
 # dataset_path 数据集保存位置
@@ -22,7 +23,8 @@ fi
 # input_size 输入模型的图像大小
 # classes 模型输出类别数量
 python eval.py \
-       --dataset_path ../data \
+       --device mlu \
+       --dataset_path "$DATASET_ROOT" \
        --VOC_year 2007 \
        --input_size 256 \
        --num_classes 21 \

@@ -4,18 +4,20 @@ SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 
 set -e
 
-export CUDA_VISIBLE_DEVICES=0
+export MLU_VISIBLE_DEVICES=0
 
-if [ -e "../data/VOCdevkit" ]; then
-    echo "../data/VOCdevkit exists"
-else 
-    ln -s /data1/shared/Dataset/VOCdevkit ../data/VOCdevkit
-fi
+# 数据集设置
+DATASET_ROOT="/dataset/VOC2007"
+[ ! -d "$DATASET_ROOT/VOCdevkit" ] && {
+    echo "创建数据集符号链接..."
+    mkdir -p $(dirname "$DATASET_ROOT")
+    ln -sf /data1/shared/Dataset/VOCdevkit "$DATASET_ROOT/VOCdevkit"
+}
 
+# 运行训练
 python $SCRIPT_DIR/deeplab.py \
-        --train-batch-size 4 \
-        --train-epochs 10 \
-        --mode train \
-        --image-size 256 \
-
-
+    --device mlu \
+    --train-batch-size 4 \
+    --train-epochs 10 \
+    --mode train \
+    --image-size 256 \

@@ -5,7 +5,15 @@ import numpy as np
 from pathlib import Path
 from unet import UNet
 from torchvision import transforms, datasets
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+def is_mlu_available():
+    if hasattr(torch, 'is_mlu_available'):
+        return torch.is_mlu_available()
+    try:
+        import torch_mlu
+        return torch.mlu.is_available()
+    except:
+        return False
 
 VOC_COLORMAP = [
     (0, 0, 0),        # Background
@@ -72,12 +80,10 @@ class Evaluator(object):
     def reset(self):
         self.confusion_matrix = np.zeros((self.num_class,) * 2)
 
-def eval(num_classes):
+def eval(model, datasetloader, num_classes, device):
     evaluator = Evaluator(num_classes)
     evaluator.reset()
-    model = UNet(dimensions=num_classes).to(device)
-    checkpoint = torch.load(model_path, map_location=torch.device(device))
-    model.load_state_dict(checkpoint)
+    model = model.to(device)
     model.eval()
 
     with torch.no_grad():
@@ -86,49 +92,74 @@ def eval(num_classes):
             input = input.to(device)
             output = model(input)
 
-            pred = output.cpu().numpy()
+            pred = output["out"].cpu().numpy() if isinstance(output, dict) else output.cpu().numpy()
             pred = np.argmax(pred, axis=1)
 
-            gt = target.cpu().numpy()
+            gt = target.squeeze(1).cpu().numpy()
             evaluator.add_batch(gt, pred)
 
         print(evaluator.Mean_Intersection_over_Union())
 
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--device', type=str,
+                      default="mlu" if is_mlu_available() else ("cuda" if torch.cuda.is_available() else "cpu"),
+                      choices=['cuda', 'cpu', 'mlu'],
+                      help='Device to use for training and inference.')
+    parser.add_argument("--input_size", default=256, type=int,
+                      help="Input size")
+    parser.add_argument("--classes", type=int, default=21,
+                      help="Num of classes")
+    parser.add_argument("--dataset_path", type=str, default="../data")
+    parser.add_argument("--VOC_year", type=str, default="2007")
+    parser.add_argument("--model_path", type=str, required=True,
+                      help="Path to model weights file")
+    args = parser.parse_args()
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--device", type=str, default="cpu",
-                    choices=["cuda", "cpu"], 
-                    help="Device to use for training and inference.")
-parser.add_argument("--input_size", default=256, type=int,
-                    help="Input size")
-parser.add_argument("--classes", type=int, default=21, 
-                    help="Num of classes")
-parser.add_argument("--dataset_path", type=str, default="../data")
-parser.add_argument("--VOC_year", type=str, default="2007")
-args = parser.parse_args()
+    try:
+        if args.device == "mlu":
+            args.device = torch.device("mlu:0")
+            test_tensor = torch.tensor([1.0]).to(args.device)
+            print(f"Successfully initialized MLU device: {args.device}")
+        else:
+            args.device = torch.device("cpu")
+            print("Using CPU")
+    except Exception as e:
+        print(f"Device initialization failed: {e}")
+        args.device = torch.device("cpu")
+        print("Fall back to CPU")
 
-data_folder = args.dataset_path
-year = args.VOC_year
-model_path = Path("model") / f"unet_b4_ep100.pt"
-transform = transforms.Compose([
-    transforms.Resize((args.input_size, args.input_size)),
-    transforms.ToTensor(), 
+    transform = transforms.Compose([
+        transforms.Resize((args.input_size, args.input_size)),
+        transforms.ToTensor(), 
     ])
 
-target_transform = transforms.Compose([
-    transforms.Resize((args.input_size, args.input_size)),
-    transforms.Lambda(lambda img: voc_colormap_to_label(img))
-])
+    target_transform = transforms.Compose([
+        transforms.Resize((args.input_size, args.input_size)),
+        transforms.Lambda(lambda img: voc_colormap_to_label(img))
+    ])
 
-dataset = datasets.VOCSegmentation(
-    data_folder,
-    year=year,
-    download=False,
-    image_set="test",
-    transform=transform,
-    target_transform=target_transform
-)
-datasetloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True)
+    dataset = datasets.VOCSegmentation(
+        root="/dataset",
+        year=args.VOC_year,
+        download=False,
+        image_set="val",
+        transform=transform,
+        target_transform=target_transform
+    )
+    datasetloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True)
+
+    # 加载模型
+    model = UNet(dimensions=args.classes)
+    try:
+        model.load_state_dict(torch.load(args.model_path, map_location=args.device))
+        print(f"Successfully loaded model from {args.model_path}")
+    except Exception as e:
+        print(f"Failed to load model: {e}")
+        return
+
+    # 执行评估
+    eval(model, datasetloader, args.classes, args.device)
 
 if __name__ == "__main__":
-    eval(args.classes)
+    main()
