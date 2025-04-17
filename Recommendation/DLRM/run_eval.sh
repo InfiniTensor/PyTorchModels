@@ -8,6 +8,8 @@
 
 set -e  # 一旦遇到错误，退出脚本
 
+export ASCEND_RT_VISIBLE_DEVICES=1,2
+
 # 读取命令行参数
 PYTORCH_INFER_CHECKPOINT=${MODEL:-""}
 PYTORCH_TRAIN_DATASET=${DATA_DIR:-""}
@@ -61,5 +63,5 @@ python ncf.py \
     --cachedir ${cache_dir} \
     --multiprocessing-distributed
 
-echo "Training finished successfully"
+echo "Inferring finished successfully"
 

@@ -1,10 +1,11 @@
 import torch
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 from torch import nn
 import torch.nn.functional as F
 import numpy as np
 import collections
 import random
-import torch_mlu
 
 # --------------------------------------- #
 # 经验回放池
