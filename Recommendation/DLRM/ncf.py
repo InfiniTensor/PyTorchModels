@@ -1,4 +1,6 @@
 import torch.jit
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 import os
 import sys
 import gc
@@ -105,6 +107,7 @@ def parse_args():
                         help='path to latest checkpoint (default: none)')
     parser.add_argument('--use_amp', default='0', type=int,
                     help='use Automatic Mixed Precision')
+    parser.add_argument('--start_epoch', default='0', type=int, help='checkpoint to use for our model')
     parser.add_argument('--dummy_test', default=False, action='store_true', help='use dummy test for benchmark')
     return parser.parse_args()
 

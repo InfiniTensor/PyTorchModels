@@ -2,7 +2,7 @@
 
 set -e
 
-export CUDA_VISIBLE_DEVICES=0
+export ASCEND_RT_VISIBLE_DEVICES=1
 
 saved_dir=$1
 num_episodes=$2
