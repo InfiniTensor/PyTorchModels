@@ -1,5 +1,7 @@
 import argparse
 import torch
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
