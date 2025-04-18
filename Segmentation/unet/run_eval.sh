@@ -7,7 +7,7 @@
 # 确保脚本在遇到错误时停止执行
 set -e
 
-export CUDA_VISIBLE_DEVICES=0
+export ASCEND_RT_VISIBLE_DEVICES=1
 
 if [ -e "../data/VOCdevkit" ]; then
     echo "../data/VOCdevkit exists"
@@ -28,7 +28,7 @@ echo "Evaluating UNet START"
 python eval.py \
        --device cuda \
        --input_size 256 \
-       --classes 22 \
+       --classes 21 \
        --dataset_path ../data \
        --VOC_year 2007 \
 

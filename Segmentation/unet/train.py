@@ -1,5 +1,7 @@
 import os
 import torch
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 import numpy as np
 import cv2
 import torch.optim as optim

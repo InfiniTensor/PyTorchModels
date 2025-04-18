@@ -5,6 +5,8 @@ from os.path import join
 
 from PIL import Image
 from torch.utils.data.dataset import Dataset
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 from torchvision.transforms import Compose, CenterCrop, Resize
 from tqdm import tqdm
 

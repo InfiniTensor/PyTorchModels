@@ -6,7 +6,7 @@
 # 确保脚本在遇到错误时停止执行
 set -e
 
-export CUDA_VISIBLE_DEVICES=0
+export ASCEND_RT_VISIBLE_DEVICES=1
 
 if [ -e "../data/VOCdevkit" ]; then
     echo "../data/VOCdevkit exists"
