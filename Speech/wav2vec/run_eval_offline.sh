@@ -6,7 +6,7 @@ else
     ln -s /data1/shared/Dataset/librispeech/LibriSpeech ../data/LibriSpeech
 fi
 
-export CUDA_VISIBLE_DEVICES=0
+export ASCEND_RT_VISIBLE_DEVICES=1
 export LIBRISPEECH_PATH="../data/LibriSpeech"
 
 MODEL_PATH="./wav2vec2-large-lv60"

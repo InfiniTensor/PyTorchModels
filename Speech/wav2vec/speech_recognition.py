@@ -29,6 +29,8 @@ from typing import Dict, List, Optional, Union
 import datasets
 import evaluate
 import torch
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 import numpy
 from datasets import DatasetDict, load_dataset
 
