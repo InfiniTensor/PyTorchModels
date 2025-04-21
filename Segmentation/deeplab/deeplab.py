@@ -62,21 +62,59 @@ def train(model,
           epoch,
           args):
     model.train()
-    losses = []
-    for images, targets in tqdm(train_loader):
+    
+    # 初始化记录变量
+    batch_losses = []
+    batch_times = []
+    epoch_loss_sum = 0.0
+    epoch_start_time = time.time()
+    
+    # 使用 tqdm 包装 DataLoader
+    pbar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{args.train_epochs}")
+    
+    for batch_idx, (images, targets) in enumerate(pbar):
+        batch_start_time = time.time()
+        
+        # 数据移至设备
         images = images.to(device)
         targets = targets.squeeze(1).long().to(device)
+        
+        # 前向传播 + 计算损失
         optimizer.zero_grad()
         outputs = model(images)['out']
         loss = criterion(outputs, targets)
+        
+        # 反向传播 + 优化
         loss.backward()
         optimizer.step()
-        losses.append(loss.item())
-    print(f"[INFO] Train [{epoch+1}/{args.train_epochs}] Loss: {sum(losses) / len(losses)}")
+        
+        # 记录 batch 数据
+        batch_time = time.time() - batch_start_time
+        batch_loss = loss.item()
+        
+        batch_losses.append(batch_loss)
+        batch_times.append(batch_time)
+        epoch_loss_sum += batch_loss
+        
+        # 更新 tqdm 信息（显示当前 batch 的 loss 和 it/s）
+        pbar.set_postfix({
+            "batch_loss": f"{batch_loss:.4f}"
+        })
+    
+    # 计算 epoch 级数据
+    epoch_time = time.time() - epoch_start_time
+    epoch_avg_loss = epoch_loss_sum / len(train_loader)
+    epoch_avg_it_s = len(train_loader) / epoch_time  # epoch 平均 it/s
+    
+    print(f"\nEpoch {epoch+1}/{args.train_epochs} | "
+          f"Avg Loss: {epoch_avg_loss:.4f} | "
+          f"Avg it/s: {epoch_avg_it_s:.2f} | "
+          f"Time: {epoch_time:.2f}s")
+    
+    # 保存模型（按需）
     if (epoch + 1) % args.saving_interval == 0:
         print("Saving model")
-        torch.save(model.state_dict(), Path(args.saved_dir) / f"deeplab_b{args.train_batch_size}_ep{epoch}.pt")
-    return  
+        torch.save(model.state_dict(), Path(args.saved_dir) / f"model_ep{epoch}.pt")
 
 # Function to evaluate the model.
 def evaluate(model,
