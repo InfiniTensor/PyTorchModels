@@ -6,7 +6,7 @@ else
     ln -s /data1/shared/Dataset/librispeech/LibriSpeech ../data/LibriSpeech
 fi
 
-export CUDA_VISIBLE_DEVICES=0
+export ASCEND_RT_VISIBLE_DEVICES=2
 export HF_ENDPOINT=https://hf-mirror.com
 export LIBRISPEECH_PATH="../data/LibriSpeech"
 
@@ -17,7 +17,7 @@ python speech_recognition.py \
 	--dataset_name="librispeech_asr" \
 	--model_name_or_path="facebook/wav2vec2-large-lv60" \
 	--dataset_config_name="clean" \
-	--train_split_name="train.100" \
+	--train_split_name="train" \
 	--eval_split_name="test" \
 	--output_dir="$CACHE_PATH/wav2vec2-librispeech-clean-100h-demo-dist" \
 	--preprocessing_num_workers="16" \

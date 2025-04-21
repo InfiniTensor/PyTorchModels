@@ -1,4 +1,6 @@
 import torch.nn.functional as F
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 from torch import nn
 from torch.nn.utils import weight_norm
 

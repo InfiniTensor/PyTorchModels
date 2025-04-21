@@ -2,7 +2,7 @@
 
 set -e 
 
-export CUDA_VISIBLE_DEVICES=0
+export ASCEND_RT_VISIBLE_DEVICES=2
 
 dataset=$1
 epoch=$2
