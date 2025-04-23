@@ -81,9 +81,6 @@ def train(model,
             inputs = inputs.to(device)
             targets = targets.to(device, dtype=torch.long).squeeze()
             
-            if inputs.size(0) < 2:  # 跳过过小的batch
-                continue
-
             # 前向传播
             optimizer.zero_grad()
             outputs = model(inputs)
@@ -179,7 +176,7 @@ def main():
         transform=transform,
         target_transform=target_transform
     )
-    datasetloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    datasetloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, drop_last=True)
 
     model = UNet(classes)
     model.to(device)

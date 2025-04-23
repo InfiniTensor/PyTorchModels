@@ -79,9 +79,6 @@ def train(model,
             inputs = inputs.to(device)
             targets = targets.squeeze(1).long().to(device)
             
-            if inputs.shape[0] < 2:  # 跳过过小的batch
-                continue
-
             # 前向传播
             optimizer.zero_grad()
             outputs = model(inputs)['out']
@@ -173,7 +170,7 @@ def main():
         transform=transform,
         target_transform=target_transform,
     )
-    datasetloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    datasetloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, drop_last=True)
     
     model = lraspp_mobilenet_v3_large(weights=None, num_classes=classes)
     model.to(device)
