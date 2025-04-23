@@ -7,6 +7,8 @@ from torch import nn
 from torchvision import transforms, datasets
 import argparse
 from torchvision.models.segmentation import lraspp_mobilenet_v3_large
+from tqdm.auto import tqdm
+import time
 
 # Define the color map for VOC dataset
 VOC_COLORMAP = [
@@ -46,36 +48,78 @@ def voc_colormap_to_label(mask):
 
 
 def train(model,
-        epochs,
+          epochs,
           batch_size,
           datasetloader,
           device,
           optimizer,
           saving_interval,
           model_path):
-    criterion = nn.CrossEntropyLoss()
+
     model_dir = model_path.parent
+    model_dir.mkdir(parents=True, exist_ok=True)
+    criterion = nn.CrossEntropyLoss()
+
     for epoch in range(epochs):
-        print(f"Epoch {epoch}")
-        losses = []
-        for i, batch in enumerate(datasetloader):
-            input, target = batch
-            input = input.to(device)
-            target = target.squeeze(1).long().to(device)
-            if input.shape[0] < 2:
-                continue
+        model.train()
+        epoch_loss_sum = 0.0
+        sample_cnt = 0
+        epoch_start_time = time.time()
+        batch_losses = []
+        batch_it_s = []
+
+        # 使用tqdm显示实时训练信息
+        pbar = tqdm(datasetloader, 
+                   desc=f"Epoch {epoch+1}/{epochs}")
+
+        for step, (inputs, targets) in enumerate(pbar, start=1):
+            batch_start_time = time.time()
+            
+            # 数据移至设备
+            inputs = inputs.to(device)
+            targets = targets.squeeze(1).long().to(device)
+            
+            # 前向传播
             optimizer.zero_grad()
-            output = model(input)['out']
-            loss = criterion(output, target)
+            outputs = model(inputs)['out']
+            loss = criterion(outputs, targets)
+            
+            # 反向传播
             loss.backward()
             optimizer.step()
-            losses.append(loss.item())
-        print(sum(losses) /len(losses))
+
+            # 计算当前batch指标
+            batch_time = time.time() - batch_start_time
+            current_it_s = 1 / batch_time if batch_time > 0 else 0
+            current_loss = loss.item()
+
+            # 记录batch数据
+            batch_losses.append(current_loss)
+            batch_it_s.append(current_it_s)
+            epoch_loss_sum += current_loss * inputs.size(0)
+            sample_cnt += inputs.size(0)
+
+            # 更新进度条信息
+            pbar.set_postfix({
+                "batch_loss": f"{current_loss:.4f}"
+            })
+
+        # 计算epoch级指标
+        epoch_time = time.time() - epoch_start_time
+        epoch_avg_loss = epoch_loss_sum / sample_cnt
+        epoch_avg_it_s = len(datasetloader) / epoch_time if epoch_time > 0 else 0
+
+        # 打印epoch总结
+        print(f"\nEpoch {epoch+1:3d}/{epochs} | "
+              f"Avg Loss: {epoch_avg_loss:.4f} | "
+              f"Avg it/s: {epoch_avg_it_s:.2f} | "
+              f"Time: {epoch_time:.2f}s")
+
+        # 保存检查点
         if (epoch + 1) % saving_interval == 0:
-            print("Saving model")
-            torch.save(model.state_dict(), model_dir / f"lraspp_b{batch_size}_ep{epoch}.pt")
-    torch.save(model.state_dict(), model_path)
-    return
+            ckpt_path = model_dir / f"model_ep{epoch+1}.pt"
+            torch.save(model.state_dict(), ckpt_path)
+            print(f"Checkpoint saved to {ckpt_path}")
 
 def main():
     parser = argparse.ArgumentParser()
@@ -126,7 +170,7 @@ def main():
         transform=transform,
         target_transform=target_transform,
     )
-    datasetloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    datasetloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, drop_last=True)
     
     model = lraspp_mobilenet_v3_large(weights=None, num_classes=classes)
     model.to(device)
