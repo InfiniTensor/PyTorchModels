@@ -61,12 +61,12 @@ def data_loader(data,N,batch_size,shuffle):
     seq_set = MyDataset(seq)
     seq = DataLoader(dataset=seq_set,batch_size=batch_size,shuffle=shuffle,drop_last=True)
     return seq_set,seq
+
 def read_data(filename):
     data = pd.read_csv(filename,skiprows=1)
     data.head(5)
     L = data.shape[0]
     logger.info("data的尺寸为：{}".format(data.shape))
-    # logger.info("文件中有nan行共{}�?.format(data.isnull().sum(axis=1)))
     return data,L
 
 def train_proc(para_dict, train_data, val_data):
