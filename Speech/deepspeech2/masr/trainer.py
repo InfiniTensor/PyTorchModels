@@ -10,6 +10,7 @@ from datetime import timedelta
 
 import torch
 import torch.distributed as dist
+import numpy as np
 from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -170,6 +171,7 @@ class MASRTrainer(object):
         cer_result = float(sum(c) / len(c))
         return cer_result
 
+
     def train(self,
               batch_size=32,
               min_duration=0.5,
@@ -200,14 +202,14 @@ class MASRTrainer(object):
         if local_rank == 0:
             # 日志记录器
             writer = LogWriter(logdir='./log')
-
+    
         train_dataset = MASRDataset(data_list=self.train_manifest,
                                     vocab_filepath=self.dataset_vocab,
                                     feature_method=self.feature_method,
                                     mean_std_filepath=self.mean_std_path,
                                     min_duration=min_duration,
                                     max_duration=max_duration)
-
+    
         train_loader = DataLoader(dataset=train_dataset,
                                   collate_fn=collate_fn,
                                   batch_size=batch_size,
@@ -225,7 +227,7 @@ class MASRTrainer(object):
                                  batch_size=batch_size,
                                  collate_fn=collate_fn,
                                  num_workers=self.num_workers)
-
+    
         # 获取模型
         if self.use_model == 'deepspeech2':
             model = deepspeech2(feat_size=train_dataset.feature_dim, vocab_size=train_dataset.vocab_size)
@@ -235,15 +237,15 @@ class MASRTrainer(object):
             raise Exception('没有该模型：{}'.format(self.use_model))
         # 设置优化方法
         optimizer = torch.optim.AdamW(params=model.parameters(), lr=learning_rate, weight_decay=1e-6)
-
+    
         torch.cuda.set_device(local_rank)
         # print(model)  # 打印模型
         model.cuda(local_rank)
         if nranks > 1:
             model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank])
-
+    
         print('[{}] 训练数据：{}'.format(datetime.now(), len(train_dataset)))
-
+    
         # 加载预训练模型
         if pretrained_model is not None:
             assert os.path.exists(os.path.join(pretrained_model, 'model.pt')), "模型参数文件不存在！"
@@ -254,7 +256,7 @@ class MASRTrainer(object):
             model_dict.update(pretrained_dict)
             model.load_state_dict(model_dict)
             print('[{}] 成功加载预训练模型：{}'.format(datetime.now(), pretrained_model))
-
+    
         # 加载恢复模型
         last_epoch = -1
         last_model_dir = os.path.join(save_model_path, self.use_model, 'last_model')
@@ -273,31 +275,44 @@ class MASRTrainer(object):
             with open(os.path.join(resume_model, 'model.state'), 'r', encoding='utf-8') as f:
                 last_epoch = json.load(f)['last_epoch'] - 1
             print('[{}] 成功恢复模型参数和优化方法参数：{}'.format(datetime.now(), resume_model))
+        
         # 动态调整学习率
         scheduler = StepLR(optimizer, step_size=1, gamma=0.93, last_epoch=last_epoch)
-
+    
         # 获取损失函数
         ctc_loss = torch.nn.CTCLoss(reduction='none', zero_infinity=True)
-
+    
         test_step, train_step = 0, 0
         best_test_cer = 1
-        train_times = []
-        sum_batch = len(train_loader) * num_epoch
         if local_rank == 0:
             writer.add_scalar('Train/lr', scheduler.get_last_lr()[0], last_epoch)
+        
         try:
             # 开始训练
             for epoch in range(last_epoch, num_epoch):
                 epoch += 1
                 start_epoch = time.time()
-                start = time.time()
-                for batch_id, (inputs, labels, input_lens, label_lens) in enumerate(train_loader):
+                
+                # 初始化统计变量
+                total_loss = 0.0
+                total_batches = 0
+                batch_times = []
+                
+                # 使用tqdm显示进度条
+                if local_rank == 0:
+                    pbar = tqdm(train_loader, desc=f'Epoch {epoch}/{num_epoch}')
+                else:
+                    pbar = train_loader
+                
+                for batch_id, (inputs, labels, input_lens, label_lens) in enumerate(pbar):
+                    batch_start = time.time()
+                    
                     inputs = inputs.cuda()
                     labels = labels.cuda()
                     out, out_lens, _, _ = model(inputs, input_lens)
                     out = out.log_softmax(2)
                     out = out.permute(1, 0, 2)
-
+    
                     # 计算损失
                     label_lens = label_lens.cuda()
                     loss = ctc_loss(out, labels, out_lens, label_lens)
@@ -305,31 +320,49 @@ class MASRTrainer(object):
                     loss.backward()
                     optimizer.step()
                     optimizer.zero_grad()
-                    train_times.append((time.time() - start) * 1000)
-                    # 多卡训练只使用一个进程打印
-                    if batch_id % 100 == 0 and local_rank == 0:
-                        eta_sec = (sum(train_times) / len(train_times)) * (
-                                sum_batch - (epoch - 1) * len(train_loader) - batch_id)
-                        eta_str = str(timedelta(seconds=int(eta_sec / 1000)))
-                        print(
-                            '[{}] Train epoch: [{}/{}], batch: [{}/{}], loss: {:.5f}, learning rate: {:>.8f}, eta: {}'.format(
-                                datetime.now(), epoch, num_epoch, batch_id, len(train_loader),
-                                loss.cpu().detach().numpy(), scheduler.get_last_lr()[0], eta_str))
-                        writer.add_scalar('Train/Loss', loss.cpu().detach().numpy(), train_step)
+                    
+                    # 计算batch时间
+                    batch_time = time.time() - batch_start
+                    batch_times.append(batch_time)
+                    
+                    # 更新统计
+                    total_loss += loss.item()
+                    total_batches += 1
+                    
+                    # 更新进度条显示
+                    if local_rank == 0:
+                        
+                        # 更新进度条描述
+                        pbar.set_postfix({
+                            'batch_loss': f'{loss.item():.5f}',
+                            'lr': f'{scheduler.get_last_lr()[0]:.2e}'
+                        })
+                        
+                        # 记录到tensorboard
+                        writer.add_scalar('Train/Loss', loss.item(), train_step)
                         train_step += 1
-                        train_times = []
-                    # 固定步数也要保存一次模型
+    
+                    # 固定步数保存模型
                     if batch_id % 10000 == 0 and batch_id != 0 and local_rank == 0:
                         if nranks > 1:
                             self.save_model(save_model_path=save_model_path, use_model=self.use_model, epoch=epoch,
-                                            model=model.module, optimizer=optimizer)
+                                          model=model.module, optimizer=optimizer)
                         else:
                             self.save_model(save_model_path=save_model_path, use_model=self.use_model, epoch=epoch,
-                                            model=model, optimizer=optimizer)
-                    start = time.time()
-
+                                          model=model, optimizer=optimizer)
+    
+                # 计算epoch统计
+                avg_loss = total_loss / total_batches if total_batches > 0 else 0
+                avg_its_epoch = batch_size / np.mean(batch_times) if len(batch_times) > 0 else 0
+                
                 # 多卡训练只使用一个进程执行评估和保存模型
                 if local_rank == 0:
+                    # 打印epoch统计
+                    print(f'\n[Epoch {epoch}/{num_epoch}] '
+                          f'Avg loss: {avg_loss:.5f}, '
+                          f'Avg it/s: {avg_its_epoch:.2f}, '
+                          f'Time: {time.time()-start_epoch:.2f}s')
+                    
                     # 执行评估
                     model.eval()
                     print('\n', '=' * 70)
@@ -341,41 +374,44 @@ class MASRTrainer(object):
                     writer.add_scalar('Test/Loss', l, test_step)
                     test_step += 1
                     model.train()
-
+    
                     # 记录学习率
                     writer.add_scalar('Train/lr', scheduler.get_last_lr()[0], epoch)
+                    
                     # 保存最优模型
                     if c <= best_test_cer:
                         best_test_cer = c
                         if nranks > 1:
                             self.save_model(save_model_path=save_model_path, use_model=self.use_model,
-                                            model=model.module,
-                                            optimizer=optimizer, epoch=epoch, error_type=self.metrics_type,
-                                            error_rate=c, test_loss=l, best_model=True)
+                                          model=model.module, optimizer=optimizer, epoch=epoch, 
+                                          error_type=self.metrics_type, error_rate=c, test_loss=l, best_model=True)
                         else:
-                            self.save_model(save_model_path=save_model_path, use_model=self.use_model, model=model,
-                                            optimizer=optimizer, epoch=epoch, error_type=self.metrics_type,
-                                            error_rate=c, test_loss=l, best_model=True)
+                            self.save_model(save_model_path=save_model_path, use_model=self.use_model, 
+                                          model=model, optimizer=optimizer, epoch=epoch, 
+                                          error_type=self.metrics_type, error_rate=c, test_loss=l, best_model=True)
+                    
                     # 保存模型
                     if nranks > 1:
                         self.save_model(save_model_path=save_model_path, use_model=self.use_model, epoch=epoch,
-                                        model=model.module, error_type=self.metrics_type, error_rate=c, test_loss=l,
-                                        optimizer=optimizer)
+                                      model=model.module, error_type=self.metrics_type, error_rate=c, test_loss=l,
+                                      optimizer=optimizer)
                     else:
                         self.save_model(save_model_path=save_model_path, use_model=self.use_model, epoch=epoch,
-                                        model=model, error_type=self.metrics_type, error_rate=c, test_loss=l,
-                                        optimizer=optimizer)
+                                      model=model, error_type=self.metrics_type, error_rate=c, test_loss=l,
+                                      optimizer=optimizer)
+                
                 scheduler.step()
+                
         except KeyboardInterrupt:
             # Ctrl+C退出时保存模型
             if local_rank == 0:
                 print('请等一下，正在保存模型...')
                 if nranks > 1:
                     self.save_model(save_model_path=save_model_path, use_model=self.use_model, epoch=epoch,
-                                    model=model.module, optimizer=optimizer)
+                                  model=model.module, optimizer=optimizer)
                 else:
                     self.save_model(save_model_path=save_model_path, use_model=self.use_model, epoch=epoch,
-                                    model=model, optimizer=optimizer)
+                                  model=model, optimizer=optimizer)
 
     # 评估模型
     @torch.no_grad()
