@@ -6,6 +6,8 @@ from utils import data_generator
 from model import TCN
 import numpy as np
 import argparse
+import time
+from tqdm import tqdm
 
 parser = argparse.ArgumentParser(description='Sequence Modeling - (Permuted) Sequential MNIST')
 parser.add_argument('--batch_size', type=int, default=64, metavar='N',
@@ -64,32 +66,58 @@ if args.cuda:
 lr = args.lr
 optimizer = getattr(optim, args.optim)(model.parameters(), lr=lr)
 
-
 def train(ep):
     global steps
     train_loss = 0
     model.train()
-    for batch_idx, (data, target) in enumerate(train_loader):
-        if args.cuda: data, target = data.cuda(), target.cuda()
+    
+    epoch_start_time = time.time()
+    total_batches = len(train_loader)
+    batch_times = []
+    
+    # 使用tqdm包装train_loader
+    train_bar = tqdm(enumerate(train_loader), total=total_batches, 
+                    desc=f'Epoch {ep}', leave=True)
+    
+    for batch_idx, (data, target) in train_bar:
+        batch_start_time = time.time()
+        
+        if args.cuda: 
+            data, target = data.cuda(), target.cuda()
         data = data.view(-1, input_channels, seq_length)
         if args.permute:
             data = data[:, :, permute]
         data, target = Variable(data), Variable(target)
+        
         optimizer.zero_grad()
         output = model(data)
         loss = F.nll_loss(output, target)
         loss.backward()
+        
         if args.clip > 0:
             torch.nn.utils.clip_grad_norm_(model.parameters(), args.clip)
         optimizer.step()
-        train_loss += loss
+        
+        train_loss += loss.item()
         steps += seq_length
-        if batch_idx > 0 and batch_idx % args.log_interval == 0:
-            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tSteps: {}'.format(
-                ep, batch_idx * batch_size, len(train_loader.dataset),
-                100. * batch_idx / len(train_loader), train_loss.item()/args.log_interval, steps))
-            train_loss = 0
-
+        
+        # 计算batch耗时
+        batch_time = time.time() - batch_start_time
+        batch_times.append(batch_time)
+        
+        # 更新进度条信息
+        train_bar.set_postfix({
+            'Batch_loss': f'{loss.item():.6f}',
+        })
+        
+    # 计算epoch统计信息
+    epoch_time = time.time() - epoch_start_time
+    avg_loss = train_loss / total_batches
+    avg_it_per_sec = total_batches / epoch_time
+    
+    # 打印epoch统计信息
+    print(f"\nEpoch {ep:3d} | Avg Loss: {avg_loss:.4f} | "
+          f"Avg it/s: {avg_it_per_sec:.2f} | Time: {epoch_time:.2f}s\n")
 
 def test():
     model.eval()

@@ -4,6 +4,7 @@ import pandas as pd
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 import matplotlib.pyplot as plt
+import time
 from tqdm import tqdm
 import copy
 import numpy as np
@@ -60,82 +61,119 @@ def data_loader(data,N,batch_size,shuffle):
     seq_set = MyDataset(seq)
     seq = DataLoader(dataset=seq_set,batch_size=batch_size,shuffle=shuffle,drop_last=True)
     return seq_set,seq
+
 def read_data(filename):
     data = pd.read_csv(filename,skiprows=1)
     data.head(5)
     L = data.shape[0]
     logger.info("data的尺寸为：{}".format(data.shape))
-    # logger.info("文件中有nan行共{}�?.format(data.isnull().sum(axis=1)))
     return data,L
 
-def train_proc(para_dict,train_data,val_data):
-    input_size=para_dict["input_size"]
+def train_proc(para_dict, train_data, val_data):
+    input_size = para_dict["input_size"]
     hidden_size = para_dict["hidden_size"]
     num_layers = para_dict["num_layers"]
     output_size = para_dict["output_size"]
     batch_size = para_dict["batch_size"]
     lr = para_dict["lr"]
     epoch = para_dict["epoch"]
-    model = LSTM(input_size,hidden_size,num_layers,output_size,batch_size)
+    model = LSTM(input_size, hidden_size, num_layers, output_size, batch_size)
     model.to(device)
-    #优化器保存当前的状态，并可以进行参数的更新
-    if para_dict["optimizer"]=='Adam':
-        optimizer = torch.optim.Adam(model.parameters(),lr)
-    if para_dict["loss_function"]=='mse':
+    
+    # 优化器保存当前的状态，并可以进行参数的更新
+    if para_dict["optimizer"] == 'Adam':
+        optimizer = torch.optim.Adam(model.parameters(), lr)
+    if para_dict["loss_function"] == 'mse':
         loss_function = nn.MSELoss()
- 
+
     best_model = None
     min_val_loss = float('inf')
     train_loss = []
     val_loss = []
- 
-    for i in range(epoch):
+
+    for epoch_idx in range(epoch):
+        epoch_start_time = time.time()
         train_loss_tmp = 0
         val_loss_tmp = 0
+        total_batches = len(train_data)
+        
         # 训练
         model.train()
-        for step, curdata in enumerate(train_data):
+        train_bar = tqdm(enumerate(train_data), total=total_batches, 
+                        desc=f'Epoch {epoch_idx+1}/{epoch}', leave=True)
+        
+        batch_times = []
+        for step, curdata in train_bar:
+            batch_start_time = time.time()
+            
             seq, label = curdata
             seq = seq.to(device)
             label = label.to(device)
+            
             # 计算网络输出
             y_pred = model(seq)
             # 计算损失
-            loss = loss_function(y_pred,label)
+            loss = loss_function(y_pred, label)
             train_loss_tmp += loss.item()
-            # 计算梯度和反向传�?
+            
+            # 计算梯度和反向传播
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            if step % 10 == 0:
-                logger.info("epoch={} step={}/{}:  loss = {:05f}".format(i,step, len(train_data),loss))
+            
+            # 计算batch耗时
+            batch_time = time.time() - batch_start_time
+            batch_times.append(batch_time)
+            it_per_sec = 1.0 / batch_time if batch_time > 0 else 0
+            
+            # 更新tqdm进度条信息
+            train_bar.set_postfix({
+                'Batch_loss': f'{loss.item():.5f}'
+            })
+            
+            #if step % 10 == 0:
+            #    logger.info(f"epoch={epoch_idx} step={step}/{total_batches}: loss = {loss.item():05f}")
 
+        # 计算epoch统计信息
+        epoch_time = time.time() - epoch_start_time
+        avg_loss = train_loss_tmp / total_batches
+        avg_it_per_sec = total_batches / epoch_time
+        
+        # 打印epoch统计信息
+        print(f"\nEpoch {epoch_idx+1:3d}/{epoch} | Avg Loss: {avg_loss:.4f} | "
+              f"Avg it/s: {avg_it_per_sec:.2f} | Time: {epoch_time:.2f}s")
+        
         # 验证
         model.eval()
-        for (seq, label) in val_data:
+        val_bar = tqdm(val_data, total=len(val_data), desc='Validating', leave=False)
+        for seq, label in val_bar:
             seq = seq.to(device)
             label = label.to(device)
             with torch.no_grad():
                 y_pred = model(seq)
-                loss = loss_function(y_pred,label)
+                loss = loss_function(y_pred, label)
                 val_loss_tmp += loss.item()
-        # 最优模�?
-        if val_loss_tmp<min_val_loss:
+                val_bar.set_postfix({'val_loss': f'{loss.item():.5f}'})
+
+        # 最优模型
+        if val_loss_tmp < min_val_loss:
             min_val_loss = val_loss_tmp
             best_model = copy.deepcopy(model)
-            torch.save({'models':best_model.state_dict()}, os.path.join(para_dict["modelpara_path"], 'lstm_best.pt'))
-        #损失保存
+            torch.save({'models': best_model.state_dict()}, 
+                      os.path.join(para_dict["modelpara_path"], 'lstm_best.pt'))
+        
+        # 损失保存
         train_loss_tmp /= len(train_data)
         val_loss_tmp /= len(val_data)
         train_loss.append(train_loss_tmp)
         val_loss.append(val_loss_tmp)
-        logger.info("Val: epoch={}:  train_loss = {:05f},val_loss = {:05f}".format(i,train_loss_tmp,val_loss_tmp))
+        logger.info(f"Val: epoch={epoch_idx+1:3d}/{epoch}: train_loss = {train_loss_tmp:05f}, val_loss = {val_loss_tmp:05f}")
 
-        #保存模型
-        if i % para_dict['save_step'] == 0:
-            state = {'models':model.state_dict()}
-            torch.save(state, os.path.join(para_dict["modelpara_path"], 'lstm_epoch_%d.pt' % i))
-
+        # 保存模型
+        if epoch_idx % para_dict['save_step'] == 0:
+            state = {'models': model.state_dict()}
+            torch.save(state, os.path.join(para_dict["modelpara_path"], 
+                      f'lstm_epoch_{epoch_idx}.pt'))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='LSTM')
