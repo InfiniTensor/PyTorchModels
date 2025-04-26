@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export CUDA_VISIBLE_DEVICES=0
+export MLU_VISIBLE_DEVICES=0
 
 python data_utils.py --upscale_factor 2
 
