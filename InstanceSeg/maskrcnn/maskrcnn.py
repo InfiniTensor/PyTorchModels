@@ -12,37 +12,98 @@ from PIL import Image, ImageDraw
 import matplotlib.pyplot as plt
 import argparse
 import time
+from tqdm import tqdm
+from statistics import mean
 
 # 定义数据集类
 class CocoDataset(CocoDetection):
-    def __init__(self, root, annFile, transforms=None):
-        super(CocoDataset, self).__init__(root, annFile)
-        self.transform = transforms
+    def __init__(self, root, annFile, transform=None, filter_empty=True):
+        super().__init__(root, annFile)
+        self.transform = transform
+        
+        if filter_empty:           # ── 新增 ──
+            valid_ids = []
+            for img_id in self.ids:
+                if len(self.coco.getAnnIds(imgIds=img_id, iscrowd=None)) > 0:
+                    valid_ids.append(img_id)
+            self.ids = valid_ids   # 只保留有标注的图片
 
     def __getitem__(self, idx):
-        img, target = super(CocoDataset, self).__getitem__(idx)
-        if self.transform is not None:
+        img, anns = super().__getitem__(idx)          # anns: list[dict]
+
+        boxes, labels, masks, areas, iscrowd = [], [], [], [], []
+        for ann in anns:
+            # bbox 由 [x, y, w, h] → [xmin, ymin, xmax, ymax]
+            x, y, w, h = ann["bbox"]
+            # 生成 boxes 之前加:
+            if w <= 1 or h <= 1:      # 允许你自定义阈值 1 像素
+                continue              # 跳过退化框
+            boxes.append([x, y, x + w, y + h])
+            labels.append(ann["category_id"])
+            masks.append(self.coco.annToMask(ann))   # ← 生成单实例 mask
+            areas.append(ann["area"])
+            iscrowd.append(ann.get("iscrowd", 0))
+
+        target = {
+            "boxes":   torch.as_tensor(boxes,   dtype=torch.float32),
+            "labels":  torch.as_tensor(labels,  dtype=torch.int64),
+            "masks":   torch.as_tensor(np.stack(masks), dtype=torch.uint8),
+            "area":    torch.as_tensor(areas,   dtype=torch.float32),
+            "iscrowd": torch.as_tensor(iscrowd, dtype=torch.int64),
+            "image_id": torch.tensor([idx])
+        }
+
+        if self.transform:
             img = self.transform(img)
-        target = [{k: torch.tensor(v) for k, v in t.items()} for t in target]
         return img, target
 
   
 # 训练函数
-def train(model, 
-          dataloader, 
+def train(model,
+          dataloader,
           optimizer,
           device,
           epoch):
     model.train()
-    for images, targets in dataloader:
-        images = list(image.to(device) for image in images)
+
+    batch_losses = []
+    epoch_start = time.time()
+
+    # tqdm 进度条
+    pbar = tqdm(enumerate(dataloader, 1),
+                total=len(dataloader),
+                desc=f"Epoch {epoch+1}",
+                unit="batch",
+                ncols=120,
+                leave=False)          # 结束后自动清理；若想保留改成 True
+
+    for step, (images, targets) in pbar:
+        tic = time.time()
+
+        images  = [img.to(device) for img in images]
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+
         loss_dict = model(images, targets)
-        losses = sum(loss for loss in loss_dict.values())
+        loss = sum(loss for loss in loss_dict.values())
+
         optimizer.zero_grad()
-        losses.backward()
+        loss.backward()
         optimizer.step()
-    print(f"Epoch {epoch+1}, Loss: {losses.item()}")
+
+        # 统计与显示
+        batch_losses.append(loss.item())
+        elapsed = time.time() - tic
+        its = 1.0 / elapsed if elapsed > 0 else float("inf")
+
+        pbar.set_postfix(
+            loss=f"{loss.item():.4f}",
+            its=f"{its:.1f}"
+        )
+
+    # tqdm 清理后打印 epoch 级信息
+    avg_loss = mean(batch_losses)
+    epoch_time = time.time() - epoch_start
+    tqdm.write(f"Epoch {epoch+1} finished | avg_loss={avg_loss:.4f} | time={epoch_time:.1f}s")
 
 # 推理函数
 def eval(model, 
@@ -98,14 +159,13 @@ def main():
     val_ann_file = os.path.join(args.dataset_root, 'images/annotations/instances_val2017.json')
     
     transform = transforms.Compose([
-        transforms.Resize(input_size),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
     
     # 创建数据集
-    train_dataset = CocoDetection(train_dir, train_ann_file, transforms=transform)
-    val_dataset = CocoDetection(val_dir, val_ann_file, transforms=transform)
+    train_dataset = CocoDataset(train_dir, train_ann_file, transform=transform)
+    val_dataset = CocoDataset(val_dir, val_ann_file, transform=transform)
     
     # 数据加载器
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.train_batch_size, 
@@ -116,7 +176,7 @@ def main():
     if args.mode == "infer":
         model = maskrcnn_resnet50_fpn(pretrained=True, num_classes=args.num_classes)
     else:
-        model = maskrcnn_resnet50_fpn(pretrained=False, num_classes=args.num_classes)
+        model = maskrcnn_resnet50_fpn(weights="DEFAULT", num_classes=args.num_classes)
     
     device = torch.device(args.device)
     model.to(device)    
