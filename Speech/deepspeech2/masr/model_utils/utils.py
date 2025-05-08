@@ -1,6 +1,8 @@
 import math
 
 import torch
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 from torch import nn
 from masr.model_utils.deepspeech2.model import DeepSpeech2Model
 

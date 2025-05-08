@@ -4,6 +4,8 @@ import numpy as np
 import random
 from tqdm import tqdm
 from torch.utils.data import Dataset, DataLoader
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 from masr.data_utils.utils import read_manifest
 from masr.data_utils.audio import AudioSegment
 from masr.data_utils.featurizer.audio_featurizer import AudioFeaturizer

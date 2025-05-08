@@ -9,6 +9,8 @@ from datetime import datetime
 from datetime import timedelta
 
 import torch
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 import torch.distributed as dist
 from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import DataLoader

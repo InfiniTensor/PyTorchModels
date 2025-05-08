@@ -4,6 +4,8 @@ from datetime import datetime
 
 import numpy as np
 from torch.utils.data import Dataset
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 
 from masr.data_utils.featurizer.speech_featurizer import SpeechFeaturizer
 from masr.data_utils.normalizer import FeatureNormalizer

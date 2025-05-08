@@ -2,6 +2,8 @@ import numpy as np
 
 # 对一个batch的数据处理
 import torch
+import torch_npu
+from torch_npu.contrib import transfer_to_npu
 
 
 def collate_fn(batch):

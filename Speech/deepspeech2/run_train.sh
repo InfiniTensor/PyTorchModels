@@ -1,5 +1,7 @@
 #!/bin/bash
 
+export ASCEND_RT_VISIBLE_DEVICES=3,4,6
+
 if [ -e "../data/data_thchs30" ]; then
     echo "../data/data_thchs30 exists"
 else
