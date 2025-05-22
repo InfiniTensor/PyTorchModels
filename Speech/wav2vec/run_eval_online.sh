@@ -6,7 +6,7 @@ else
     ln -s /data1/shared/Dataset/librispeech/LibriSpeech ../data/LibriSpeech
 fi
 
-export CUDA_VISIBLE_DEVICES=0
+export MLU_VISIBLE_DEVICES=0
 export HF_ENDPOINT=https://hf-mirror.com
 export LIBRISPEECH_PATH="../data/LibriSpeech"
 

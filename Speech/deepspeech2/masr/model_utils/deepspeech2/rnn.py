@@ -1,4 +1,8 @@
 import torch
+import torch_mlu
+from torch_mlu.utils.model_transfer import transfer
+
+import torch
 from torch import nn
 
 __all__ = ['RNNStack']

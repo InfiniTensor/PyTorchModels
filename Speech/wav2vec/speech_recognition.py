@@ -29,6 +29,9 @@ from typing import Dict, List, Optional, Union
 import datasets
 import evaluate
 import torch
+import torch_mlu
+from torch_mlu.utils.model_transfer import transfer
+
 import numpy
 from datasets import DatasetDict, load_dataset
 

@@ -1,3 +1,7 @@
+import torch
+import torch_mlu
+from torch_mlu.utils.model_transfer import transfer
+
 from torch import nn
 
 from masr.model_utils.deepspeech2.conv import ConvStack
