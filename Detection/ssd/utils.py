@@ -1,6 +1,8 @@
 import json
 import os
 import torch
+import torch_mlu
+from torch_mlu.utils.model_transfer import transfer
 import random
 import xml.etree.ElementTree as ET
 import torchvision.transforms.functional as FT

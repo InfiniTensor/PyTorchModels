@@ -1,4 +1,8 @@
 from __future__ import  absolute_import
+
+import torch
+import torch_mlu
+from torch_mlu.utils.model_transfer import transfer
 import os
 from collections import namedtuple
 import time

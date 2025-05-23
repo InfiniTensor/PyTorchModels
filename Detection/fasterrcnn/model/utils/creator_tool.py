@@ -1,3 +1,7 @@
+import torch
+import torch_mlu
+from torch_mlu.utils.model_transfer import transfer
+
 import numpy as np
 import torch
 from torchvision.ops import nms
