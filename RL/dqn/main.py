@@ -1,4 +1,6 @@
 import torch,os 
+import torch_mlu
+from torch_mlu.utils.model_transfer import transfer
 import torch.nn as nn  
 import torch.optim as optim  
 import numpy as np  
