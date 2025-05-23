@@ -1,3 +1,7 @@
+import torch
+import torch_mlu
+from torch_mlu.utils.model_transfer import transfer
+
 # Ultralytics YOLOv5 🚀, AGPL-3.0 license
 """PyTorch utils."""
 

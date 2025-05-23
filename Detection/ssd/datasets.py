@@ -1,4 +1,8 @@
 import torch
+import torch_mlu
+from torch_mlu.utils.model_transfer import transfer
+
+import torch
 from torch.utils.data import Dataset
 import json
 import os

@@ -1,3 +1,7 @@
+import torch
+import torch_mlu
+from torch_mlu.utils.model_transfer import transfer
+
 from __future__ import  absolute_import
 
 from tqdm import tqdm

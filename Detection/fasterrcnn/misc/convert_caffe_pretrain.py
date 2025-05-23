@@ -1,3 +1,7 @@
+import torch
+import torch_mlu
+from torch_mlu.utils.model_transfer import transfer
+
 # code from ruotian luo
 # https://github.com/ruotianluo/pytorch-faster-rcnn
 import torch
