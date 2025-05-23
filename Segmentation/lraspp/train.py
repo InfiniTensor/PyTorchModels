@@ -1,5 +1,7 @@
 import os
 import torch
+import torch_mlu
+from torch_mlu.utils.model_transfer import transfer
 import torch.optim as optim
 import numpy as np
 from pathlib import Path
