@@ -7,7 +7,7 @@
 set -e  # 一旦出现错误，退出脚本
 
 # CUDA设备配置
-export CUDA_VISIBLE_DEVICES=0,1
+export 	MLU_VISIBLE_DEVICES=0,1
 
 # 获取当前脚本所在目录
 CUR_DIR=$(cd $(dirname $0); pwd)
