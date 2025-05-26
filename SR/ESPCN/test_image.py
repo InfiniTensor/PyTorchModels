@@ -4,6 +4,8 @@ from os import listdir
 
 import numpy as np
 import torch
+import torch_mlu
+from torch_mlu.utils.model_transfer import transfer
 from PIL import Image
 from torch.autograd import Variable
 from torchvision.transforms import ToTensor
