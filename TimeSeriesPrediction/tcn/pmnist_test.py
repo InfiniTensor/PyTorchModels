@@ -1,4 +1,6 @@
 import torch
+import torch_mlu
+from torch_mlu.utils.model_transfer import transfer
 from torch.autograd import Variable
 import torch.optim as optim
 import torch.nn.functional as F
