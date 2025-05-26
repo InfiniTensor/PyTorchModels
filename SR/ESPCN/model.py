@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
-
+import torch_mlu
+from torch_mlu.utils.model_transfer import transfer
 
 class Net(nn.Module):
     def __init__(self, upscale_factor):
