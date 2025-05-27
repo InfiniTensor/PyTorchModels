@@ -7,6 +7,8 @@ import warnings
 from enum import Enum
 
 import torch
+import torch_mlu
+from torch_mlu.utils.model_transfer import transfer
 import torch.backends.cudnn as cudnn
 import torch.distributed as dist
 import torch.multiprocessing as mp
@@ -82,6 +84,8 @@ parser.add_argument('--multiprocessing-distributed', action='store_true',
                          'multi node data parallel training')
 parser.add_argument('--dummy', action='store_true', help="use fake data to benchmark")
 parser.add_argument('--profile', action='store_true', help="use profiling")
+parser.add_argument('--device', default='mlu', type=str, choices=['cpu',  'mlu'],
+                    help='device to use: cpu | mlu (default: mlu)')
 
 best_acc1 = 0
 
@@ -190,11 +194,19 @@ def main_worker(gpu, ngpus_per_node, args):
     #     model = model.to(device)
     else:
         # DataParallel will divide and allocate batch_size to all available GPUs
-        if args.arch.startswith('alexnet') or args.arch.startswith('vgg'):
-            model.features = torch.nn.DataParallel(model.features)
-            model.cuda()
+        #if args.arch.startswith('alexnet') or args.arch.startswith('vgg'):
+           # model.features = torch.nn.DataParallel(model.features)
+            #model.cuda()
+        #else:
+           # model = torch.nn.DataParallel(model).cuda()
+        if args.device == 'mlu':
+            model = model.to('mlu')
         else:
-            model = torch.nn.DataParallel(model).cuda()
+            if args.arch.startswith('alexnet') or args.arch.startswith('vgg'):
+                model.features = torch.nn.DataParallel(model.features)
+                model.cuda()
+            else:
+                model = torch.nn.DataParallel(model).cuda()
 
     if torch.cuda.is_available():
         if args.gpu:
