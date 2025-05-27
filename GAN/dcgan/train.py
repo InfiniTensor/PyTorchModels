@@ -3,6 +3,8 @@ import argparse
 import os
 import random
 import torch
+import torch_mlu
+from torch_mlu.utils.model_transfer import transfer
 import torch.nn as nn
 import torch.nn.parallel
 import torch.backends.cudnn as cudnn
