@@ -20,13 +20,14 @@ if [ ! -d "$DATA_DIR" ]; then
     exit 1
 fi
 
-# 检查并处理输出目录
-if [ -e "$output_dir" ]; then
-    rm -rf "$OUTPUT_DIR"
-else
-    mkdir "$OUTPUT_DIR"
-fi
+# Process output directory
+# 1. Remove the whole directory forcedly, -f config will ignore "directory not exist" error
+echo "Cleaning up the old output directory..."
+rm -rf "$OUTPUT_DIR"
+
+# 2. Re-create a new empty directory
+echo "Creating a new output directory..."
+mkdir "$OUTPUT_DIR"
 
 export CUDA_VISIBLE_DEVICES=0
-
-python3 train.py --dataset lsun --dataroot "$DATA_DIR" --cuda
+python train.py --dataset lsun --dataroot "$DATA_DIR" --cuda
