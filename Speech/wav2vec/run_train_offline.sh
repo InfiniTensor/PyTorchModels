@@ -6,7 +6,7 @@ else
     ln -s /data1/shared/Dataset/librispeech/LibriSpeech ../data/LibriSpeech
 fi
 
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+export MLU_VISIBLE_DEVICES=0,1,2,3
 export LIBRISPEECH_PATH="../data/LibriSpeech"
 
 MODEL_PATH="./wav2vec2-large-lv60"
@@ -21,7 +21,7 @@ python -m torch.distributed.launch \
 	--train_split_name="train" \
 	--eval_split_name="test" \
 	--output_dir="$CACHE_PATH/wav2vec2-librispeech" \
-	--preprocessing_num_workers="16" \
+	--preprocessing_num_workers="4" \
 	--overwrite_output_dir \
 	--num_train_epochs="1" \
 	--per_device_train_batch_size="4" \

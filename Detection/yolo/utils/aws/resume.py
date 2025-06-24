@@ -1,3 +1,7 @@
+import torch
+import torch_mlu
+from torch_mlu.utils.model_transfer import transfer
+
 # Ultralytics YOLOv5 🚀, AGPL-3.0 license
 # Resume all interrupted trainings in yolov5/ dir including DDP trainings
 # Usage: $ python utils/aws/resume.py

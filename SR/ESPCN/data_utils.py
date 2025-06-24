@@ -7,7 +7,8 @@ from PIL import Image
 from torch.utils.data.dataset import Dataset
 from torchvision.transforms import Compose, CenterCrop, Resize
 from tqdm import tqdm
-
+import torch_mlu
+from torch_mlu.utils.model_transfer import transfer
 
 def is_image_file(filename):
     return any(filename.endswith(extension) for extension in ['.png', '.jpg', '.jpeg', '.JPG', '.JPEG', '.PNG'])

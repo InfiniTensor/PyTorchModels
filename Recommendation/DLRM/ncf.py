@@ -7,6 +7,8 @@ import copy
 import re
 import time
 import timeit
+import torch_mlu
+from torch_mlu.utils.model_transfer import transfer
 from datetime import datetime
 from collections import OrderedDict
 from argparse import ArgumentParser
@@ -281,7 +283,7 @@ def main():
     if args.device == 'mlu':
         import torch_mlu.core.mlu_model as ct
     if args.use_amp:
-        from torch.cuda.amp import autocast, GradScaler
+        from torch.mlu.amp import autocast, GradScaler
     args.ndevices=1
     if args.device == 'mlu':
         args.ndevices = ct.device_count()

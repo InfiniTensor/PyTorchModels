@@ -55,7 +55,7 @@ python ncf.py \
     --item_scaling 16 \
     --cpu_dataloader \
     --random_negatives \
-    --device gpu \
+    --device mlu \
     --workers 8 \
     --do_predict \
     --cachedir ${cache_dir} \

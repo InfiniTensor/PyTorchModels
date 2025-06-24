@@ -2,7 +2,7 @@
 
 set -e
 
-export CUDA_VISIBLE_DEVICES=0
+export MLU_VISIBLE_DEVICES=0
 
 # 使用环境变量，如果没有提供则使用默认路径
 data_dir=${DATA_DIR:-""}

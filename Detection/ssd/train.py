@@ -1,3 +1,7 @@
+import torch
+import torch_mlu
+from torch_mlu.utils.model_transfer import transfer
+
 import time
 import torch.backends.cudnn as cudnn
 import torch.optim

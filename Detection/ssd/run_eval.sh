@@ -6,8 +6,8 @@
 # 确保脚本在遇到错误时停止执行
 set -e
 
-# 设置 CUDA 设备
-export CUDA_VISIBLE_DEVICES=0
+# 设置 mlu 设备
+export MLU_VISIBLE_DEVICES=0
 
 # 获取环境变量，并将 ARCH 转换为小写
 DATA_DIR=${DATA_DIR:-""}

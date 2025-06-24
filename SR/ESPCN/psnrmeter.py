@@ -1,6 +1,8 @@
 from math import log10
 
 import torch
+import torch_mlu
+from torch_mlu.utils.model_transfer import transfer
 from torchnet.meter import meter
 
 

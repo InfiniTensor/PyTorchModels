@@ -6,6 +6,8 @@ import os
 from collections import OrderedDict
 import numpy as np
 import json
+import torch_mlu
+from torch_mlu.utils.model_transfer import transfer
 
 cur_dir = os.path.dirname(os.path.abspath(__file__))
 

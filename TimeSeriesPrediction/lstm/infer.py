@@ -1,5 +1,6 @@
 import torch
 import torch_mlu
+from torch_mlu.utils.model_transfer import transfer
 import pandas as pd
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader

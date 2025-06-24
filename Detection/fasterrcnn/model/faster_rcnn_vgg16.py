@@ -1,4 +1,9 @@
 from __future__ import  absolute_import
+
+import torch
+import torch_mlu
+from torch_mlu.utils.model_transfer import transfer
+
 import torch as t
 from torch import nn
 from torchvision.models import vgg16

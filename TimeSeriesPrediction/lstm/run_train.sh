@@ -2,7 +2,7 @@
 
 set -e 
 
-export CUDA_VISIBLE_DEVICES=0
+export MLU_VISIBLE_DEVICES=0
 
 dataset=$1
 epoch=$2

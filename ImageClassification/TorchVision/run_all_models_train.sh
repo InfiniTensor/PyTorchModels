@@ -6,7 +6,7 @@
 
 set -e
 
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+export MLU_VISIBLE_DEVICES=0,1,2,3
 
 # 读取环境变量
 DATA_DIR=${DATA_DIR:-""}

@@ -1,5 +1,9 @@
 from __future__ import  absolute_import
 from __future__ import  division
+
+import torch
+import torch_mlu
+from torch_mlu.utils.model_transfer import transfer
 import torch as t
 from data.voc_dataset import VOCBboxDataset
 from skimage import transform as sktsf

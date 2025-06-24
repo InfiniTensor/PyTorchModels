@@ -1,5 +1,7 @@
 import argparse
 import torch
+import torch_mlu
+from torch_mlu.utils.model_transfer import transfer
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
