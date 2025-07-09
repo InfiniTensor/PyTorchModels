@@ -56,6 +56,8 @@ class PlatformPatcher(MetaPathFinder):
         # 2. 检测并适配不同的国产硬件平台
         platform_env = os.environ.get('PLATFORM_ENV')
 
+        # 尝试获取 CUDA_VISIBLE_DEVICES 的值
+        cuda_devices = os.environ.get("CUDA_VISIBLE_DEVICES")
         if platform_env == 'ASCEND_NPU':
 
             print(">>> HOOK: 检测到昇腾（ASCEND_NPU）平台...")
@@ -63,7 +65,17 @@ class PlatformPatcher(MetaPathFinder):
             try:
                 import torch_npu
                 from torch_npu.contrib import transfer_to_npu
+                
+                # 检查获取到的值是否存在且不为空字符串
+                if cuda_devices:
+                    # 如果 cuda_devices 不是 None 且不是空字符串，就执行赋值操作
+                    os.environ["ASCEND_RT_VISIBLE_DEVICES"] = cuda_devices
+                    print(f"成功将 ASCEND_RT_VISIBLE_DEVICES 设置为: {cuda_devices}")
+                else:
+                    print("环境变量 CUDA_VISIBLE_DEVICES 未设置或为空，跳过赋值。")
+
                 print(">>> HOOK: 成功导入 'torch_npu'。NPU环境适配完成！")
+
             except ImportError:
                 print(">>> HOOK: 警告！平台适配失败，无法导入 'torch_npu'")
             except Exception as e:
@@ -76,6 +88,15 @@ class PlatformPatcher(MetaPathFinder):
             try:
                 import torch_mlu
                 from torch_mlu.utils.model_transfer import transfer
+                
+                # 检查获取到的值是否存在且不为空字符串
+                if cuda_devices:
+                    # 如果 cuda_devices 不是 None 且不是空字符串，就执行赋值操作
+                    os.environ["MLU_VISIBLE_DEVICES"] = cuda_devices
+                    print(f"成功将 MLU_VISIBLE_DEVICES 设置为: {cuda_devices}")
+                else:
+                    print("环境变量 CUDA_VISIBLE_DEVICES 未设置或为空，跳过赋值。")
+                
                 print(">>> HOOK: 成功导入 'torch_mlu'。MLU环境适配完成！")
             except ImportError:
                 print(">>> HOOK: 警告！平台适配失败，无法导入 'torch_mlu'")
