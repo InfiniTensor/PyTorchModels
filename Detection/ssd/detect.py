@@ -1,6 +1,7 @@
 from torchvision import transforms
 from utils import *
 from PIL import Image, ImageDraw, ImageFont
+import os 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -96,7 +97,10 @@ def detect(original_image, min_score, max_overlap, top_k, suppress=None):
 
 
 if __name__ == '__main__':
-    img_path = '/data1/shared/Dataset/VOC2007/JPEGImages/000001.jpg'
+    base_dataset_dir = os.getenv('BASE_DATASET_DIR')
+    if base_dataset_dir is None:
+        raise ValueError("BASE_DATASET_DIR environment variable not set!")
+    img_path = os.path.join(base_dataset_dir, 'VOC2007/JPEGImages/000001.jpg')
     original_image = Image.open(img_path, mode='r')
     original_image = original_image.convert('RGB')
     detect(original_image, min_score=0.2, max_overlap=0.5, top_k=200).show()

@@ -15,4 +15,4 @@ python -W ignore train.py \
        --batch_size $batch_size \
        --lr $learning_rate \
 
-# bash run_train.sh ../data/complete_data.csv 200 512 0.0001
+# bash run_train.sh ${BASE_DATASET_DIR}/timeseq/complete_data.csv 200 512 0.0001

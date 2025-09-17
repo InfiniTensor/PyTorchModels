@@ -59,7 +59,11 @@ class DatasetFromFolder(Dataset):
 
 
 def generate_dataset(data_type, upscale_factor):
-    images_name = [x for x in listdir('../data/VOC2012-ESPCN/' + data_type) if is_image_file(x)]
+    base_dataset_dir = os.getenv('BASE_DATASET_DIR')
+    if base_dataset_dir is None:
+        raise ValueError("BASE_DATASET_DIR environment variable not set!")
+    data_path = os.path.join(base_dataset_dir, "VOC2012-ESPCN", data_type)
+    images_name = [x for x in listdir(data_path) if is_image_file(x)]
     crop_size = calculate_valid_crop_size(256, upscale_factor)
     lr_transform = input_transform(crop_size, upscale_factor)
     hr_transform = target_transform(crop_size)
@@ -79,7 +83,7 @@ def generate_dataset(data_type, upscale_factor):
 
     for image_name in tqdm(images_name, desc='generate ' + data_type + ' dataset with upscale factor = '
             + str(upscale_factor) + ' from VOC2012'):
-        image = Image.open('../data/VOC2012-ESPCN/' + data_type + '/' + image_name)
+        image = Image.open(os.path.join(data_path, image_name))
         target = image.copy()
         image = lr_transform(image)
         target = hr_transform(target)

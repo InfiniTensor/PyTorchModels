@@ -48,27 +48,27 @@ START_TIME=$(date +%s)
 
 run_test_fasterrcnn() {
     echo "-> 任务: Detection/fasterrcnn"
-    ( cd Detection/fasterrcnn && DATA_DIR=../data/VOCdevkit bash run_train.sh )
+    ( cd Detection/fasterrcnn && DATA_DIR=${BASE_DATASET_DIR}/VOCdevkit bash run_train.sh )
 }
 
 run_test_ssd() {
     echo "-> 任务: Detection/ssd"
-    ( cd Detection/ssd && DATA_DIR=../data/VOCdevkit bash run_train.sh )
+    ( cd Detection/ssd && DATA_DIR=${BASE_DATASET_DIR}/VOCdevkit bash run_train.sh )
 }
 
 run_test_yolo() {
     echo "-> 任务: Detection/yolo"
-    ( cd Detection/yolo && MODEL=yolov5s DATA_DIR=../data/coco bash run_train.sh )
+    ( cd Detection/yolo && MODEL=yolov5s DATA_DIR=${BASE_DATASET_DIR}/coco bash run_train.sh )
 }
 
 run_test_image_classification() {
     echo "-> 任务: ImageClassification/TorchVision"
-    ( cd ImageClassification/TorchVision && DATA_DIR=../data/imagenet2012 bash run_all_models_train.sh )
+    ( cd ImageClassification/TorchVision && DATA_DIR=${BASE_DATASET_DIR}/imagenet2012 bash run_all_models_train.sh )
 }
 
 run_test_gan() {
     echo "-> 任务: GAN/dcgan"
-    ( cd GAN/dcgan && DATA_DIR=../data/lsun bash run_train.sh )
+    ( cd GAN/dcgan && DATA_DIR=${BASE_DATASET_DIR}/lsun bash run_train.sh )
 }
 
 run_test_nlp() {
@@ -83,7 +83,7 @@ run_test_rl() {
 
 run_test_recommendation() {
     echo "-> 任务: Recommendation/DLRM"
-    ( cd Recommendation/DLRM && DATA_DIR=../data/ml-20mx4x16 bash run_train.sh )
+    ( cd Recommendation/DLRM && DATA_DIR=${BASE_DATASET_DIR}/ml-20mx4x16 bash run_train.sh )
 }
 
 run_test_sr() {
@@ -123,7 +123,7 @@ run_test_speech_wav2vec() {
 
 run_test_timeseries_lstm() {
     echo "-> 任务: TimeSeriesPrediction/lstm"
-    ( cd TimeSeriesPrediction/lstm && bash run_train.sh ../data/complete_data.csv 200 512 0.0001 )
+    ( cd TimeSeriesPrediction/lstm && bash run_train.sh ${BASE_DATASET_DIR}/timeseq/complete_data.csv 200 512 0.0001 )
 }
 
 run_test_timeseries_tcn() {

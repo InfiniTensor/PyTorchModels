@@ -5,7 +5,7 @@ set -e
 export CUDA_VISIBLE_DEVICES=0
 
 # 使用环境变量，如果没有提供则使用默认路径
-data_dir=${DATA_DIR:-""} # data1/shared/Dataset/VOCdevkit
+data_dir=${DATA_DIR:-""} # ${BASE_DATASET_DIR}/VOCdevkit
 
 # 确保数据集路径存在
 if [ ! -d "$DATA_DIR" ]; then

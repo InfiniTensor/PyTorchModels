@@ -102,9 +102,13 @@ def get_coco_loader(root, ann_file, transform, batch_size, sample_percentage, sh
     )
     return loader
 
+base_dataset_dir = os.getenv('BASE_DATASET_DIR')
+if base_dataset_dir is None:
+    raise ValueError("BASE_DATASET_DIR environment variable not set!")
+
 train_loader = get_coco_loader(
-    root="/data1/shared/Dataset/coco/images/train2017",
-    ann_file="/data1/shared/Dataset/coco/images/annotations/instances_train2017.json",
+    root=os.path.join(base_dataset_dir, "coco/images/train2017"),
+    ann_file=os.path.join(base_dataset_dir, "coco/images/annotations/instances_train2017.json"),
     transform=transform, 
     batch_size=args.train_batch, 
     sample_percentage=0.5,  # 设置抽样比例为 50%
@@ -112,8 +116,8 @@ train_loader = get_coco_loader(
 )
 
 test_loader = get_coco_loader(
-    root="/data1/shared/Dataset/coco/images/val2017",
-    ann_file="/data1/shared/Dataset/coco/images/annotations/instances_val2017.json",
+    root=os.path.join(base_dataset_dir, "coco/images/val2017"),
+    ann_file=os.path.join(base_dataset_dir, "coco/images/annotations/instances_val2017.json"),
     transform=transform, 
     batch_size=args.infer_batch, 
     sample_percentage=args.sample,
