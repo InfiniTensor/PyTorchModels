@@ -17,4 +17,4 @@ python -W ignore eval.py \
        --dataset $dataset \
        --model_path $ckpt \
 
-# bash run_eval.sh ../data/complete_data.csv ./checkpoints/lstm_best.pt
+# bash run_eval.sh ${BASE_DATASET_DIR}/timeseq/complete_data.csv ./checkpoints/lstm_best.pt

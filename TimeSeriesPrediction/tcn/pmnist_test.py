@@ -6,6 +6,7 @@ from utils import data_generator
 from model import TCN
 import numpy as np
 import argparse
+import os
 import time
 from tqdm import tqdm
 
@@ -43,7 +44,10 @@ if torch.cuda.is_available():
     if not args.cuda:
         print("WARNING: You have a CUDA device, so you should probably run with --cuda")
 
-root = '../data/mnist'
+base_dir = os.getenv('BASE_DATASET_DIR')
+if base_dir is None:
+    raise ValueError("BASE_DATASET_DIR environment variable not set!")
+root = os.path.join(base_dir, "mnist")
 batch_size = args.batch_size
 n_classes = 10
 input_channels = 1
