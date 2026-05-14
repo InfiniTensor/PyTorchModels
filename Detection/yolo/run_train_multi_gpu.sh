@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# 脚本用于运行 YOLOv5 训练
+# 脚本用于运行 YOLOv5 多卡训练
 # 依赖以下环境变量：
 #   - MODEL: 必须指定的模型架构 (自动转换为小写)
 #   - DATA_DIR: 必须指定的数据集目录
 
 set -e
 
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=0,1,2,3
 
 # 读取环境变量，并将 MODEL 转换为小写
 MODEL=${MODEL:-"yolov5s"}
@@ -54,19 +54,18 @@ cp ./Arial.ttf ~/.config/Ultralytics/Arial.ttf
 
 echo "Training Start: $(date +'%m/%d/%Y %T')"
 
-# 运行 YOLOv5 训练
-echo "Training $MODEL..."
-PYTHONUNBUFFERED=1 python train.py \
+# 运行 YOLOv5 多卡训练
+echo "Training $MODEL (Multi-GPU)..."
+PYTHONUNBUFFERED=1 torchrun --nproc_per_node=4 train.py \
     --batch 64 \
     --img 640 \
     --epoch 25 \
     --data coco.yaml \
     --weights "" \
     --cfg "models/${MODEL}.yaml" \
-    --device 0 \
+    --device 0,1,2,3 \
     --nosave \
     --noval \
     --workers 16
 
 echo "Training Finish: $(date +'%m/%d/%Y %T')"
-

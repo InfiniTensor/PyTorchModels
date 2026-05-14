@@ -7,7 +7,7 @@
 
 set -e
 
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+export CUDA_VISIBLE_DEVICES=0
 
 # 读取环境变量，并将 ARCH 转换为小写
 ARCH=${ARCH:-""}
@@ -43,15 +43,12 @@ fi
 
 echo "Training Start: $(date +'%m/%d/%Y %T')" 
 
-# 4 card training
+# single GPU training
 echo "Training $ARCH..."
 python main.py \
     -a "$ARCH" \
-    --dist-backend 'nccl' \
-    --dist-url "tcp://localhost:8828" \
-    --multiprocessing-distributed \
-    --world-size 1 \
-    --rank 0 \
+    --gpu 0 \
+    --dummy \
     --batch-size 64 \
     $DATA_DIR 
 

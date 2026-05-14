@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# 脚本用于运行 Torchvision 中所有分类模型的推理
+# 脚本用于运行 Torchvision 中所有分类模型的多卡训练
 # 数据集目录和模型架构均由环境变量指定：
 #   - ARCH: 必须指定的模型架构 (自动转换为小写)
 #   - DATA_DIR: 必须指定的数据集目录
 
 set -e
 
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=0,1,2,3
 
 # 读取环境变量，并将 ARCH 转换为小写
 ARCH=${ARCH:-""}
@@ -40,16 +40,19 @@ if [ ! -d "$DATA_DIR" ]; then
     exit 1
 fi
 
-echo "Evaluating Start: $(date +'%m/%d/%Y %T')"
+echo "Training Start: $(date +'%m/%d/%Y %T')"
 
-# 单机单卡推理
-echo "Evaluating $ARCH..."
-python main.py \
+# multi-GPU training
+echo "Training $ARCH (Multi-GPU)..."
+python -m torch.distributed.launch \
+    --nproc_per_node=4 \
+    --use_env \
+    main.py \
     -a "$ARCH" \
-    --gpu 0 \
+    --multiprocessing-distributed \
+    --dummy \
     --batch-size 64 \
-    --pretrained \
-    --evaluate \
-    $DATA_DIR 
+    --dist-url tcp://127.0.0.1:29500 \
+    $DATA_DIR
 
-echo "Evaluating Finish: $(date +'%m/%d/%Y %T')"
+echo "Training Finish: $(date +'%m/%d/%Y %T')"

@@ -6,7 +6,7 @@
 
 set -e
 
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+export CUDA_VISIBLE_DEVICES=0
 
 # 读取环境变量
 DATA_DIR=${DATA_DIR:-""}
@@ -58,11 +58,8 @@ for model in "${models[@]}"; do
     
     python main.py \
         -a "$model" \
-        --dist-backend 'nccl' \
-        --dist-url "tcp://localhost:8828" \
-        --multiprocessing-distributed \
-        --world-size 1 \
-        --rank 0 \
+        --gpu 0 \
+        --dummy \
         --batch-size 64 \
         $DATA_DIR &
 

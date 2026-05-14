@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-# 使用环境变量，如果没有提供则使用默认路径
+# 多卡训练脚本
 DATA_DIR=${DATA_DIR:-""}
 OUTPUT_DIR="${OUTPUT_DIR:-./output}"
 
@@ -21,13 +21,11 @@ if [ ! -d "$DATA_DIR" ]; then
 fi
 
 # Process output directory
-# 1. Remove the whole directory forcedly, -f config will ignore "directory not exist" error
 echo "Cleaning up the old output directory..."
 rm -rf "$OUTPUT_DIR"
 
-# 2. Re-create a new empty directory
 echo "Creating a new output directory..."
 mkdir "$OUTPUT_DIR"
 
-export CUDA_VISIBLE_DEVICES=0
-PYTHONUNBUFFERED=1 python train.py --dataset fake --cuda
+export CUDA_VISIBLE_DEVICES=0,1,2,3
+PYTHONUNBUFFERED=1 torchrun --nproc_per_node=4 train.py --dataset fake --cuda

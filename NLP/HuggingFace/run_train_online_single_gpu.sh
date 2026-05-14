@@ -1,5 +1,5 @@
-# 有互联网连接时
-export CUDA_VISIBLE_DEVICES=2
+# 有互联网连接时 - 单卡版
+export CUDA_VISIBLE_DEVICES=0
 export HF_ENDPOINT=https://hf-mirror.com
 
 PYTHONUNBUFFERED=1 python3 qa.py \
@@ -10,5 +10,6 @@ PYTHONUNBUFFERED=1 python3 qa.py \
     --learning_rate 3e-5 \
     --num_train_epochs 2 \
     --max_seq_length 384 \
+    --doc_stride 128 \
     --do_train \
     --output_dir /tmp/debug_squad/

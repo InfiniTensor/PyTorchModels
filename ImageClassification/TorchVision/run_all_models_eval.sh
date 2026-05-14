@@ -58,7 +58,7 @@ for model in "${models[@]}"; do
     
     python main.py \
         -a "$model" \
-        --world-size 1 \
+        --gpu 0 \
         --batch-size 64 \
         --pretrained \
         --evaluate \

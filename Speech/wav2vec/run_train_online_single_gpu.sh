@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+# 单卡版
 if [ -e "../data/LibriSpeech" ]; then
     echo "../data/LibriSpeech exists"
 else
@@ -7,21 +8,19 @@ else
 fi
 
 export CUDA_VISIBLE_DEVICES=0
-export LIBRISPEECH_PATH="../data/LibriSpeech"
 export HF_ENDPOINT=https://hf-mirror.com
+export LIBRISPEECH_PATH="../data/LibriSpeech"
 
-MODEL_PATH="facebook/wav2vec2-large-lv60"
-export TRANSFORMERS_NO_ADVISORY_WARNINGS=1
 CACHE_PATH="./cache"
 mkdir -p $CACHE_PATH
 
 PYTHONUNBUFFERED=1 python3 speech_recognition.py \
     --dataset_name="librispeech_asr" \
-    --model_name_or_path=$MODEL_PATH \
+    --model_name_or_path="facebook/wav2vec2-large-lv60" \
     --dataset_config_name="clean" \
     --train_split_name="train" \
     --eval_split_name="test" \
-    --output_dir="$CACHE_PATH/wav2vec2-librispeech" \
+    --output_dir="$CACHE_PATH/wav2vec2-librispeech-clean-100h-demo-single" \
     --preprocessing_num_workers="16" \
     --overwrite_output_dir \
     --num_train_epochs="1" \
@@ -41,4 +40,5 @@ PYTHONUNBUFFERED=1 python3 speech_recognition.py \
     --chars_to_ignore , ? . ! - \; \: \" " % ' " \
     --fp16 \
     --group_by_length \
-    --do_train
+    --do_train \
+    --online

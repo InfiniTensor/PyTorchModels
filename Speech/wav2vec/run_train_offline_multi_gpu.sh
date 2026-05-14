@@ -1,27 +1,28 @@
 #!/usr/bin/env bash
 
+# 离线训练 - 多卡版
 if [ -e "../data/LibriSpeech" ]; then
     echo "../data/LibriSpeech exists"
 else
     ln -s /data-aisoft/Dataset/librispeech/LibriSpeech ../data/LibriSpeech
 fi
 
-export CUDA_VISIBLE_DEVICES=0
-export LIBRISPEECH_PATH="../data/LibriSpeech"
+export CUDA_VISIBLE_DEVICES=0,1,2,3
 export HF_ENDPOINT=https://hf-mirror.com
+export LIBRISPEECH_PATH="../data/LibriSpeech"
 
 MODEL_PATH="facebook/wav2vec2-large-lv60"
 export TRANSFORMERS_NO_ADVISORY_WARNINGS=1
 CACHE_PATH="./cache"
 mkdir -p $CACHE_PATH
 
-PYTHONUNBUFFERED=1 python3 speech_recognition.py \
+PYTHONUNBUFFERED=1 torchrun --nproc_per_node=4 speech_recognition.py \
     --dataset_name="librispeech_asr" \
     --model_name_or_path=$MODEL_PATH \
     --dataset_config_name="clean" \
     --train_split_name="train" \
     --eval_split_name="test" \
-    --output_dir="$CACHE_PATH/wav2vec2-librispeech" \
+    --output_dir="$CACHE_PATH/wav2vec2-librispeech-clean-100h-demo-dist" \
     --preprocessing_num_workers="16" \
     --overwrite_output_dir \
     --num_train_epochs="1" \
@@ -38,7 +39,7 @@ PYTHONUNBUFFERED=1 python3 speech_recognition.py \
     --save_total_limit="3" \
     --freeze_feature_extractor \
     --gradient_checkpointing \
-    --chars_to_ignore , ? . ! - \; \: \" " % ' " \
+    --chars_to_ignore , ? . ! - \; \: " " % ' " \
     --fp16 \
     --group_by_length \
     --do_train
