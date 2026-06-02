@@ -2,7 +2,7 @@
 
 set -e
 
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0,1}
 
 # 使用环境变量，如果没有提供则使用默认路径
 data_dir=${DATA_DIR:-""}
@@ -32,7 +32,7 @@ else
 fi
 
 echo "Evaluate FasterRCNN START"
-python eval.py main --load-path="$ckpt_path" --voc_data_dir="$data_dir/VOC2007"
+python eval.py main --load-path="$ckpt_path" --voc_data_dir="$data_dir/VOC2007" --test_num=100
 echo "Evaluate FasterRCNN FINISHED"
 
 # rm $ckpt_path

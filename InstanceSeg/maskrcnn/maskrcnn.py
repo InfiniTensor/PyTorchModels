@@ -45,15 +45,35 @@ def train(model,
     print(f"Epoch {epoch+1}, Loss: {losses.item()}")
 
 # 推理函数
-def eval(model, 
-         device, 
+def eval(model,
+         device,
          dataloader):
     model.eval()
+    total_inference_time = 0.0
+    total_samples = 0
     with torch.no_grad():
         for images, _ in dataloader:
             images = list(img.to(device) for img in images)
+            batch_size_i = len(images)
+            torch.cuda.synchronize() if torch.cuda.is_available() else None
+            infer_start = time.time()
             outputs = model(images)
-            return outputs
+            torch.cuda.synchronize() if torch.cuda.is_available() else None
+            infer_end = time.time()
+            total_inference_time += (infer_end - infer_start)
+            total_samples += batch_size_i
+
+    # Print inference throughput and latency
+    if total_samples > 0:
+        avg_latency_ms = (total_inference_time / total_samples) * 1000
+        throughput = total_samples / total_inference_time
+        print(f'\nInference throughput: {throughput:.2f} samples/s')
+        print(f'Average inference latency: {avg_latency_ms:.2f} ms/sample')
+        print(f'Total inference time: {total_inference_time:.2f} s')
+    if torch.cuda.is_available():
+        print(f'GPU memory allocated: {torch.cuda.memory_allocated() / 1e9:.2f} GB')
+        print(f'GPU memory reserved: {torch.cuda.memory_reserved() / 1e9:.2f} GB')
+    return outputs
         
 # 可视化结果
 def visualize_result(image, outputs):

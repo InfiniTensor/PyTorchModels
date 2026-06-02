@@ -1,4 +1,6 @@
 import argparse
+import os
+import time
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -70,6 +72,7 @@ if __name__ == "__main__":
 
     UPSCALE_FACTOR = opt.upscale_factor
     NUM_EPOCHS = opt.num_epochs
+    os.makedirs('epochs', exist_ok=True)
 
     train_set = DatasetFromFolder(
         'data/train', upscale_factor=UPSCALE_FACTOR,
@@ -91,11 +94,14 @@ if __name__ == "__main__":
 
     print('# parameters:', sum(param.numel() for param in model.parameters()))
 
+    train_start = time.time()
     for epoch in range(1, NUM_EPOCHS + 1):
         print(f"Epoch {epoch}/{NUM_EPOCHS}")
 
         # Train
+        epoch_start = time.time()
         train_loss, train_psnr = train_one_epoch(model, train_loader, criterion, optimizer, device)
+        epoch_time = time.time() - epoch_start
         print(f"[Train] Loss: {train_loss:.4f}, PSNR: {train_psnr:.2f} dB")
 
         # Validate
@@ -107,3 +113,10 @@ if __name__ == "__main__":
 
         # Step scheduler
         scheduler.step()
+
+    total_time = time.time() - train_start
+    total_samples = len(train_loader.dataset) * NUM_EPOCHS
+    if total_time > 0:
+        print(f'Train throughput: {total_samples / total_time:.2f} samples/s')
+        avg_batch_time = total_time / (len(train_loader) * NUM_EPOCHS)
+        print(f'Batch Time {avg_batch_time:.3f} ({avg_batch_time:.3f})')

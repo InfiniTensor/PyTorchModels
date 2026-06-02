@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 多卡训练脚本
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0,1}
 
 python data_utils.py --upscale_factor 2
 

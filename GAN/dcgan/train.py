@@ -2,6 +2,7 @@ from __future__ import print_function
 import argparse
 import os
 import random
+import time
 import torch
 import torch.nn as nn
 import torch.nn.parallel
@@ -225,7 +226,10 @@ optimizerG = optim.Adam(netG.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
 if opt.dry_run:
     opt.niter = 1
 
+train_start_time = time.time()
+
 for epoch in range(opt.niter):
+    epoch_start_time = time.time()
     for i, data in enumerate(dataloader, 0):
         ############################
         # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
@@ -281,3 +285,14 @@ for epoch in range(opt.niter):
     # do checkpointing
     torch.save(netG.state_dict(), '%s/netG_epoch_%d.pth' % (opt.outf, epoch))
     torch.save(netD.state_dict(), '%s/netD_epoch_%d.pth' % (opt.outf, epoch))
+
+    epoch_time = time.time() - epoch_start_time
+    if opt.dry_run:
+        # Eval/dry-run mode: print inference-style metrics
+        latency_ms = epoch_time * 1000
+        print(f'Inference throughput: {1.0 / epoch_time:.2f} samples/s')
+        print(f'Average inference latency: {latency_ms:.2f} ms')
+    else:
+        total_samples = len(dataloader) * opt.batchSize
+        epoch_throughput = total_samples / epoch_time if epoch_time > 0 else 0
+        print(f'Train throughput: {epoch_throughput:.2f} samples/s')

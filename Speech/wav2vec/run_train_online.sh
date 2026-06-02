@@ -6,7 +6,7 @@ else
     ln -s /data1/shared/Dataset/librispeech/LibriSpeech ../data/LibriSpeech
 fi
 
-export CUDA_VISIBLE_DEVICES=3,4,5,6
+export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0,1}
 export HF_ENDPOINT=https://hf-mirror.com
 export LIBRISPEECH_PATH="../data/LibriSpeech"
 
@@ -14,7 +14,7 @@ CACHE_PATH="./cache"
 mkdir -p $CACHE_PATH
 
 python -m torch.distributed.launch \
-	--nproc_per_node 4 speech_recognition.py \
+	--nproc_per_node 2 speech_recognition.py \
 	--dataset_name="librispeech_asr" \
 	--model_name_or_path="facebook/wav2vec2-large-lv60" \
 	--dataset_config_name="clean" \

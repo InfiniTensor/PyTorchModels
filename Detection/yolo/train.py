@@ -392,7 +392,8 @@ def train(hyp, opt, device, callbacks):
     )
     
     profiler = Profiler() if (opt.profile and RANK in {-1, 0}) else None
-    
+    epoch_start_time = time.time()
+
     for epoch in range(
         start_epoch, epochs
     ):  # epoch ------------------------------------------------------------------
@@ -541,6 +542,14 @@ def train(hyp, opt, device, callbacks):
         if profiler:
             profiler.stop()
             print(f"Train throughput for epoch {epoch} is {profiler.throughput()} samples/s!")
+        elif RANK in {-1, 0}:
+            epoch_time = time.time() - epoch_start_time
+            if epoch_time > 0:
+                epoch_samples = nb * batch_size
+                step_time_ms = epoch_time / nb * 1000 if nb > 0 else 0
+                print(f'Train throughput: {epoch_samples / epoch_time:.2f} samples/s')
+                print(f'Batch Time {epoch_time / nb:.3f} ({epoch_time / nb:.3f})')
+            epoch_start_time = time.time()
         
         # Scheduler
         lr = [x["lr"] for x in optimizer.param_groups]  # for loggers

@@ -152,12 +152,21 @@ class MASRTrainer(object):
         model.eval()
 
         c = []
+        total_inference_time = 0.0
+        total_samples = 0
         for inputs, labels, input_lens, _ in tqdm(test_loader):
             inputs = inputs.cuda()
             labels = labels.cuda()
+            batch_size_i = inputs.size(0)
             # 执行识别
+            torch.cuda.synchronize()
+            infer_start = time.time()
             outs, out_lens, _, _ = model(inputs, input_lens)
             outs = torch.nn.functional.softmax(outs, 2)
+            torch.cuda.synchronize()
+            infer_end = time.time()
+            total_inference_time += (infer_end - infer_start)
+            total_samples += batch_size_i
             # 解码获取识别结果
             outs = outs.cpu().detach().numpy()
             out_strings = self.decoder_result(outs, out_lens, test_dataset.vocab_list)
@@ -169,6 +178,18 @@ class MASRTrainer(object):
                 else:
                     c.append(cer(out_string, label))
         cer_result = float(sum(c) / len(c))
+
+        # Print inference throughput and latency
+        if total_samples > 0:
+            avg_latency_ms = (total_inference_time / total_samples) * 1000
+            throughput = total_samples / total_inference_time
+            print(f'\nInference throughput: {throughput:.2f} samples/s')
+            print(f'Average inference latency: {avg_latency_ms:.2f} ms/sample')
+            print(f'Total inference time: {total_inference_time:.2f} s')
+        if torch.cuda.is_available():
+            print(f'GPU memory allocated: {torch.cuda.memory_allocated() / 1e9:.2f} GB')
+            print(f'GPU memory reserved: {torch.cuda.memory_reserved() / 1e9:.2f} GB')
+
         return cer_result
 
 

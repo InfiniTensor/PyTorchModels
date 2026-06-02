@@ -261,6 +261,19 @@ def val_epoch(model, args, num_user, output=None, epoch=None):
     hits = hits.item()
     ndcg = ndcg.item()
 
+    # Print inference throughput and latency
+    total_inference_time = (end - start).total_seconds()
+    num_inference_samples = num_user
+    if total_inference_time > 0 and num_inference_samples > 0:
+        avg_latency_ms = (total_inference_time / num_inference_samples) * 1000
+        throughput = num_inference_samples / total_inference_time
+        print(f'Inference throughput: {throughput:.2f} samples/s')
+        print(f'Average inference latency: {avg_latency_ms:.4f} ms/sample')
+        print(f'Total inference time: {total_inference_time:.2f} s')
+    if args.device == 'gpu' and torch.cuda.is_available():
+        print(f'GPU memory allocated: {torch.cuda.memory_allocated() / 1e9:.2f} GB')
+        print(f'GPU memory reserved: {torch.cuda.memory_reserved() / 1e9:.2f} GB')
+
     if output is not None:
         result = OrderedDict()
         result['timestamp'] = datetime.now()
@@ -278,6 +291,7 @@ def val_epoch(model, args, num_user, output=None, epoch=None):
 def main():
 
     args = parse_args()
+    args.start_epoch = 0
     if args.device == 'mlu':
         import torch_mlu.core.mlu_model as ct
     if args.use_amp:
@@ -643,9 +657,18 @@ def main():
                         torch.save(checkpoint, save_file_path)
                         print("=> Model save finished")
                 
+            train_time = time.time() - begin
             if args.iters <= len(train_dataloader) and args.iters != -1:
                 break
-            train_time = time.time() - begin
+
+        # Print training throughput
+        if 'train_time' in dir() and train_time > 0:
+            actual_iters = min(args.iters, len(train_dataloader)) if args.iters > 0 else len(train_dataloader)
+            train_samples = actual_iters * args.batch_size
+            train_throughput = train_samples / train_time
+            avg_batch_time = train_time / actual_iters
+            print(f'Train throughput: {train_throughput:.2f} samples/s')
+            print(f'Batch Time {avg_batch_time:.3f} ({avg_batch_time:.3f})')
 
         # mlperf_log.ncf_print(key=mlperf_log.RUN_FINAL)
     

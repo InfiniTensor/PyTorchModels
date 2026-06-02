@@ -8,6 +8,7 @@ from tqdm import tqdm
 import copy
 import numpy as np
 import argparse
+import time
 import logging
 logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -86,15 +87,29 @@ def infer_proc(para_dict,infer_data,min_val,max_val):
     model.load_state_dict(torch.load(path)['models'])
     model.eval()
     pred = []#list
+    total_inference_time = 0.0
+    total_samples = 0
     for curdata in infer_data:
         seq = curdata
         seq = seq.to(device)
         with torch.no_grad():
+            infer_start = time.time()
             y_pred = model(seq)
+            infer_end = time.time()
+            total_inference_time += (infer_end - infer_start)
+            total_samples += seq.size(0)
         for j in range(len(y_pred)):
             y = y_pred[j].item()*(max_val-min_val)+min_val
             pred.append(y)
     print("预测结果为：",pred)
+
+    # Print inference throughput and latency
+    if total_samples > 0:
+        avg_latency_ms = (total_inference_time / total_samples) * 1000
+        throughput = total_samples / total_inference_time
+        print(f'\nInference throughput: {throughput:.2f} samples/s')
+        print(f'Average inference latency: {avg_latency_ms:.2f} ms/sample')
+        print(f'Total inference time: {total_inference_time:.2f} s')
 
 
 def test_proc(para_dict,test_data,min_val,max_val):

@@ -123,6 +123,8 @@ def test():
     model.eval()
     test_loss = 0
     correct = 0
+    total_inference_time = 0.0
+    total_samples = 0
     with torch.no_grad():
         for data, target in test_loader:
             if args.cuda:
@@ -131,15 +133,36 @@ def test():
             if args.permute:
                 data = data[:, :, permute]
             data, target = Variable(data, volatile=True), Variable(target)
+            if args.cuda:
+                torch.cuda.synchronize()
+            infer_start = time.time()
             output = model(data)
+            if args.cuda:
+                torch.cuda.synchronize()
+            infer_end = time.time()
+            total_inference_time += (infer_end - infer_start)
+            total_samples += data.size(0)
             test_loss += F.nll_loss(output, target, size_average=False).item()
             pred = output.data.max(1, keepdim=True)[1]
             correct += pred.eq(target.data.view_as(pred)).cpu().sum()
 
         test_loss /= len(test_loader.dataset)
-        print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+        print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
             test_loss, correct, len(test_loader.dataset),
             100. * correct / len(test_loader.dataset)))
+
+        # Print inference throughput and latency
+        if total_samples > 0:
+            avg_latency_ms = (total_inference_time / total_samples) * 1000
+            throughput = total_samples / total_inference_time
+            print(f'Inference throughput: {throughput:.2f} samples/s')
+            print(f'Average inference latency: {avg_latency_ms:.2f} ms/sample')
+            print(f'Total inference time: {total_inference_time:.2f} s')
+        if torch.cuda.is_available():
+            print(f'GPU memory allocated: {torch.cuda.memory_allocated() / 1e9:.2f} GB')
+            print(f'GPU memory reserved: {torch.cuda.memory_reserved() / 1e9:.2f} GB')
+        print()
+
         return test_loss
 
 

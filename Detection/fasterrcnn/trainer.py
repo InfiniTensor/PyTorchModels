@@ -209,7 +209,7 @@ class FasterRCNNTrainer(nn.Module):
         return save_path
 
     def load(self, path, load_optimizer=True, parse_opt=False, ):
-        state_dict = t.load(path)
+        state_dict = t.load(path, weights_only=False)
         if 'model' in state_dict:
             self.faster_rcnn.load_state_dict(state_dict['model'])
         else:  # legacy way, for backward compatibility

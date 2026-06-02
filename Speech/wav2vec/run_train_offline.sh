@@ -6,7 +6,7 @@ else
     ln -s /data-aisoft/Dataset/librispeech/LibriSpeech ../data/LibriSpeech
 fi
 
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0,1}
 export LIBRISPEECH_PATH="../data/LibriSpeech"
 export HF_ENDPOINT=https://hf-mirror.com
 

@@ -24,6 +24,7 @@ import logging
 import math
 import os
 import random
+import time
 from pathlib import Path
 
 import datasets
@@ -52,7 +53,7 @@ from transformers import (
     default_data_collator,
     get_scheduler,
 )
-from transformers.utils import check_min_version, send_example_telemetry
+from transformers.utils import check_min_version
 from transformers.utils.versions import require_version
 
 from profiler import Profiler
@@ -349,9 +350,6 @@ def parse_args():
 def main():
     args = parse_args()
 
-    # Sending telemetry. Tracking the example usage helps us better allocate resources to maintain them. The
-    # information sent is the one passed as arguments along with your Python/PyTorch versions.
-    send_example_telemetry("run_qa_no_trainer", args)
 
     # Initialize the accelerator. We will let the accelerator handle device placement for us in this example.
     # If we're using tracking, we also need to initialize it here and it will by default pick up all supported trackers
@@ -819,6 +817,7 @@ def main():
         experiment_config["lr_scheduler_type"] = experiment_config["lr_scheduler_type"].value
         accelerator.init_trackers("qa_no_trainer", experiment_config)
 
+    completed_steps = 0
     if args.do_train:
         # Train!
         total_batch_size = args.per_device_train_batch_size * accelerator.num_processes * args.gradient_accumulation_steps
@@ -871,6 +870,7 @@ def main():
         profiler = Profiler() if (args.profile and accelerator.is_local_main_process) else None
 
         for epoch in range(starting_epoch, args.num_train_epochs):
+            train_start_time = time.time()
             model.train()
             if args.with_tracking:
                 total_loss = 0
@@ -937,6 +937,18 @@ def main():
                         commit_message=f"Training in progress epoch {epoch}", blocking=False, auto_lfs_prune=True
                     )
 
+    # Print training throughput summary
+    if completed_steps > 0 and 'train_start_time' in dir():
+        total_train_time = time.time() - train_start_time
+        if total_train_time > 0:
+            total_train_samples = completed_steps * args.per_device_train_batch_size * accelerator.num_processes
+            tput = total_train_samples / total_train_time
+            logger.info(f"train_samples_per_second = {tput:.2f}")
+            logger.info(f"train_runtime = {total_train_time:.2f}")
+            avg_step_time = total_train_time / completed_steps
+            logger.info(f"Batch Time {avg_step_time:.3f} ({avg_step_time:.3f})")
+
+    eval_metric = {}
     if args.do_eval:
         # Evaluation
         logger.info("***** Running Evaluation *****")
@@ -948,9 +960,20 @@ def main():
 
         model.eval()
 
+        total_inference_time = 0.0
+        total_samples = 0
         for step, batch in enumerate(eval_dataloader):
             with torch.no_grad():
+                if torch.cuda.is_available():
+                    torch.cuda.synchronize()
+                infer_start = time.time()
                 outputs = model(**batch)
+                if torch.cuda.is_available():
+                    torch.cuda.synchronize()
+                infer_end = time.time()
+                total_inference_time += (infer_end - infer_start)
+                total_samples += args.per_device_eval_batch_size
+
                 start_logits = outputs.start_logits
                 end_logits = outputs.end_logits
 
@@ -975,6 +998,17 @@ def main():
         prediction = post_processing_function(eval_examples, eval_dataset, outputs_numpy)
         eval_metric = metric.compute(predictions=prediction.predictions, references=prediction.label_ids)
         logger.info(f"Evaluation metrics: {eval_metric}")
+
+        # Print inference throughput and latency
+        if total_samples > 0:
+            avg_latency_ms = (total_inference_time / total_samples) * 1000
+            throughput = total_samples / total_inference_time
+            logger.info(f"Inference throughput: {throughput:.2f} samples/s")
+            logger.info(f"Average inference latency: {avg_latency_ms:.2f} ms/sample")
+            logger.info(f"Total inference time: {total_inference_time:.2f} s")
+        if torch.cuda.is_available():
+            logger.info(f"GPU memory allocated: {torch.cuda.memory_allocated() / 1e9:.2f} GB")
+            logger.info(f"GPU memory reserved: {torch.cuda.memory_reserved() / 1e9:.2f} GB")
 
     # Prediction
     if args.do_predict:

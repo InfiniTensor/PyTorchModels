@@ -7,7 +7,7 @@
 set -e  # 一旦出现错误，退出脚本
 
 # CUDA设备配置
-export CUDA_VISIBLE_DEVICES=0,1
+export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0,1}
 
 # 获取当前脚本所在目录
 CUR_DIR=$(cd $(dirname $0); pwd)
@@ -55,7 +55,7 @@ python -m torch.distributed.launch \
     --ckpdir ${ckp_dir} \
     --cachedir ${cache_dir} \
     --multiprocessing-distributed \
-    --iters -1 \
+    --iters 100 \
     --use_amp 1
 
 # 结束计时

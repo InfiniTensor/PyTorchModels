@@ -146,8 +146,6 @@ def main_worker(gpu, ngpus_per_node, args):
                                 world_size=args.world_size, rank=args.rank)
 
     model_kwargs = {}
-    if args.arch in ["googlenet", "inception_v3"] :
-        model_kwargs["aux_logits"] = False
     # create model
     if args.pretrained:
         print("=> using pre-trained model '{}'".format(args.arch))
@@ -156,6 +154,8 @@ def main_worker(gpu, ngpus_per_node, args):
     else:
         print("=> creating model '{}'".format(args.arch))
         model_kwargs["pretrained"] = False
+        if args.arch in ["googlenet", "inception_v3"]:
+            model_kwargs["aux_logits"] = False
         model = models.__dict__[args.arch](**model_kwargs)
         # load weights
         if args.weights is not None:

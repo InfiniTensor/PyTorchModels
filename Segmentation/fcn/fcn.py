@@ -121,18 +121,29 @@ def train(model,
 # Function to evaluate the model.
 def evaluate(model,
              num_classes,
-             val_loader, 
-             device):
+             val_loader,
+             device,
+             max_batches=0):
     
     evaluator = Evaluator(num_classes)
     evaluator.reset()
     model.eval()
 
+    total_inference_time = 0.0
+    total_samples = 0
+
     with torch.no_grad():
-        for _, batch in enumerate(val_loader):
+        for batch_idx, batch in enumerate(val_loader):
+            if max_batches > 0 and batch_idx >= max_batches:
+                break
             input, target = batch
             input = input.to(device)
+            torch.cuda.synchronize() if torch.cuda.is_available() else None
+            infer_start = time.time()
             output = model(input)
+            torch.cuda.synchronize() if torch.cuda.is_available() else None
+            total_inference_time += (time.time() - infer_start)
+            total_samples += input.size(0)
 
             pred = output["out"].cpu().numpy()
             pred = np.argmax(pred, axis=1)
@@ -140,7 +151,13 @@ def evaluate(model,
             gt = target.squeeze(1).cpu().numpy()
             evaluator.add_batch(gt, pred)
 
-        print(evaluator.Mean_Intersection_over_Union())
+        mIoU = evaluator.Mean_Intersection_over_Union()
+        print(f"mIoU: {mIoU:.6f}")
+        if total_samples > 0:
+            avg_latency_ms = (total_inference_time / total_samples) * 1000
+            throughput = total_samples / total_inference_time
+            print(f'Inference throughput: {throughput:.2f} samples/s')
+            print(f'Average inference latency: {avg_latency_ms:.2f} ms')
 
 
 def main():
@@ -166,6 +183,8 @@ def main():
                             help='Dir to save model ckpt')
     parser.add_argument('--saving_interval', default=5, type=int,
                             help='Epoch interval to save model ckpt')
+    parser.add_argument('--max_batches', default=0, type=int,
+                            help='Max batches for eval (0=all)')
     args = parser.parse_args()
 
     print(vars(args))
@@ -242,7 +261,7 @@ def main():
 
     if args.mode in ['infer', 'both']:
         print(f'[INFO] Start inference on {args.device}.')
-        evaluate(model, args.num_classes, val_loader, device)
+        evaluate(model, args.num_classes, val_loader, device, max_batches=args.max_batches)
       
 if __name__ == "__main__":
     main()

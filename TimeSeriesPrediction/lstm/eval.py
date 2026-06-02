@@ -7,6 +7,7 @@ from tqdm import tqdm
 import copy
 import numpy as np
 import argparse
+import time
 import logging
 from lstm import CustomLSTM
 logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -83,12 +84,20 @@ def test_proc(para_dict,test_data,min_val,max_val):
  
     pred = []#list
     labels = []
+    total_inference_time = 0.0
+    total_samples = 0
     for curdata in test_data:
         seq, label = curdata
         seq = seq.to(device)
         label = label.to(device)
         with torch.no_grad():
+            torch.cuda.synchronize() if torch.cuda.is_available() else None
+            infer_start = time.time()
             y_pred = model(seq)
+            torch.cuda.synchronize() if torch.cuda.is_available() else None
+            infer_end = time.time()
+            total_inference_time += (infer_end - infer_start)
+            total_samples += seq.size(0)
         for j in range(len(y_pred)):
             y = y_pred[j].item()*(max_val-min_val)+min_val
             lb = label[j].item()*(max_val-min_val)+min_val
@@ -99,6 +108,17 @@ def test_proc(para_dict,test_data,min_val,max_val):
     avg_acc = 1 - float(avg_err)
 
     logger.info('评估结果：Acc={:.3f}%'.format(avg_acc*100))
+
+    # Print inference throughput and latency
+    if total_samples > 0:
+        avg_latency_ms = (total_inference_time / total_samples) * 1000
+        throughput = total_samples / total_inference_time
+        print(f'\nInference throughput: {throughput:.2f} samples/s')
+        print(f'Average inference latency: {avg_latency_ms:.2f} ms/sample')
+        print(f'Total inference time: {total_inference_time:.2f} s')
+    if torch.cuda.is_available():
+        print(f'GPU memory allocated: {torch.cuda.memory_allocated() / 1e9:.2f} GB')
+        print(f'GPU memory reserved: {torch.cuda.memory_reserved() / 1e9:.2f} GB')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='LSTM')

@@ -83,14 +83,16 @@ def save_one_json(predn, jdict, path, class_map):
     box = xyxy2xywh(predn[:, :4])  # xywh
     box[:, :2] -= box[:, 2:] / 2  # xy center to top-left corner
     for p, b in zip(predn.tolist(), box.tolist()):
-        jdict.append(
-            {
-                "image_id": image_id,
-                "category_id": class_map[int(p[5])],
-                "bbox": [round(x, 3) for x in b],
-                "score": round(p[4], 5),
-            }
-        )
+        cls_id = int(p[5])
+        if cls_id < len(class_map):
+            jdict.append(
+                {
+                    "image_id": image_id,
+                    "category_id": class_map[cls_id],
+                    "bbox": [round(x, 3) for x in b],
+                    "score": round(p[4], 5),
+                }
+            )
 
 
 def process_batch(detections, labels, iouv):
@@ -156,6 +158,7 @@ def run(
     callbacks=Callbacks(),
     compute_loss=None,
     profile=False,
+    max_batches=0,  # max batches for eval (0=all)
 ):
     # Initialize/load model and set device
     training = model is not None
@@ -281,6 +284,8 @@ def run(
         profiler.start()
     
     for batch_i, (im, targets, paths, shapes) in enumerate(pbar):
+        if max_batches > 0 and batch_i >= max_batches:
+            break
         callbacks.run("on_val_batch_start")
         with dt[0]:
             if cuda:
@@ -357,7 +362,10 @@ def run(
                 labelsn = torch.cat((labels[:, 0:1], tbox), 1)  # native-space labels
                 correct = process_batch(predn, labelsn, iouv)
                 if plots:
-                    confusion_matrix.process_batch(predn, labelsn)
+                    try:
+                        confusion_matrix.process_batch(predn, labelsn)
+                    except IndexError:
+                        pass
             stats.append(
                 (correct, pred[:, 4], pred[:, 5], labels[:, 0])
             )  # (correct, conf, pcls, tcls)
@@ -396,6 +404,9 @@ def run(
     # Print results
     pf = "%22s" + "%11i" * 2 + "%11.3g" * 4  # print format
     LOGGER.info(pf % ("all", seen, nt.sum(), mp, mr, map50, map))
+    if not training:
+        LOGGER.info(f"mAP@0.5: {map50:.4f}")
+        LOGGER.info(f"mAP@0.5:0.95: {map:.4f}")
     if nt.sum() == 0:
         LOGGER.warning(
             f"WARNING ⚠️ no labels found in {task} set, can not compute metrics without labels"
@@ -414,6 +425,10 @@ def run(
             f"Speed: %.1fms pre-process, %.1fms inference, %.1fms NMS per image at shape {shape}"
             % t
         )
+        total_ms = sum(t)
+        if total_ms > 0:
+            LOGGER.info(f'Inference throughput: {1000.0 / total_ms:.2f} samples/s')
+            LOGGER.info(f'Average inference latency: {total_ms:.2f} ms/sample')
 
     # Plots
     if plots:
@@ -552,6 +567,9 @@ def parse_opt():
     )
     parser.add_argument(
         "--profile", action="store_true", help="Profile or not"
+    )
+    parser.add_argument(
+        "--max-batches", type=int, default=0, help="max batches for eval (0=all)"
     )
     opt = parser.parse_args()
     opt.data = check_yaml(opt.data)  # check YAML

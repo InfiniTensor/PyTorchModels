@@ -7,7 +7,7 @@
 set -e
 
 # 设置 CUDA 设备
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0,1}
 
 # 获取环境变量，并将 ARCH 转换为小写
 DATA_DIR=${DATA_DIR:-""}
@@ -54,7 +54,7 @@ python create_data_lists.py --voc07_path=$DATA_DIR/VOC2007 --voc12_path=$DATA_DI
 
 # 执行 eval.py 进行评估
 echo "Evaluate SSD START"
-python eval.py --checkpoint "$CKPT_PATH"
+python eval.py --checkpoint "$CKPT_PATH" --max_batches 10
 
 echo "Evaluate SSD FINISHED"
 

@@ -3,7 +3,7 @@
 # 单卡训练版
 set -e
 
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0,1}
 
 CUR_DIR=$(cd $(dirname $0); pwd)
 

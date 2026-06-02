@@ -1,5 +1,5 @@
 # 无互联网连接时
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0,1}
 # export HF_ENDPOINT=https://hf-mirror.com
 
 # 检查软连接是否已经存在了

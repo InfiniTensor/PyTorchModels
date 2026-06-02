@@ -1,4 +1,5 @@
 import argparse
+import time
 import torch
 from utils import *
 from datasets import PascalVOCDataset
@@ -19,11 +20,12 @@ def parse_args():
     parser.add_argument('--workers', type=int, default=4, help='Number of workers for DataLoader')
     parser.add_argument('--device', type=str, choices=['cpu', 'cuda'], default='cuda', help='Device to run the model on (cpu or cuda)')
     parser.add_argument('--checkpoint', type=str, default='./checkpoint_ssd300.pth.tar', help='Path to model checkpoint')
+    parser.add_argument('--max_batches', type=int, default=0, help='Max batches for eval (0=all)')
 
     return parser.parse_args()
 
 # Main evaluation function
-def evaluate(test_loader, model):
+def evaluate(test_loader, model, max_batches=0):
     """
     Evaluate.
 
@@ -42,18 +44,29 @@ def evaluate(test_loader, model):
     true_labels = list()
     true_difficulties = list()  # it is necessary to know which objects are 'difficult', see 'calculate_mAP' in utils.py
 
+    total_inference_time = 0.0
+    total_samples = 0
     with torch.no_grad():
         # Batches
         for i, (images, boxes, labels, difficulties) in enumerate(tqdm(test_loader, desc='Evaluating')):
+            if max_batches > 0 and i >= max_batches:
+                break
             images = images.to(device)  # (N, 3, 300, 300)
+            batch_size_i = images.size(0)
 
             # Forward prop.
+            torch.cuda.synchronize() if torch.cuda.is_available() else None
+            inference_start = time.time()
             predicted_locs, predicted_scores = model(images)
 
             # Detect objects in SSD output
             det_boxes_batch, det_labels_batch, det_scores_batch = model.detect_objects(predicted_locs, predicted_scores,
                                                                                        min_score=0.01, max_overlap=0.45,
                                                                                        top_k=200)
+            torch.cuda.synchronize() if torch.cuda.is_available() else None
+            inference_end = time.time()
+            total_inference_time += (inference_end - inference_start)
+            total_samples += batch_size_i
 
             # Store this batch's results for mAP calculation
             boxes = [b.to(device) for b in boxes]
@@ -75,6 +88,17 @@ def evaluate(test_loader, model):
 
     print('\nMean Average Precision (mAP): %.3f' % mAP)
 
+    # Print inference throughput and latency
+    if total_samples > 0:
+        avg_latency_ms = (total_inference_time / total_samples) * 1000
+        throughput = total_samples / total_inference_time
+        print(f'\nInference throughput: {throughput:.2f} samples/s')
+        print(f'Average inference latency: {avg_latency_ms:.2f} ms/sample')
+        print(f'Total inference time: {total_inference_time:.2f} s')
+    if torch.cuda.is_available():
+        print(f'GPU memory allocated: {torch.cuda.memory_allocated() / 1e9:.2f} GB')
+        print(f'GPU memory reserved: {torch.cuda.memory_reserved() / 1e9:.2f} GB')
+
 if __name__ == '__main__':
     # Parse command-line arguments
     args = parse_args()
@@ -83,7 +107,7 @@ if __name__ == '__main__':
     device = torch.device(args.device if torch.cuda.is_available() else 'cpu')
 
     # Load model checkpoint
-    checkpoint = torch.load(args.checkpoint)
+    checkpoint = torch.load(args.checkpoint, weights_only=False)
     model = checkpoint['model']
     model = model.to(device)
 
@@ -98,5 +122,5 @@ if __name__ == '__main__':
                                               collate_fn=test_dataset.collate_fn, num_workers=args.workers, pin_memory=True)
 
     # Evaluate the model
-    evaluate(test_loader, model)
+    evaluate(test_loader, model, max_batches=args.max_batches)
 

@@ -1,5 +1,7 @@
 from __future__ import  absolute_import
 
+import torch
+import time
 from tqdm import tqdm
 
 from utils.config import opt
@@ -21,9 +23,17 @@ resource.setrlimit(resource.RLIMIT_NOFILE, (20480, rlimit[1]))
 def eval(dataloader, faster_rcnn, test_num=10000):
     pred_bboxes, pred_labels, pred_scores = list(), list(), list()
     gt_bboxes, gt_labels, gt_difficults = list(), list(), list()
+    total_inference_time = 0.0
+    total_samples = 0
     for ii, (imgs, sizes, gt_bboxes_, gt_labels_, gt_difficults_) in tqdm(enumerate(dataloader)):
         sizes = [sizes[0][0].item(), sizes[1][0].item()]
+        torch.cuda.synchronize() if torch.cuda.is_available() else None
+        infer_start = time.time()
         pred_bboxes_, pred_labels_, pred_scores_ = faster_rcnn.predict(imgs, [sizes])
+        torch.cuda.synchronize() if torch.cuda.is_available() else None
+        infer_end = time.time()
+        total_inference_time += (infer_end - infer_start)
+        total_samples += 1
         gt_bboxes += list(gt_bboxes_.numpy())
         gt_labels += list(gt_labels_.numpy())
         gt_difficults += list(gt_difficults_.numpy())
@@ -36,6 +46,18 @@ def eval(dataloader, faster_rcnn, test_num=10000):
         pred_bboxes, pred_labels, pred_scores,
         gt_bboxes, gt_labels, gt_difficults,
         use_07_metric=True)
+
+    # Print inference throughput and latency
+    if total_samples > 0:
+        avg_latency_ms = (total_inference_time / total_samples) * 1000
+        throughput = total_samples / total_inference_time
+        print(f'\nInference throughput: {throughput:.2f} samples/s')
+        print(f'Average inference latency: {avg_latency_ms:.2f} ms/sample')
+        print(f'Total inference time: {total_inference_time:.2f} s')
+    if torch.cuda.is_available():
+        print(f'GPU memory allocated: {torch.cuda.memory_allocated() / 1e9:.2f} GB')
+        print(f'GPU memory reserved: {torch.cuda.memory_reserved() / 1e9:.2f} GB')
+
     return result
 
 
@@ -66,6 +88,14 @@ def main(**kwargs):
 
 
 if __name__ == '__main__':
-    import fire
-
-    fire.Fire()
+    import sys
+    argv = sys.argv[1:]
+    # Skip command name if present (e.g. 'main')
+    if argv and not argv[0].startswith('--'):
+        argv = argv[1:]
+    kwargs = {}
+    for arg in argv:
+        if arg.startswith('--'):
+            key, _, val = arg[2:].partition('=')
+            kwargs[key.replace('-', '_')] = val
+    main(**kwargs)

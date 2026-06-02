@@ -30,7 +30,70 @@ import datasets
 import evaluate
 import torch
 import numpy
+import soundfile as sf
 from datasets import DatasetDict, load_dataset
+
+
+def load_local_librispeech(split, data_dir=None):
+    """Load LibriSpeech from local directory, bypassing deprecated dataset scripts."""
+    import os
+    if data_dir is None:
+        data_dir = os.getenv('LIBRISPEECH_PATH', '../data/LibriSpeech')
+    split_map = {
+        "train": "train-clean-100",
+        "train.100": "train-clean-100",
+        "train.360": "train-clean-100",
+        "validation": "dev-clean",
+        "test": "test-clean",
+        "test.clean": "test-clean",
+    }
+
+    features = datasets.Features({
+        "file": datasets.Value("string"),
+        "audio": datasets.Value("string"),
+        "text": datasets.Value("string"),
+        "speaker_id": datasets.Value("int64"),
+        "chapter_id": datasets.Value("int64"),
+        "id": datasets.Value("string"),
+    })
+
+    def _load_single(sub_split):
+        sub_dir = split_map.get(sub_split, sub_split)
+        path = os.path.join(data_dir, sub_dir)
+
+        def gen():
+            for root, _, files in os.walk(path):
+                for file in files:
+                    if file.endswith(".trans.txt"):
+                        with open(os.path.join(root, file), "r") as f:
+                            for line in f:
+                                parts = line.strip().split()
+                                if not parts:
+                                    continue
+                                file_id = parts[0]
+                                text = " ".join(parts[1:])
+                                speaker_id = int(file_id.split('-')[0])
+                                chapter_id = int(file_id.split('-')[1])
+                                flac_path = os.path.join(root, file_id + ".flac")
+                                if os.path.exists(flac_path):
+                                    yield {
+                                        "file": flac_path,
+                                        "audio": flac_path,
+                                        "text": text,
+                                        "speaker_id": speaker_id,
+                                        "chapter_id": chapter_id,
+                                        "id": file_id,
+                                    }
+
+        return datasets.Dataset.from_generator(gen, features=features)
+
+    # Handle composite split names like "train+validation"
+    if "+" in split:
+        sub_splits = split.split("+")
+        loaded = [_load_single(s) for s in sub_splits]
+        return datasets.concatenate_datasets(loaded)
+
+    return _load_single(split)
 
 import transformers
 from transformers import (
@@ -46,7 +109,7 @@ from transformers import (
     set_seed,
 )
 from transformers.trainer_utils import get_last_checkpoint, is_main_process
-from transformers.utils import check_min_version, send_example_telemetry
+from transformers.utils import check_min_version
 from transformers.utils.versions import require_version
 
 
@@ -410,10 +473,6 @@ def main():
     else:
         model_args, data_args, training_args, remaining = parser.parse_args_into_dataclasses(return_remaining_strings=True)
 
-    # Sending telemetry. Tracking the example usage helps us better allocate resources to maintain them. The
-    # information sent is the one passed as arguments along with your Python/PyTorch versions.
-    send_example_telemetry("run_speech_recognition_ctc", model_args, data_args)
-
     # Detecting last checkpoint.
     last_checkpoint = None
     if os.path.isdir(training_args.output_dir) and training_args.do_train and not training_args.overwrite_output_dir:
@@ -454,12 +513,8 @@ def main():
     raw_datasets = DatasetDict()
 
     # if training_args.do_train:
-    raw_datasets["train"] = load_dataset(
-        './librispeech.py',
-        data_args.dataset_config_name,
-        split=data_args.train_split_name,
-        token=data_args.token,
-        trust_remote_code=data_args.trust_remote_code,
+    raw_datasets["train"] = load_local_librispeech(
+        data_args.train_split_name,
     )
 
     if data_args.audio_column_name not in raw_datasets["train"].column_names:
@@ -480,12 +535,8 @@ def main():
         raw_datasets["train"] = raw_datasets["train"].select(range(data_args.max_train_samples))
 
     if training_args.do_eval:
-        raw_datasets["eval"] = load_dataset(
-            './librispeech.py',
-            data_args.dataset_config_name,
-            split=data_args.eval_split_name,
-            token=data_args.token,
-            trust_remote_code=data_args.trust_remote_code,
+        raw_datasets["eval"] = load_local_librispeech(
+            data_args.eval_split_name,
         )
 
         if data_args.max_eval_samples is not None:
@@ -633,13 +684,6 @@ def main():
     # so that we just need to set the correct target sampling rate and normalize the input
     # via the `feature_extractor`
 
-    # make sure that dataset decodes audio with correct sampling rate
-    dataset_sampling_rate = next(iter(raw_datasets.values())).features[data_args.audio_column_name].sampling_rate
-    if dataset_sampling_rate != feature_extractor.sampling_rate:
-        raw_datasets = raw_datasets.cast_column(
-            data_args.audio_column_name, datasets.features.Audio(sampling_rate=feature_extractor.sampling_rate)
-        )
-
     # derive max & min input length for sample rate & max duration
     max_input_length = data_args.max_duration_in_seconds * feature_extractor.sampling_rate
     min_input_length = data_args.min_duration_in_seconds * feature_extractor.sampling_rate
@@ -653,13 +697,18 @@ def main():
     # Preprocessing the datasets.
     # We need to read the audio files as arrays and tokenize the targets.
     def prepare_dataset(batch):
-        # load audio
-        sample = batch[audio_column_name]
+        # load audio using soundfile (bypassing datasets Audio feature)
+        audio_path = batch[audio_column_name]
+        audio_array, sampling_rate = sf.read(audio_path)
+        if sampling_rate != feature_extractor.sampling_rate:
+            import librosa
+            audio_array = librosa.resample(audio_array, orig_sr=sampling_rate, target_sr=feature_extractor.sampling_rate)
+            sampling_rate = feature_extractor.sampling_rate
 
-        inputs = feature_extractor(sample["array"], sampling_rate=sample["sampling_rate"])
+        inputs = feature_extractor(audio_array, sampling_rate=sampling_rate)
         batch[feature_extractor_input_name] = getattr(inputs, feature_extractor_input_name)[0]
         # take length of raw audio waveform
-        batch["input_length"] = len(sample["array"].squeeze())
+        batch["input_length"] = len(audio_array.squeeze())
 
         # encode targets
         additional_kwargs = {}
@@ -789,6 +838,12 @@ def main():
         trainer.log_metrics("train", metrics)
         trainer.save_metrics("train", metrics)
         trainer.save_state()
+        # Print Batch Time for benchmark extraction
+        if "train_runtime" in metrics and metrics.get("train_samples", 0) > 0:
+            total_steps = training_args.max_steps if training_args.max_steps > 0 else len(vectorized_datasets["train"]) // training_args.per_device_train_batch_size
+            if total_steps > 0:
+                avg_step = metrics["train_runtime"] / total_steps
+                logger.info(f"Batch Time {avg_step:.3f} ({avg_step:.3f})")
 
     # Evaluation
     results = {}

@@ -14,7 +14,7 @@ import sys
 from tqdm import tqdm
 
 # Set environment variable for CUDA visibility
-os.environ['CUDA_VISIBLE_DEVICES'] = '5'  # 使用 GPU 5
+os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'  # 使用 GPU 0 和 1
 os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 
 # Define argument parser

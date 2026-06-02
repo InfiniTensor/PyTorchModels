@@ -1,5 +1,7 @@
+import os
 import torch
 import argparse
+import time
 import numpy as np
 
 from pathlib import Path
@@ -76,15 +78,27 @@ def eval(num_classes):
     evaluator = Evaluator(num_classes)
     evaluator.reset()
     model = UNet(dimensions=num_classes).to(device)
-    checkpoint = torch.load(model_path, map_location=torch.device(device))
-    model.load_state_dict(checkpoint)
+    if os.path.exists(model_path):
+        checkpoint = torch.load(model_path, map_location=torch.device(device))
+        model.load_state_dict(checkpoint)
+        print(f'Loaded weights from {model_path}')
+    else:
+        print(f'WARNING: {model_path} not found, using random weights for throughput benchmark')
     model.eval()
 
+    total_inference_time = 0.0
+    total_samples = 0
     with torch.no_grad():
         for _, batch in enumerate(datasetloader):
             input, target = batch
             input = input.to(device)
+            torch.cuda.synchronize() if torch.cuda.is_available() else None
+            infer_start = time.time()
             output = model(input)
+            torch.cuda.synchronize() if torch.cuda.is_available() else None
+            infer_end = time.time()
+            total_inference_time += (infer_end - infer_start)
+            total_samples += input.size(0)
 
             pred = output.cpu().numpy()
             pred = np.argmax(pred, axis=1)
@@ -93,6 +107,17 @@ def eval(num_classes):
             evaluator.add_batch(gt, pred)
 
         print(evaluator.Mean_Intersection_over_Union())
+
+    # Print inference throughput and latency
+    if total_samples > 0:
+        avg_latency_ms = (total_inference_time / total_samples) * 1000
+        throughput = total_samples / total_inference_time
+        print(f'\nInference throughput: {throughput:.2f} samples/s')
+        print(f'Average inference latency: {avg_latency_ms:.2f} ms/sample')
+        print(f'Total inference time: {total_inference_time:.2f} s')
+    if torch.cuda.is_available():
+        print(f'GPU memory allocated: {torch.cuda.memory_allocated() / 1e9:.2f} GB')
+        print(f'GPU memory reserved: {torch.cuda.memory_reserved() / 1e9:.2f} GB')
 
 
 parser = argparse.ArgumentParser()

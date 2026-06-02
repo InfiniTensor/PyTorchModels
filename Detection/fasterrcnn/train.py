@@ -1,5 +1,7 @@
 from __future__ import  absolute_import
 
+import os
+import torch
 from tqdm import tqdm
 
 from utils.config import opt
@@ -65,12 +67,27 @@ def train(**kwargs):
     # trainer.vis.text(dataset.db.label_names, win='labels')
     best_map = 0
     lr_ = opt.lr
+    import time
+    epoch_start = time.time()
     for epoch in range(opt.epoch):
         trainer.reset_meters()
+        batch_start = time.time()
         for ii, (img, bbox_, label_, scale) in tqdm(enumerate(dataloader)):
             scale = at.scalar(scale)
             img, bbox, label = img.cuda().float(), bbox_.cuda(), label_.cuda()
             trainer.train_step(img, bbox, label, scale)
+
+            if ii > 0 and ii % 50 == 0:
+                elapsed = time.time() - batch_start
+                throughput = 50 / elapsed
+                step_ms = elapsed / 50 * 1000
+                print(f'Train throughput: {throughput:.2f} samples/s')
+                print(f'Batch Time {elapsed/50:.3f} ({elapsed/50:.3f})')
+                batch_start = time.time()
+                # Save checkpoint periodically for eval
+                torch.save(trainer.faster_rcnn.state_dict(), 'fasterrcnn.pth.tmp')
+                os.replace('fasterrcnn.pth.tmp', 'fasterrcnn.pth')
+                print(f'Checkpoint saved at iter {ii}')
 
         eval_result = eval(test_dataloader, faster_rcnn, test_num=opt.test_num)
         # trainer.vis.plot('test_map', eval_result['map'])
@@ -93,6 +110,14 @@ def train(**kwargs):
 
 
 if __name__ == '__main__':
-    import fire
-
-    fire.Fire()
+    import sys
+    argv = sys.argv[1:]
+    # Skip command name if present (e.g. 'train')
+    if argv and not argv[0].startswith('--'):
+        argv = argv[1:]
+    kwargs = {}
+    for arg in argv:
+        if arg.startswith('--'):
+            key, _, val = arg[2:].partition('=')
+            kwargs[key.replace('-', '_')] = val
+    train(**kwargs)

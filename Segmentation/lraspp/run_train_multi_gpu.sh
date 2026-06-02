@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 多卡训练脚本
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0,1}
 
 if [ -e "../data/data_thchs30" ]; then
     echo "../data/data_thchs30 exists"

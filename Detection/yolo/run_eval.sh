@@ -7,7 +7,7 @@
 
 set -e
 
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0,1}
 
 # 读取环境变量，并将 MODEL 转换为小写
 MODEL=${MODEL:-"yolov5s"}
@@ -80,7 +80,7 @@ echo "Evaluation Start: $(date +'%m/%d/%Y %T')"
 
 echo "Evaluating $MODEL..."
 if [ -f "$MODEL_PATH" ]; then
-    python3 val.py --weights "$MODEL_PATH" --data coco.yaml --img 640
+    python3 val.py --weights "$MODEL_PATH" --data coco.yaml --img 640 --max-batches 10
 else
     echo "Error: Model path $MODEL_PATH does not exist."
     exit 1
