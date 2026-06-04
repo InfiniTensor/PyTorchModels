@@ -874,6 +874,8 @@ def main():
             model.train()
             if args.with_tracking:
                 total_loss = 0
+            cumulative_step_start = time.time()
+            cumulative_step_samples = 0
             if args.resume_from_checkpoint and epoch == starting_epoch and resume_step is not None:
                 # We skip the first `n` batches in the dataloader when resuming from a checkpoint
                 active_dataloader = accelerator.skip_first_batches(train_dataloader, resume_step)
@@ -901,6 +903,15 @@ def main():
                 if accelerator.sync_gradients:
                     progress_bar.update(1)
                     completed_steps += 1
+                    cumulative_step_samples += args.per_device_train_batch_size * accelerator.num_processes
+
+                # Print cumulative throughput every 10 completed steps
+                if completed_steps > 0 and completed_steps % 10 == 0 and accelerator.sync_gradients:
+                    cumulative_time = time.time() - cumulative_step_start
+                    throughput = cumulative_step_samples / cumulative_time
+                    avg_batch = cumulative_time / completed_steps
+                    logger.info(f'Train throughput: {throughput:.2f} samples/s')
+                    logger.info(f'Batch Time {avg_batch:.6f} ({avg_batch:.6f})')
 
                 if profiler:
                     profiler.update(total_batch_size)
@@ -946,7 +957,7 @@ def main():
             logger.info(f"train_samples_per_second = {tput:.2f}")
             logger.info(f"train_runtime = {total_train_time:.2f}")
             avg_step_time = total_train_time / completed_steps
-            logger.info(f"Batch Time {avg_step_time:.3f} ({avg_step_time:.3f})")
+            logger.info(f"Batch Time {avg_step_time:.6f} ({avg_step_time:.6f})")
 
     eval_metric = {}
     if args.do_eval:

@@ -543,10 +543,10 @@ class AudioSegment(object):
         Integers will be scaled to [-1, 1] in float32.
         """
         float32_samples = samples.astype('float32')
-        if samples.dtype in np.sctypes['int']:
+        if samples.dtype.kind == 'i' or samples.dtype.kind == 'u':
             bits = np.iinfo(samples.dtype).bits
             float32_samples *= (1. / 2 ** (bits - 1))
-        elif samples.dtype in np.sctypes['float']:
+        elif samples.dtype.kind == 'f':
             pass
         else:
             raise TypeError("Unsupported sample type: %s." % samples.dtype)
@@ -563,14 +563,14 @@ class AudioSegment(object):
         """
         dtype = np.dtype(dtype)
         output_samples = samples.copy()
-        if dtype in np.sctypes['int']:
+        if dtype.kind == 'i' or dtype.kind == 'u':
             bits = np.iinfo(dtype).bits
             output_samples *= (2 ** (bits - 1) / 1.)
             min_val = np.iinfo(dtype).min
             max_val = np.iinfo(dtype).max
             output_samples[output_samples > max_val] = max_val
             output_samples[output_samples < min_val] = min_val
-        elif samples.dtype in np.sctypes['float']:
+        elif samples.dtype.kind == 'f':
             min_val = np.finfo(dtype).min
             max_val = np.finfo(dtype).max
             output_samples[output_samples > max_val] = max_val

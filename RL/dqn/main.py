@@ -79,6 +79,14 @@ def train(save_path,num_episodes,lr):
             episode_steps += 1
             total_steps += 1
 
+            # Print cumulative throughput every 50 steps
+            if total_steps > 0 and total_steps % 50 == 0:
+                elapsed_so_far = time.time() - train_start
+                throughput = total_steps / elapsed_so_far
+                avg_step = elapsed_so_far / total_steps
+                logger.info(f'Train throughput: {throughput:.2f} samples/s')
+                logger.info(f'Batch Time {avg_step:.6f} ({avg_step:.6f})')
+
             # 递减epsilon
             epsilon = max(epsilon_min, epsilon * epsilon_decay)
 
@@ -90,7 +98,7 @@ def train(save_path,num_episodes,lr):
     if elapsed > 0 and total_steps > 0:
         logger.info(f'Train throughput: {total_steps / elapsed:.2f} steps/s')
         avg_step = elapsed / total_steps
-        logger.info(f'Batch Time {avg_step:.3f} ({avg_step:.3f})')
+        logger.info(f'Batch Time {avg_step:.6f} ({avg_step:.6f})')
     env.close()
 
 def infer(model_path):

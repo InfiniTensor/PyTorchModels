@@ -515,11 +515,13 @@ def main():
         losses_m = AverageMeter('Loss', ':6.3f')
 
         for epoch in range(args.start_epoch, args.epochs):
-            
+
             # mlperf_log.ncf_print(key=mlperf_log.TRAIN_EPOCH, value=epoch)
             # mlperf_log.ncf_print(key=mlperf_log.INPUT_HP_NUM_NEG, value=args.negative_samples)
             # mlperf_log.ncf_print(key=mlperf_log.INPUT_STEP_TRAIN_NEG_GEN)
             begin = time.time()
+            cumulative_iter_start = time.time()
+            cumulative_iter_samples = 0
             
             st = timeit.default_timer()
             
@@ -606,7 +608,16 @@ def main():
 
                 losses_m.update(loss.item(), user.size(0))
                 batch_time_m.update(time.time() - end_time)
+                cumulative_iter_samples += user.size(0)
                 end_time = time.time()
+
+                # Print cumulative throughput every 50 iterations
+                if i > 0 and i % 50 == 0:
+                    cumulative_time = time.time() - cumulative_iter_start
+                    throughput = cumulative_iter_samples / cumulative_time
+                    avg_batch = cumulative_time / (i + 1)
+                    print(f'Train throughput: {throughput:.2f} samples/s')
+                    print(f'Batch Time {avg_batch:.6f} ({avg_batch:.6f})')
 
             metric_collector.insert_metrics(
                 net = "DLRM",
@@ -668,7 +679,7 @@ def main():
             train_throughput = train_samples / train_time
             avg_batch_time = train_time / actual_iters
             print(f'Train throughput: {train_throughput:.2f} samples/s')
-            print(f'Batch Time {avg_batch_time:.3f} ({avg_batch_time:.3f})')
+            print(f'Batch Time {avg_batch_time:.6f} ({avg_batch_time:.6f})')
 
         # mlperf_log.ncf_print(key=mlperf_log.RUN_FINAL)
     

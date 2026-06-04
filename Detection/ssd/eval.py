@@ -80,21 +80,28 @@ def evaluate(test_loader, model, max_batches=0):
             true_labels.extend(labels)
             true_difficulties.extend(difficulties)
 
-        # Calculate mAP
-        APs, mAP = calculate_mAP(det_boxes, det_labels, det_scores, true_boxes, true_labels, true_difficulties)
+            # Print cumulative throughput every 5 batches
+            if i > 0 and i % 5 == 0:
+                tput = total_samples / total_inference_time if total_inference_time > 0 else 0
+                avg_lat = (total_inference_time / total_samples) * 1000 if total_samples > 0 else 0
+                print(f'Inference throughput: {tput:.2f} samples/s', flush=True)
+                print(f'Average inference latency: {avg_lat:.2f} ms/sample', flush=True)
 
-    # Print AP for each class
-    pp.pprint(APs)
-
-    print('\nMean Average Precision (mAP): %.3f' % mAP)
-
-    # Print inference throughput and latency
+    # Print inference throughput and latency BEFORE mAP calculation
     if total_samples > 0:
         avg_latency_ms = (total_inference_time / total_samples) * 1000
         throughput = total_samples / total_inference_time
-        print(f'\nInference throughput: {throughput:.2f} samples/s')
-        print(f'Average inference latency: {avg_latency_ms:.2f} ms/sample')
-        print(f'Total inference time: {total_inference_time:.2f} s')
+        print(f'\nInference throughput: {throughput:.2f} samples/s', flush=True)
+        print(f'Average inference latency: {avg_latency_ms:.2f} ms/sample', flush=True)
+        print(f'Total inference time: {total_inference_time:.2f} s', flush=True)
+
+        # Calculate mAP
+        APs, mAP = calculate_mAP(det_boxes, det_labels, det_scores, true_boxes, true_labels, true_difficulties)
+
+        # Print AP for each class
+        pp.pprint(APs)
+
+        print('\nMean Average Precision (mAP): %.3f' % mAP, flush=True)
     if torch.cuda.is_available():
         print(f'GPU memory allocated: {torch.cuda.memory_allocated() / 1e9:.2f} GB')
         print(f'GPU memory reserved: {torch.cuda.memory_reserved() / 1e9:.2f} GB')

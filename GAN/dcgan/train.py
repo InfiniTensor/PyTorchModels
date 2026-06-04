@@ -227,6 +227,7 @@ if opt.dry_run:
     opt.niter = 1
 
 train_start_time = time.time()
+cumulative_train_samples = 0
 
 for epoch in range(opt.niter):
     epoch_start_time = time.time()
@@ -271,6 +272,13 @@ for epoch in range(opt.niter):
         print('[%d/%d][%d/%d] Loss_D: %.4f Loss_G: %.4f D(x): %.4f D(G(z)): %.4f / %.4f'
               % (epoch, opt.niter, i, len(dataloader),
                  errD.item(), errG.item(), D_x, D_G_z1, D_G_z2))
+        # Track cumulative throughput every iteration
+        cumulative_train_samples += batch_size
+        cumulative_time = time.time() - train_start_time
+        throughput = cumulative_train_samples / cumulative_time
+        avg_batch = cumulative_time / cumulative_train_samples * batch_size
+        print(f'Train throughput: {throughput:.2f} samples/s')
+        print(f'Batch Time {cumulative_time / (epoch * len(dataloader) + i + 1):.6f} ({cumulative_time / (epoch * len(dataloader) + i + 1):.6f})')
         if i % 100 == 0:
             vutils.save_image(real_cpu,
                     '%s/real_samples.png' % opt.outf,
@@ -297,4 +305,4 @@ for epoch in range(opt.niter):
         epoch_throughput = total_samples / epoch_time if epoch_time > 0 else 0
         avg_batch_time = epoch_time / len(dataloader) if len(dataloader) > 0 else 0
         print(f'Train throughput: {epoch_throughput:.2f} samples/s')
-        print(f'Batch Time {avg_batch_time:.3f} ({avg_batch_time:.3f})')
+        print(f'Batch Time {avg_batch_time:.6f} ({avg_batch_time:.6f})')

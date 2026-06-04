@@ -62,44 +62,55 @@ def train(model,
           epoch,
           args):
     model.train()
-    
+
     # 初始化记录变量
     batch_losses = []
     batch_times = []
     epoch_loss_sum = 0.0
     epoch_start_time = time.time()
-    
+    cumulative_start = time.time()
+    cumulative_samples = 0
+
     # 使用 tqdm 包装 DataLoader
     pbar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{args.train_epochs}")
-    
+
     for batch_idx, (images, targets) in enumerate(pbar):
         batch_start_time = time.time()
-        
+
         # 数据移至设备
         images = images.to(device)
         targets = targets.squeeze(1).long().to(device)
-        
+
         # 前向传播 + 计算损失
         optimizer.zero_grad()
         outputs = model(images)['out']
         loss = criterion(outputs, targets)
-        
+
         # 反向传播 + 优化
         loss.backward()
         optimizer.step()
-        
+
         # 记录 batch 数据
         batch_time = time.time() - batch_start_time
         batch_loss = loss.item()
-        
+
         batch_losses.append(batch_loss)
         batch_times.append(batch_time)
         epoch_loss_sum += batch_loss
-        
+        cumulative_samples += images.size(0)
+
         # 更新 tqdm 信息（显示当前 batch 的 loss 和 it/s）
         pbar.set_postfix({
             "batch_loss": f"{batch_loss:.4f}"
         })
+
+        # Print cumulative throughput every 50 batches
+        if batch_idx > 0 and batch_idx % 50 == 0:
+            cumulative_time = time.time() - cumulative_start
+            throughput = cumulative_samples / cumulative_time
+            avg_batch = cumulative_time / (batch_idx + 1)
+            print(f'Train throughput: {throughput:.2f} samples/s')
+            print(f'Batch Time {avg_batch:.6f} ({avg_batch:.6f})')
     
     # 计算 epoch 级数据
     epoch_time = time.time() - epoch_start_time

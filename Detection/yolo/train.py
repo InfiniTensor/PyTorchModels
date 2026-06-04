@@ -393,6 +393,8 @@ def train(hyp, opt, device, callbacks):
     
     profiler = Profiler() if (opt.profile and RANK in {-1, 0}) else None
     epoch_start_time = time.time()
+    cumulative_train_start = time.time()
+    cumulative_train_samples = 0
 
     for epoch in range(
         start_epoch, epochs
@@ -518,6 +520,15 @@ def train(hyp, opt, device, callbacks):
             if profiler:
                 profiler.update(batch_size)
 
+            # Track cumulative training throughput
+            cumulative_train_samples += batch_size
+            if i > 0 and i % 10 == 0 and RANK in {-1, 0}:
+                cumulative_time = time.time() - cumulative_train_start
+                throughput = cumulative_train_samples / cumulative_time
+                avg_batch = cumulative_time / (ni + 1) if ni > 0 else cumulative_time
+                print(f'Train throughput: {throughput:.2f} samples/s')
+                print(f'Batch Time {avg_batch:.6f} ({avg_batch:.6f})')
+
             # Log
             if RANK in {-1, 0}:
                 mloss = (mloss * i + loss_items) / (i + 1)  # update mean losses
@@ -548,7 +559,7 @@ def train(hyp, opt, device, callbacks):
                 epoch_samples = nb * batch_size
                 step_time_ms = epoch_time / nb * 1000 if nb > 0 else 0
                 print(f'Train throughput: {epoch_samples / epoch_time:.2f} samples/s')
-                print(f'Batch Time {epoch_time / nb:.3f} ({epoch_time / nb:.3f})')
+                print(f'Batch Time {epoch_time / nb:.6f} ({epoch_time / nb:.6f})')
             epoch_start_time = time.time()
         
         # Scheduler

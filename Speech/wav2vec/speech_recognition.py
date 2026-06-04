@@ -22,6 +22,7 @@ import logging
 import os
 import re
 import sys
+import time
 import warnings
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Union
@@ -801,6 +802,27 @@ def main():
     )
 
     # Initialize Trainer
+    class PeriodicLoggingCallback(transformers.TrainerCallback):
+        def __init__(self):
+            self.train_start_time = None
+            self.global_step = 0
+            self.total_samples = 0
+
+        def on_train_begin(self, args, state, control, **kwargs):
+            self.train_start_time = time.time()
+            self.global_step = 0
+            self.total_samples = 0
+
+        def on_step_end(self, args, state, control, **kwargs):
+            self.global_step += 1
+            self.total_samples += args.per_device_train_batch_size
+            if self.global_step > 0 and self.global_step % 10 == 0:
+                elapsed = time.time() - self.train_start_time
+                throughput = self.total_samples / elapsed
+                avg_batch = elapsed / self.global_step
+                logger.info(f'Train throughput: {throughput:.2f} samples/s')
+                logger.info(f'Batch Time {avg_batch:.6f} ({avg_batch:.6f})')
+
     trainer = Trainer(
         model=model,
         data_collator=data_collator,
@@ -810,6 +832,7 @@ def main():
         eval_dataset=vectorized_datasets["eval"] if training_args.do_eval else None,
         tokenizer=processor,
         preprocess_logits_for_metrics=preprocess_logits_for_metrics,
+        callbacks=[PeriodicLoggingCallback()],
     )
 
     # 8. Finally, we can start training
@@ -843,7 +866,7 @@ def main():
             total_steps = training_args.max_steps if training_args.max_steps > 0 else len(vectorized_datasets["train"]) // training_args.per_device_train_batch_size
             if total_steps > 0:
                 avg_step = metrics["train_runtime"] / total_steps
-                logger.info(f"Batch Time {avg_step:.3f} ({avg_step:.3f})")
+                logger.info(f"Batch Time {avg_step:.6f} ({avg_step:.6f})")
 
     # Evaluation
     results = {}

@@ -71,23 +71,24 @@ def train(**kwargs):
     epoch_start = time.time()
     for epoch in range(opt.epoch):
         trainer.reset_meters()
-        batch_start = time.time()
+        cumulative_start = time.time()
+        cumulative_samples = 0
         for ii, (img, bbox_, label_, scale) in tqdm(enumerate(dataloader)):
             scale = at.scalar(scale)
             img, bbox, label = img.cuda().float(), bbox_.cuda(), label_.cuda()
             trainer.train_step(img, bbox, label, scale)
+            cumulative_samples += img.size(0)
 
             if ii > 0 and ii % 50 == 0:
-                elapsed = time.time() - batch_start
-                throughput = 50 / elapsed
-                step_ms = elapsed / 50 * 1000
-                print(f'Train throughput: {throughput:.2f} samples/s')
-                print(f'Batch Time {elapsed/50:.3f} ({elapsed/50:.3f})')
-                batch_start = time.time()
+                cumulative_time = time.time() - cumulative_start
+                throughput = cumulative_samples / cumulative_time
+                avg_batch = cumulative_time / (ii + 1)
+                print(f'Train throughput: {throughput:.2f} samples/s', flush=True)
+                print(f'Batch Time {avg_batch:.6f} ({avg_batch:.6f})', flush=True)
                 # Save checkpoint periodically for eval
                 torch.save(trainer.faster_rcnn.state_dict(), 'fasterrcnn.pth.tmp')
                 os.replace('fasterrcnn.pth.tmp', 'fasterrcnn.pth')
-                print(f'Checkpoint saved at iter {ii}')
+                print(f'Checkpoint saved at iter {ii}', flush=True)
 
         eval_result = eval(test_dataloader, faster_rcnn, test_num=opt.test_num)
         # trainer.vis.plot('test_map', eval_result['map'])

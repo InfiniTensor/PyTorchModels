@@ -112,55 +112,64 @@ EVAL_FAIL=0
 # 从日志中提取训练吞吐量 (samples/s)
 extract_train_throughput() {
     local logfile="$1"
+    local val=""
     # ImageClassification: "Train throughput: XXX samples/s"
-    local val=$(grep -oP 'Train throughput:\s*\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
-    if [ -n "$val" ]; then echo "$val"; return; fi
+    val=$(grep -oP 'Train throughput:\s*\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
+    if [ -n "$val" ]; then fmt_num "$val"; return; fi
     # 通用: "Throughput: XXX samples/s"
     val=$(grep -oP 'Throughput:\s*\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
-    if [ -n "$val" ]; then echo "$val"; return; fi
+    if [ -n "$val" ]; then fmt_num "$val"; return; fi
     # HuggingFace Trainer: "train_samples_per_second = XXX"
     val=$(grep -oP 'train_samples_per_second\s*=\s*\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
-    if [ -n "$val" ]; then echo "$val"; return; fi
+    if [ -n "$val" ]; then fmt_num "$val"; return; fi
     # Detection/Segmentation: "Batch Time X.XXX (Y.YYY)" 从平均耗时推算吞吐
     local batch_time=$(grep -oP 'Batch Time [\d.]+ \(\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
     if [ -n "$batch_time" ]; then
-        echo "scale=2; 1/$batch_time" | bc 2>/dev/null
+        fmt_num "$(echo "scale=2; 1/$batch_time" | bc 2>/dev/null)"
         return
     fi
     # Segmentation: "Avg it/s: XX.XX"
     val=$(grep -oP 'Avg it/s:\s*\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
-    if [ -n "$val" ]; then echo "$val"; return; fi
+    if [ -n "$val" ]; then fmt_num "$val"; return; fi
     # ImageClassification PyTorch: "Time  X.XXX ( Y.YYY)" 括号内是平均 batch 耗时，batch_size=64
     local ic_time=$(grep -oP 'Time\s+[\d.]+\s+\(\s*\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
     if [ -n "$ic_time" ]; then
-        echo "scale=2; 64/$ic_time" | bc 2>/dev/null
+        fmt_num "$(echo "scale=2; 64/$ic_time" | bc 2>/dev/null)"
         return
     fi
     echo ""
 }
 
+# 统一数值格式化为3位小数
+fmt_num() {
+    local val="$1"
+    [ -z "$val" ] && echo "" && return
+    printf "%.3f" "$val" 2>/dev/null || echo "$val"
+}
+
 # 从日志中提取单步耗时 (ms/step)
 extract_step_time() {
     local logfile="$1"
+    local val=""
     # Detection/Segmentation: "Batch Time X.XXX (Y.YYY)" 平均耗时(秒)转毫秒
-    local val=$(grep -oP 'Batch Time [\d.]+ \(\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
+    val=$(grep -oP 'Batch Time [\d.]+ \(\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
     if [ -n "$val" ]; then
-        echo "scale=4; $val * 1000" | bc 2>/dev/null
+        fmt_num "$(echo "scale=4; $val * 1000" | bc 2>/dev/null)"
         return
     fi
     # ImageClassification: "Time.*XXX ms"
     val=$(grep -oP 'Batch time.*?[\d.]+\s*ms' "$logfile" 2>/dev/null | grep -oP '[\d.]+' | tail -1)
-    if [ -n "$val" ]; then echo "$val"; return; fi
+    if [ -n "$val" ]; then fmt_num "$val"; return; fi
     # Segmentation: "Avg it/s: XX.XX" 转毫秒
     val=$(grep -oP 'Avg it/s:\s*\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
     if [ -n "$val" ]; then
-        echo "scale=4; 1000/$val" | bc 2>/dev/null
+        fmt_num "$(echo "scale=4; 1000/$val" | bc 2>/dev/null)"
         return
     fi
     # ImageClassification PyTorch: "Time  X.XXX ( Y.YYY)" 括号内是秒/batch，转毫秒
     val=$(grep -oP 'Time\s+[\d.]+\s+\(\s*\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
     if [ -n "$val" ]; then
-        echo "scale=4; $val * 1000" | bc 2>/dev/null
+        fmt_num "$(echo "scale=4; $val * 1000" | bc 2>/dev/null)"
         return
     fi
     echo ""
@@ -169,25 +178,26 @@ extract_step_time() {
 # 从日志中提取推理吞吐量 (samples/s)
 extract_eval_throughput() {
     local logfile="$1"
+    local val=""
     # 通用: "Inference throughput: XXX samples/s"
-    local val=$(grep -oP 'Inference throughput:\s*\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
-    if [ -n "$val" ]; then echo "$val"; return; fi
+    val=$(grep -oP 'Inference throughput:\s*\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
+    if [ -n "$val" ]; then fmt_num "$val"; return; fi
     # ImageClassification: "Evaluate throughput.*XXX samples/s"
     val=$(grep -oP 'Evaluate throughput.*?\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
-    if [ -n "$val" ]; then echo "$val"; return; fi
+    if [ -n "$val" ]; then fmt_num "$val"; return; fi
     # HuggingFace Trainer: "eval_samples_per_second = XXX"
     val=$(grep -oP 'eval_samples_per_second\s*=\s*\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
-    if [ -n "$val" ]; then echo "$val"; return; fi
+    if [ -n "$val" ]; then fmt_num "$val"; return; fi
     # images/s 变体
     val=$(grep -oP 'Inference throughput:\s*\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
-    if [ -n "$val" ]; then echo "$val"; return; fi
+    if [ -n "$val" ]; then fmt_num "$val"; return; fi
     # images/s
     val=$(grep -oP '[\d.]+(?=\s*images?/s)' "$logfile" 2>/dev/null | tail -1)
-    if [ -n "$val" ]; then echo "$val"; return; fi
+    if [ -n "$val" ]; then fmt_num "$val"; return; fi
     # ImageClassification PyTorch: "Time  X.XXX ( Y.YYY)" 括号内是平均 batch 耗时，batch_size=64
     local ic_time=$(grep -oP 'Time\s+[\d.]+\s+\(\s*\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
     if [ -n "$ic_time" ]; then
-        echo "scale=2; 64/$ic_time" | bc 2>/dev/null
+        fmt_num "$(echo "scale=2; 64/$ic_time" | bc 2>/dev/null)"
         return
     fi
     echo ""
@@ -196,26 +206,26 @@ extract_eval_throughput() {
 # 从日志中提取推理平均时延 (ms)
 extract_eval_latency() {
     local logfile="$1"
-    local val=$(grep -oP 'Average inference latency:\s*\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
-    if [ -n "$val" ]; then echo "$val"; return; fi
+    local val=""
+    val=$(grep -oP 'Average inference latency:\s*\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
+    if [ -n "$val" ]; then fmt_num "$val"; return; fi
     # HuggingFace Trainer: "eval_runtime = X:XX:XX.xx" -> convert to ms/sample
     local eval_runtime=$(grep -oP 'eval_runtime\s*=\s*\K[\d:.]+' "$logfile" 2>/dev/null | tail -1)
     local eval_samples=$(grep -oP 'eval_samples\s*=\s*\K[\d]+' "$logfile" 2>/dev/null | tail -1)
     if [ -n "$eval_runtime" ] && [ -n "$eval_samples" ]; then
-        # eval_runtime is like "0:00:18.47" or just seconds
         local seconds=$(echo "$eval_runtime" | awk -F: '{if(NF==3) print $1*3600+$2*60+$3; else print $1}')
         if [ -n "$seconds" ] && [ "$eval_samples" -gt 0 ] 2>/dev/null; then
-            echo "scale=2; $seconds * 1000 / $eval_samples" | bc 2>/dev/null
+            fmt_num "$(echo "scale=2; $seconds * 1000 / $eval_samples" | bc 2>/dev/null)"
             return
         fi
     fi
     # ms/image 变体
     val=$(grep -oP '[\d.]+(?=\s*ms/)' "$logfile" 2>/dev/null | tail -1)
-    if [ -n "$val" ]; then echo "$val"; return; fi
+    if [ -n "$val" ]; then fmt_num "$val"; return; fi
     # ImageClassification PyTorch: "Time  X.XXX ( Y.YYY)" 括号内是秒/batch，转毫秒
     val=$(grep -oP 'Time\s+[\d.]+\s+\(\s*\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
     if [ -n "$val" ]; then
-        echo "scale=4; $val * 1000" | bc 2>/dev/null
+        fmt_num "$(echo "scale=4; $val * 1000" | bc 2>/dev/null)"
         return
     fi
     echo ""

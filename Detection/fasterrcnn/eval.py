@@ -25,6 +25,7 @@ def eval(dataloader, faster_rcnn, test_num=10000):
     gt_bboxes, gt_labels, gt_difficults = list(), list(), list()
     total_inference_time = 0.0
     total_samples = 0
+    start_eval = time.time()
     for ii, (imgs, sizes, gt_bboxes_, gt_labels_, gt_difficults_) in tqdm(enumerate(dataloader)):
         sizes = [sizes[0][0].item(), sizes[1][0].item()]
         torch.cuda.synchronize() if torch.cuda.is_available() else None
@@ -40,9 +41,15 @@ def eval(dataloader, faster_rcnn, test_num=10000):
         pred_bboxes += pred_bboxes_
         pred_labels += pred_labels_
         pred_scores += pred_scores_
-        if ii == test_num: break
 
-    result = eval_detection_voc(
+        # Print cumulative throughput every 10 iterations
+        if ii > 0 and ii % 10 == 0:
+            tput = total_samples / total_inference_time if total_inference_time > 0 else 0
+            avg_lat = (total_inference_time / total_samples) * 1000 if total_samples > 0 else 0
+            print(f'Inference throughput: {tput:.2f} samples/s', flush=True)
+            print(f'Average inference latency: {avg_lat:.2f} ms/sample', flush=True)
+
+        if ii == test_num: break
         pred_bboxes, pred_labels, pred_scores,
         gt_bboxes, gt_labels, gt_difficults,
         use_07_metric=True)
@@ -51,9 +58,9 @@ def eval(dataloader, faster_rcnn, test_num=10000):
     if total_samples > 0:
         avg_latency_ms = (total_inference_time / total_samples) * 1000
         throughput = total_samples / total_inference_time
-        print(f'\nInference throughput: {throughput:.2f} samples/s')
-        print(f'Average inference latency: {avg_latency_ms:.2f} ms/sample')
-        print(f'Total inference time: {total_inference_time:.2f} s')
+        print(f'\nInference throughput: {throughput:.2f} samples/s', flush=True)
+        print(f'Average inference latency: {avg_latency_ms:.2f} ms/sample', flush=True)
+        print(f'Total inference time: {total_inference_time:.2f} s', flush=True)
     if torch.cuda.is_available():
         print(f'GPU memory allocated: {torch.cuda.memory_allocated() / 1e9:.2f} GB')
         print(f'GPU memory reserved: {torch.cuda.memory_reserved() / 1e9:.2f} GB')

@@ -34,7 +34,9 @@ def train_one_epoch(model, train_loader, criterion, optimizer, device):
     model.train()
     meter_loss = AverageMeter()
     meter_psnr = PSNRMeter()
-    for data, target in tqdm(train_loader, desc="Training"):
+    cumulative_start = time.time()
+    cumulative_samples = 0
+    for batch_idx, (data, target) in enumerate(tqdm(train_loader, desc="Training")):
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
         output = model(data)
@@ -44,6 +46,15 @@ def train_one_epoch(model, train_loader, criterion, optimizer, device):
 
         meter_loss.add(loss.item())
         meter_psnr.add(output, target)
+        cumulative_samples += data.size(0)
+
+        # Print cumulative throughput every 50 batches
+        if batch_idx > 0 and batch_idx % 50 == 0:
+            cumulative_time = time.time() - cumulative_start
+            throughput = cumulative_samples / cumulative_time
+            avg_batch = cumulative_time / (batch_idx + 1)
+            print(f'Train throughput: {throughput:.2f} samples/s')
+            print(f'Batch Time {avg_batch:.6f} ({avg_batch:.6f})')
 
     return meter_loss.value(), meter_psnr.value()
 
@@ -119,4 +130,4 @@ if __name__ == "__main__":
     if total_time > 0:
         print(f'Train throughput: {total_samples / total_time:.2f} samples/s')
         avg_batch_time = total_time / (len(train_loader) * NUM_EPOCHS)
-        print(f'Batch Time {avg_batch_time:.3f} ({avg_batch_time:.3f})')
+        print(f'Batch Time {avg_batch_time:.6f} ({avg_batch_time:.6f})')

@@ -119,6 +119,8 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
     losses = AverageMeter()  # loss
 
     start = time.time()
+    cumulative_start = time.time()
+    cumulative_samples = 0
 
     # Batches
     for i, (images, boxes, labels, _) in enumerate(train_loader):
@@ -148,17 +150,26 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
 
         losses.update(loss.item(), images.size(0))
         batch_time.update(time.time() - start)
+        cumulative_samples += images.size(0)
 
         start = time.time()
 
         # Print status
         if i % args.print_freq == 0:
             print('Epoch: [{0}][{1}/{2}]\t'
-                  'Batch Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                  'Batch Time {batch_time.val:.6f} ({batch_time.avg:.6f})\t'
                   'Data Time {data_time.val:.3f} ({data_time.avg:.3f})\t'
                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'.format(epoch, i, len(train_loader),
                                                                   batch_time=batch_time,
-                                                                  data_time=data_time, loss=losses))
+                                                                  data_time=data_time, loss=losses), flush=True)
+
+        # Print cumulative throughput every 50 iterations
+        if i > 0 and i % 50 == 0:
+            cumulative_time = time.time() - cumulative_start
+            throughput = cumulative_samples / cumulative_time
+            avg_batch = cumulative_time / (i + 1)
+            print(f'Train throughput: {throughput:.2f} samples/s', flush=True)
+            print(f'Batch Time {avg_batch:.6f} ({avg_batch:.6f})', flush=True)
     del predicted_locs, predicted_scores, images, boxes, labels  # free some memory since their histories may be stored
 
 

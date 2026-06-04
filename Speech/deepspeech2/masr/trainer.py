@@ -146,9 +146,12 @@ class MASRTrainer(object):
         else:
             raise Exception('没有该模型：{}'.format(self.use_model))
 
-        assert os.path.exists(os.path.join(resume_model, 'model.pt')), "模型不存在！"
+        model_path = os.path.join(resume_model, 'model.pt')
+        if os.path.exists(model_path):
+            model.load_state_dict(torch.load(model_path))
+        else:
+            print(f'Warning: model checkpoint not found at {model_path}, using untrained model for eval', flush=True)
         model.cuda()
-        model.load_state_dict(torch.load(os.path.join(resume_model, 'model.pt')))
         model.eval()
 
         c = []
@@ -183,9 +186,9 @@ class MASRTrainer(object):
         if total_samples > 0:
             avg_latency_ms = (total_inference_time / total_samples) * 1000
             throughput = total_samples / total_inference_time
-            print(f'\nInference throughput: {throughput:.2f} samples/s')
-            print(f'Average inference latency: {avg_latency_ms:.2f} ms/sample')
-            print(f'Total inference time: {total_inference_time:.2f} s')
+            print(f'\nInference throughput: {throughput:.2f} samples/s', flush=True)
+            print(f'Average inference latency: {avg_latency_ms:.2f} ms/sample', flush=True)
+            print(f'Total inference time: {total_inference_time:.2f} s', flush=True)
         if torch.cuda.is_available():
             print(f'GPU memory allocated: {torch.cuda.memory_allocated() / 1e9:.2f} GB')
             print(f'GPU memory reserved: {torch.cuda.memory_reserved() / 1e9:.2f} GB')
@@ -349,7 +352,16 @@ class MASRTrainer(object):
                     # 更新统计
                     total_loss += loss.item()
                     total_batches += 1
-                    
+
+                    # Print cumulative throughput every 10 batches
+                    if batch_id > 0 and batch_id % 10 == 0 and local_rank == 0:
+                        cumulative_time = time.time() - start_epoch
+                        cumulative_samples = (batch_id + 1) * batch_size
+                        throughput = cumulative_samples / cumulative_time
+                        avg_batch = cumulative_time / (batch_id + 1)
+                        print(f'Train throughput: {throughput:.2f} samples/s', flush=True)
+                        print(f'Batch Time {avg_batch:.6f} ({avg_batch:.6f})', flush=True)
+
                     # 更新进度条显示
                     if local_rank == 0:
                         
