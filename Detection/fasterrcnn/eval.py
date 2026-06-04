@@ -25,7 +25,6 @@ def eval(dataloader, faster_rcnn, test_num=10000):
     gt_bboxes, gt_labels, gt_difficults = list(), list(), list()
     total_inference_time = 0.0
     total_samples = 0
-    start_eval = time.time()
     for ii, (imgs, sizes, gt_bboxes_, gt_labels_, gt_difficults_) in tqdm(enumerate(dataloader)):
         sizes = [sizes[0][0].item(), sizes[1][0].item()]
         torch.cuda.synchronize() if torch.cuda.is_available() else None
@@ -41,6 +40,7 @@ def eval(dataloader, faster_rcnn, test_num=10000):
         pred_bboxes += pred_bboxes_
         pred_labels += pred_labels_
         pred_scores += pred_scores_
+        if ii >= int(test_num): break
 
         # Print cumulative throughput every 10 iterations
         if ii > 0 and ii % 10 == 0:
@@ -49,7 +49,7 @@ def eval(dataloader, faster_rcnn, test_num=10000):
             print(f'Inference throughput: {tput:.2f} samples/s', flush=True)
             print(f'Average inference latency: {avg_lat:.2f} ms/sample', flush=True)
 
-        if ii == test_num: break
+    result = eval_detection_voc(
         pred_bboxes, pred_labels, pred_scores,
         gt_bboxes, gt_labels, gt_difficults,
         use_07_metric=True)
@@ -86,12 +86,11 @@ def main(**kwargs):
         print('load pretrained model from %s' % opt.load_path)
     else:
         print("ckpt path not found")
-        return 
+        return
 
     eval_result = eval(test_dataloader, faster_rcnn, test_num=opt.test_num)
 
     print(f"mAP: {eval_result['map']}")
-
 
 
 if __name__ == '__main__':

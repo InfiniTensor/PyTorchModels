@@ -11,7 +11,7 @@ export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0,1}
 if [ -e "../data/VOCdevkit" ]; then
     echo "../data/VOCdevkit exists"
 else 
-    ln -s /data1/shared/Dataset/VOCdevkit ../data/VOCdevkit
+    ln -sfn /data-aisoft/Dataset/VOCdevkit ../data/VOCdevkit
 fi
 
 # 参数解释

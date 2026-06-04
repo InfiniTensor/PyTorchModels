@@ -45,7 +45,7 @@ if [ -e "../data/coco" ]; then
     echo "Dataset ../data/coco exists"
 else
     echo "Linking dataset from $DATA_DIR to ../data/coco"
-    ln -s "$DATA_DIR" ../data
+    ln -sfn "$DATA_DIR" ../data
 fi
 
 # 复制字体文件

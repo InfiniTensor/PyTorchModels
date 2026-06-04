@@ -19,5 +19,5 @@ if [ -e "$data_dir" ]; then
 fi
 
 echo "Training FasterRCNN START"
-python train.py train --voc_data_dir="$data_dir/VOC2007"
+PYTHONUNBUFFERED=1 python train.py train --voc_data_dir="$data_dir/VOC2007"
 echo "Training FasterRCNN FINISHED"

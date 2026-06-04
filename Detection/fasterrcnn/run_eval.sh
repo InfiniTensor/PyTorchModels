@@ -32,7 +32,7 @@ else
 fi
 
 echo "Evaluate FasterRCNN START"
-python eval.py main --load-path="$ckpt_path" --voc_data_dir="$data_dir/VOC2007" --test_num=100
+PYTHONUNBUFFERED=1 python eval.py main --load-path="$ckpt_path" --voc_data_dir="$data_dir/VOC2007" --test_num=100
 echo "Evaluate FasterRCNN FINISHED"
 
 # rm $ckpt_path
