@@ -28,11 +28,11 @@ class DQN(nn.Module):
 
 def train(save_path,num_episodes,lr):  
     # 初始化环境  
-    env = gym.make('CartPole-v1', render_mode="human")  
-    n_states = env.observation_space.shape[0]  
-    n_actions = env.action_space.n  
-    
-    # 创建DQN模型和优化器  
+    env = gym.make('CartPole-v1')
+    n_states = env.observation_space.shape[0]
+    n_actions = env.action_space.n
+
+    # 创建DQN模型和优化器
     q_net = DQN(n_states, n_actions).to(device)  
     optimizer = optim.Adam(q_net.parameters(), lr=lr)  
     loss_fn = nn.MSELoss()  
@@ -102,8 +102,8 @@ def train(save_path,num_episodes,lr):
     env.close()
 
 def infer(model_path):
-    env = gym.make('CartPole-v1', render_mode="human")  
-    n_states = env.observation_space.shape[0]  
+    env = gym.make('CartPole-v1')
+    n_states = env.observation_space.shape[0]
     n_actions = env.action_space.n  
     
     # 创建DQN模型和优化器

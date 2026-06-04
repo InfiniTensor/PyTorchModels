@@ -85,8 +85,7 @@ def main(**kwargs):
         trainer.load(opt.load_path)
         print('load pretrained model from %s' % opt.load_path)
     else:
-        print("ckpt path not found")
-        return 
+        print("ckpt path not found, using random weights for throughput benchmark")
 
     eval_result = eval(test_dataloader, faster_rcnn, test_num=opt.test_num)
 

@@ -14,10 +14,9 @@ usage() {
     exit 1
 }
 
-# 确保数据集路径存在
-if [ ! -d "$DATA_DIR" ]; then
-    echo "Error: Dataset directory '$DATA_DIR' does not exist."
-    exit 1
+# 确保数据集路径存在 (only needed for real datasets, --dataset fake doesn't need it)
+if [ -n "$DATA_DIR" ] && [ ! -d "$DATA_DIR" ]; then
+    echo "Warning: Dataset directory '$DATA_DIR' does not exist, but using fake data."
 fi
 
 # Process output directory

@@ -424,7 +424,7 @@ run_rl_train() {
 run_rl_eval() {
     local logfile="$1"
     run_task "$logfile" "$EVAL_TIMEOUT" "RL/dqn eval" \
-        'cd RL/dqn && bash run_eval.sh ./checkpoints/20.pth'
+        'cd RL/dqn && bash run_eval.sh ./checkpoints/90.pth'
 }
 
 # --- Recommendation ---
@@ -506,7 +506,7 @@ run_ts_train() {
     case "$model" in
         lstm)
             run_task "$logfile" "$TRAIN_TIMEOUT" "TimeSeriesPrediction/lstm train" \
-                'cd TimeSeriesPrediction/lstm && bash run_train.sh ../data/complete_data.csv 200 512 0.0001'
+                'cd TimeSeriesPrediction/lstm && bash run_train.sh ../data/complete_data.csv 200 4 0.0001'
             ;;
         tcn)
             run_task "$logfile" "$TRAIN_TIMEOUT" "TimeSeriesPrediction/tcn train" \

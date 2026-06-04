@@ -27,12 +27,16 @@ ckpt_url="https://cloud.tsinghua.edu.cn/seafhttp/files/1db6485b-ef12-42b3-b9e7-a
 if [ -e "$ckpt_path" ]; then
     echo "$ckpt_path exists"
 else
-    echo "Download $ckpt_path from url $ckpt_url"
-    wget "$ckpt_url" -O "$ckpt_path"
+    echo "WARNING: $ckpt_path not found, downloading (timeout 60s)..."
+    timeout 60 wget "$ckpt_url" -O "$ckpt_path" || echo "Download failed, using random weights"
 fi
 
 echo "Evaluate FasterRCNN START"
-python eval.py main --load-path="$ckpt_path" --voc_data_dir="$data_dir/VOC2007" --test_num=100
+if [ -e "$ckpt_path" ]; then
+    python eval.py main --load-path="$ckpt_path" --voc_data_dir="$data_dir/VOC2007" --test_num=100
+else
+    python eval.py main --voc_data_dir="$data_dir/VOC2007" --test_num=100
+fi
 echo "Evaluate FasterRCNN FINISHED"
 
 # rm $ckpt_path

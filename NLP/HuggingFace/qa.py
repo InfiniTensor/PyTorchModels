@@ -422,7 +422,7 @@ def main():
         if args.test_file is not None:
             data_files["test"] = args.test_file
         extension = args.train_file.split(".")[-1]
-        raw_datasets = load_dataset('./squad_v2.py', data_files=data_files, trust_remote_code=True)
+        raw_datasets = load_dataset('json', data_files=data_files)
     # See more about loading any type of standard or custom dataset (from files, python dict, pandas DataFrame, etc) at
     # https://huggingface.co/docs/datasets/loading_datasets.
 

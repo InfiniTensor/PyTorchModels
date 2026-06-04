@@ -63,7 +63,7 @@ def data_loader(data,N,batch_size,shuffle):
     return seq_set,seq
 
 def read_data(filename):
-    data = pd.read_csv(filename,skiprows=1)
+    data = pd.read_csv(filename, skiprows=1, sep='\t')
     data.head(5)
     L = data.shape[0]
     logger.info("data的尺寸为：{}".format(data.shape))
