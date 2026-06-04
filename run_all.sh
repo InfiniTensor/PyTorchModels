@@ -410,7 +410,7 @@ run_nlp_train() {
 
 run_nlp_eval() {
     local logfile="$1"
-    run_task "$logfile" "$EVAL_TIMEOUT" "NLP/HuggingFace eval" \
+    run_task "$logfile" "4m" "NLP/HuggingFace eval" \
         'cd NLP/HuggingFace && bash run_eval_online.sh'
 }
 
@@ -895,6 +895,7 @@ generate_report() {
 
     local dq='"'
     for r in "${JSON_RESULTS[@]}"; do
+        [ -z "$r" ] && continue
         local domain=$(echo "$r" | grep -oP "${dq}domain${dq}: ${dq}\K[^${dq}]*")
         local model=$(echo "$r" | grep -oP "${dq}model${dq}: ${dq}\K[^${dq}]*")
         local t_status=$(echo "$r" | grep -oP "${dq}train${dq}:.*?${dq}status${dq}: ${dq}\K[^${dq}]*" | head -1)
@@ -914,7 +915,7 @@ generate_report() {
         [ "${e_status:0:2}" = "OK" ] && e_status="OK"
 
         printf "%-10s %-20s %-9s %-9s %-12s %-10s %-12s %-10s\n" \
-            "${DOMAIN_CN[$domain]:-$domain}" \
+            "${DOMAIN_CN[${domain:-unknown}]:-${domain:-unknown}}" \
             "$model" \
             "${t_status:--}" \
             "${e_status:--}" \

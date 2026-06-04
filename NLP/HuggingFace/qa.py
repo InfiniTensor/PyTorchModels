@@ -35,7 +35,11 @@ from accelerate import Accelerator
 from accelerate.logging import get_logger
 from accelerate.utils import set_seed
 from datasets import load_dataset
-from huggingface_hub import Repository, create_repo
+try:
+    from huggingface_hub import Repository, create_repo
+except ImportError:
+    Repository = None
+    create_repo = None
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 from utils_qa import postprocess_qa_predictions
@@ -410,6 +414,34 @@ def main():
     #
     # In distributed training, the load_dataset function guarantee that only one local process can concurrently
     # download the dataset.
+
+    def flatten_squad_json(path):
+        """Flatten nested squad JSON into a list of {id, title, context, question, answers} dicts."""
+        import json as _json
+        with open(path, 'r') as f:
+            squad = _json.load(f)
+        records = []
+        for article in squad.get("data", []):
+            title = article.get("title", "")
+            for paragraph in article.get("paragraphs", []):
+                context = paragraph.get("context", "")
+                for qa in paragraph.get("qas", []):
+                    record = {
+                        "id": qa.get("id", ""),
+                        "title": title,
+                        "context": context,
+                        "question": qa.get("question", ""),
+                    }
+                    if "is_impossible" in qa:
+                        record["is_impossible"] = qa["is_impossible"]
+                    answers = qa.get("answers", [])
+                    record["answers"] = {
+                        "text": [a["text"] for a in answers],
+                        "answer_start": [a["answer_start"] for a in answers],
+                    }
+                    records.append(record)
+        return records
+
     if args.dataset_name is not None:
         # Downloading and loading a dataset from the hub.
         raw_datasets = load_dataset(args.dataset_name, args.dataset_config_name)
@@ -421,8 +453,18 @@ def main():
             data_files["validation"] = args.validation_file
         if args.test_file is not None:
             data_files["test"] = args.test_file
-        extension = args.train_file.split(".")[-1]
-        raw_datasets = load_dataset('./squad_v2.py', data_files=data_files, trust_remote_code=True)
+
+        # Flatten squad JSON files into temporary flat JSON files
+        import tempfile, json as _json
+        tmp_dir = tempfile.mkdtemp()
+        flat_files = {}
+        for split, path in data_files.items():
+            records = flatten_squad_json(path)
+            flat_path = os.path.join(tmp_dir, f"{split}.json")
+            with open(flat_path, 'w') as f:
+                _json.dump(records, f)
+            flat_files[split] = flat_path
+        raw_datasets = load_dataset('json', data_files=flat_files)
     # See more about loading any type of standard or custom dataset (from files, python dict, pandas DataFrame, etc) at
     # https://huggingface.co/docs/datasets/loading_datasets.
 
