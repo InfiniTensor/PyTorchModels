@@ -7,7 +7,7 @@ if [ -e "../data/squad" ]; then
     echo "../data/squad exists"
 else
     # 创建软连接
-    ln -s /data1/shared/Dataset/squad ../data/squad
+    ln -s /data-aisoft/Dataset/squad ../data/squad
 fi
 
 export SQUAD_PATH="../data/squad"
@@ -39,7 +39,7 @@ else
 fi
 
 torchrun \
-    --nproc_per_node=4 \
+    --nproc_per_node=2 \
     qa.py \
     --model_name_or_path $MODEL_PATH \
     --config_name $MODEL_PATH \

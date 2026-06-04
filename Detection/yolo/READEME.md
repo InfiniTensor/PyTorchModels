@@ -7,7 +7,7 @@ pip install -r requirements.txt
 ```
 mkdir datasets
 cd datasets
-ln -s /data1/shared/Dataset/coco/ ./
+ln -s /data-aisoft/Dataset/coco/ ./
 ```
 
 # 训练

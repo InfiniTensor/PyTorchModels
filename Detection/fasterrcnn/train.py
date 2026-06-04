@@ -68,12 +68,13 @@ def train(**kwargs):
     best_map = 0
     lr_ = opt.lr
     import time
+    import sys
     epoch_start = time.time()
     for epoch in range(opt.epoch):
         trainer.reset_meters()
         cumulative_start = time.time()
         cumulative_samples = 0
-        for ii, (img, bbox_, label_, scale) in tqdm(enumerate(dataloader)):
+        for ii, (img, bbox_, label_, scale) in tqdm(enumerate(dataloader), file=sys.stderr):
             scale = at.scalar(scale)
             img, bbox, label = img.cuda().float(), bbox_.cuda(), label_.cuda()
             trainer.train_step(img, bbox, label, scale)

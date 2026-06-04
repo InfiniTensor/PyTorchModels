@@ -1,5 +1,6 @@
 from __future__ import  absolute_import
 
+import sys
 import torch
 import time
 from tqdm import tqdm
@@ -26,7 +27,7 @@ def eval(dataloader, faster_rcnn, test_num=10000):
     total_inference_time = 0.0
     total_samples = 0
     start_eval = time.time()
-    for ii, (imgs, sizes, gt_bboxes_, gt_labels_, gt_difficults_) in tqdm(enumerate(dataloader)):
+    for ii, (imgs, sizes, gt_bboxes_, gt_labels_, gt_difficults_) in tqdm(enumerate(dataloader), file=sys.stderr):
         sizes = [sizes[0][0].item(), sizes[1][0].item()]
         torch.cuda.synchronize() if torch.cuda.is_available() else None
         infer_start = time.time()
