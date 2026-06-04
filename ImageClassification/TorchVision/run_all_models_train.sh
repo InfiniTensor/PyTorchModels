@@ -60,7 +60,7 @@ echo "Training start: $(date +'%m/%d/%Y %T')"
 for model in "${models[@]}"; do
     echo "Training $model start: $(date +'%m/%d/%Y %T')"
     
-    python main.py \
+    PYTHONUNBUFFERED=1 python main.py \
         -a "$model" \
         --gpu 0 \
         --dummy \

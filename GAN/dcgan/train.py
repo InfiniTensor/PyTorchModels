@@ -295,4 +295,6 @@ for epoch in range(opt.niter):
     else:
         total_samples = len(dataloader) * opt.batchSize
         epoch_throughput = total_samples / epoch_time if epoch_time > 0 else 0
+        avg_batch_time = epoch_time / len(dataloader) if len(dataloader) > 0 else 0
         print(f'Train throughput: {epoch_throughput:.2f} samples/s')
+        print(f'Batch Time {avg_batch_time:.3f} ({avg_batch_time:.3f})')

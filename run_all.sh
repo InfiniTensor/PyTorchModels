@@ -43,8 +43,19 @@ COLOR_CYAN='\033[0;36m'
 COLOR_NC='\033[0m'
 
 # --- 超时配置 ---
-TRAIN_TIMEOUT="10m"
-EVAL_TIMEOUT="5m"
+TRAIN_TIMEOUT="3m"
+EVAL_TIMEOUT="2m"
+
+# --- Ctrl+C 清理所有子进程 ---
+cleanup() {
+    echo -e "\n${COLOR_YELLOW}正在停止所有进程...${COLOR_NC}"
+    # 杀掉当前进程组内所有子进程
+    pkill -P $$ 2>/dev/null || true
+    pkill -f "run_all_models" 2>/dev/null || true
+    pkill -f "main.py" 2>/dev/null || true
+    exit 1
+}
+trap cleanup SIGINT SIGTERM
 
 # --- 日志目录 ---
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -55,25 +66,36 @@ mkdir -p "$LOG_DIR"
 REPORT_DATE=$(date +%Y-%m-%d)
 
 # --- ImageClassification模型列表 ---
+# 优先使用环境变量，否则用默认全量列表
+if [ -z "$IC_MODELS" ]; then
 IC_MODELS=(
-    alexnet convnext_base convnext_large convnext_small convnext_tiny
-    densenet121 densenet161 densenet169 densenet201
-    efficientnet_b0 efficientnet_b1 efficientnet_b2 efficientnet_b3
-    efficientnet_b4 efficientnet_b5 efficientnet_b6 efficientnet_b7
-    googlenet inception_v3 mnasnet0_5 mnasnet0_75 mnasnet1_0 mnasnet1_3
-    mobilenet_v2 mobilenet_v3_large mobilenet_v3_small
-    regnet_x_16gf regnet_x_1_6gf regnet_x_32gf regnet_x_3_2gf
-    regnet_x_400mf regnet_x_800mf regnet_x_8gf regnet_y_128gf
-    regnet_y_16gf regnet_y_1_6gf regnet_y_32gf regnet_y_3_2gf
-    regnet_y_400mf regnet_y_800mf regnet_y_8gf resnet101 resnet152
-    resnet18 resnet34 resnet50 resnext101_32x8d resnext50_32x4d
-    shufflenet_v2_x0_5 shufflenet_v2_x1_0 shufflenet_v2_x1_5 shufflenet_v2_x2_0
-    squeezenet1_0 squeezenet1_1 vgg11 vgg11_bn vgg13 vgg13_bn vgg16
-    vgg16_bn vgg19 vgg19_bn vit_b_16 vit_b_32 vit_l_16 vit_l_32
-    wide_resnet101_2 wide_resnet50_2
+    resnet18 mobilenet_v2 vgg16 inception_v3
 )
-# IC_MODELS 子集（调试用）：
-#   resnet18 mobilenet_v2 vgg16 inception_v3 densenet121 squeezenet1_0 efficientnet_b0 shufflenet_v2_x1_0
+# IC_MODELS 全量列表（暂时注释）：
+#   alexnet convnext_tiny
+#   densenet121 densenet161 densenet169 densenet201
+#   efficientnet_b0 efficientnet_b1 efficientnet_b2 efficientnet_b3
+#   efficientnet_b4 efficientnet_b5 efficientnet_b6
+#   googlenet inception_v3 mnasnet0_5 mnasnet0_75 mnasnet1_0 mnasnet1_3
+#   mobilenet_v2 mobilenet_v3_large mobilenet_v3_small
+#   regnet_x_16gf regnet_x_1_6gf regnet_x_3_2gf
+#   regnet_x_400mf regnet_x_800mf regnet_x_8gf
+#   regnet_y_16gf regnet_y_1_6gf regnet_y_3_2gf
+#   regnet_y_400mf regnet_y_800mf regnet_y_8gf resnet101 resnet152
+#   resnet18 resnet34 resnet50 resnext101_32x8d resnext50_32x4d
+#   shufflenet_v2_x0_5 shufflenet_v2_x1_0 shufflenet_v2_x1_5 shufflenet_v2_x2_0
+#   squeezenet1_0 squeezenet1_1 vgg11 vgg11_bn vgg13 vgg13_bn vgg16
+#   vgg16_bn vgg19 vgg19_bn vit_b_16 vit_b_32 vit_l_32
+#   wide_resnet101_2 wide_resnet50_2
+else
+    IC_MODELS=($IC_MODELS)
+fi
+# 去掉的模型（训练超时或无预训练权重）：
+#   convnext_base convnext_large convnext_small (训练5分钟跑不完1个batch)
+#   efficientnet_b7 (同上)
+#   regnet_x_32gf regnet_y_32gf (同上)
+#   regnet_y_128gf (无预训练权重)
+#   vit_l_16 (训练5分钟跑不完1个batch)
 
 # --- 结果存储 ---
 declare -a JSON_RESULTS   # JSON数组元素
@@ -123,7 +145,7 @@ extract_step_time() {
     # Detection/Segmentation: "Batch Time X.XXX (Y.YYY)" 平均耗时(秒)转毫秒
     local val=$(grep -oP 'Batch Time [\d.]+ \(\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
     if [ -n "$val" ]; then
-        echo "scale=2; $val * 1000" | bc 2>/dev/null
+        echo "scale=4; $val * 1000" | bc 2>/dev/null
         return
     fi
     # ImageClassification: "Time.*XXX ms"
@@ -132,13 +154,13 @@ extract_step_time() {
     # Segmentation: "Avg it/s: XX.XX" 转毫秒
     val=$(grep -oP 'Avg it/s:\s*\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
     if [ -n "$val" ]; then
-        echo "scale=2; 1000/$val" | bc 2>/dev/null
+        echo "scale=4; 1000/$val" | bc 2>/dev/null
         return
     fi
     # ImageClassification PyTorch: "Time  X.XXX ( Y.YYY)" 括号内是秒/batch，转毫秒
     val=$(grep -oP 'Time\s+[\d.]+\s+\(\s*\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
     if [ -n "$val" ]; then
-        echo "scale=2; $val * 1000" | bc 2>/dev/null
+        echo "scale=4; $val * 1000" | bc 2>/dev/null
         return
     fi
     echo ""
@@ -193,7 +215,7 @@ extract_eval_latency() {
     # ImageClassification PyTorch: "Time  X.XXX ( Y.YYY)" 括号内是秒/batch，转毫秒
     val=$(grep -oP 'Time\s+[\d.]+\s+\(\s*\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
     if [ -n "$val" ]; then
-        echo "scale=2; $val * 1000" | bc 2>/dev/null
+        echo "scale=4; $val * 1000" | bc 2>/dev/null
         return
     fi
     echo ""
@@ -339,7 +361,7 @@ run_ic_eval() {
 
 # --- ImageClassification 批量训练 ---
 # IC_MODEL_TIMEOUT: 每个模型训练时间（秒），默认 300（5分钟）
-IC_MODEL_TIMEOUT=${IC_MODEL_TIMEOUT:-300}
+IC_MODEL_TIMEOUT=${IC_MODEL_TIMEOUT:-180}
 run_ic_batch_train() {
     local logfile="$1"
     local model_list="${IC_MODELS[*]}"
@@ -374,7 +396,7 @@ run_gan_eval() {
 # --- NLP ---
 run_nlp_train() {
     local logfile="$1"
-    run_task "$logfile" "20m" "NLP/HuggingFace train" \
+    run_task "$logfile" "$TRAIN_TIMEOUT" "NLP/HuggingFace train" \
         'cd NLP/HuggingFace && bash run_train_online.sh'
 }
 
@@ -627,81 +649,165 @@ process_model() {
 
 process_ic_batch() {
     local mode="$1"
+    local num_models=${#IC_MODELS[@]}
 
-    echo -e "\n${COLOR_BLUE}========== ImageClassification 批量处理 (${#IC_MODELS[@]} models) ==========${COLOR_NC}"
+    echo -e "\n${COLOR_BLUE}========== ImageClassification 批量处理 (${num_models} models, 2 GPUs 并行) ==========${COLOR_NC}"
+
+    # 将模型分成两组
+    local half=$(( (num_models + 1) / 2 ))
+    local group1_models=() group2_models=()
+    local i=0
+    for model in "${IC_MODELS[@]}"; do
+        if [ $i -lt $half ]; then
+            group1_models+=("$model")
+        else
+            group2_models+=("$model")
+        fi
+        i=$((i + 1))
+    done
+    local gpu0=${CUDA_VISIBLE_DEVICES%%,*}
+    local gpu1=$(echo "$CUDA_VISIBLE_DEVICES" | cut -d',' -f2)
+    [ -z "$gpu1" ] && gpu1=$gpu0  # 只有1张卡时两组都用同一张
+    echo -e "  GPU $gpu0: ${#group1_models[@]} models | GPU $gpu1: ${#group2_models[@]} models"
 
     if [ "$mode" = "all" ] || [ "$mode" = "train" ]; then
         local batch_train_log="${LOG_DIR}/ImageClassification_batch_train.log"
-        local rc=0
+        echo -e "${COLOR_CYAN}  [BATCH TRAIN] ${num_models} models, 2 GPUs 并行${COLOR_NC}"
 
-        echo -e "${COLOR_CYAN}  [BATCH TRAIN] ${#IC_MODELS[@]} models via run_all_models_train.sh${COLOR_NC}"
-        run_ic_batch_train "$batch_train_log" || rc=$?
+        # 两组分别在两张卡上并行训练
+        local g1_list="${group1_models[*]}"
+        local g2_list="${group2_models[*]}"
+        CUDA_VISIBLE_DEVICES=$gpu0 bash -c "cd ImageClassification/TorchVision && DATA_DIR=../data/imagenet2012 IC_MODEL_TIMEOUT=$IC_MODEL_TIMEOUT IC_MODELS='$g1_list' bash run_all_models_train.sh" > "${LOG_DIR}/ImageClassification_batch_train_g1.log" 2>&1 &
+        local pid1=$!
+        CUDA_VISIBLE_DEVICES=$gpu1 bash -c "cd ImageClassification/TorchVision && DATA_DIR=../data/imagenet2012 IC_MODEL_TIMEOUT=$IC_MODEL_TIMEOUT IC_MODELS='$g2_list' bash run_all_models_train.sh" > "${LOG_DIR}/ImageClassification_batch_train_g2.log" 2>&1 &
+        local pid2=$!
 
-        # 解析批量训练日志，按模型拆分
-        local current_model=""
-        local model_log=""
+        # 合并日志并实时监控
+        declare -A train_done
+        while kill -0 $pid1 2>/dev/null || kill -0 $pid2 2>/dev/null; do
+            cat "${LOG_DIR}/ImageClassification_batch_train_g1.log" "${LOG_DIR}/ImageClassification_batch_train_g2.log" > "$batch_train_log" 2>/dev/null
+            for model in "${IC_MODELS[@]}"; do
+                if [ -z "${train_done[$model]}" ] && grep -q "Training ${model} finish:" "$batch_train_log" 2>/dev/null; then
+                    train_done[$model]=1
+                    TOTAL_MODELS=$((TOTAL_MODELS + 1))
+                    local model_train_log="${LOG_DIR}/ImageClassification_${model}_train.log"
+                    awk "/Training ${model} start/,/Training ${model} finish/" "$batch_train_log" > "$model_train_log" 2>/dev/null
+                    local train_tput="" train_step=""
+                    train_tput=$(extract_train_throughput "$model_train_log")
+                    train_step=$(extract_step_time "$model_train_log")
+                    TRAIN_OK=$((TRAIN_OK + 1))
+                    echo -e "  ${COLOR_GREEN}$model TRAIN: OK${COLOR_NC} throughput=${train_tput:-N/A}"
+                    JSON_RESULTS+=("$(make_result_json "ImageClassification" "$model" "OK" "$train_tput" "$train_step" "SKIP" "" "" "")")
+                fi
+            done
+            sleep 2
+        done
+        wait $pid1 2>/dev/null; wait $pid2 2>/dev/null
+
+        # 处理遗漏的模型
+        cat "${LOG_DIR}/ImageClassification_batch_train_g1.log" "${LOG_DIR}/ImageClassification_batch_train_g2.log" > "$batch_train_log" 2>/dev/null
         for model in "${IC_MODELS[@]}"; do
-            TOTAL_MODELS=$((TOTAL_MODELS + 1))
-            # 提取该模型的日志片段
-            local model_train_log="${LOG_DIR}/ImageClassification_${model}_train.log"
-            # 从批量日志中提取该模型对应的行
-            awk "/Training ${model} start/,/Training ${model} finish/" "$batch_train_log" > "$model_train_log" 2>/dev/null
-
-            local train_tput="" train_step=""
-            if [ $rc -eq 0 ] || [ $rc -eq 124 ]; then
+            if [ -z "${train_done[$model]}" ]; then
+                TOTAL_MODELS=$((TOTAL_MODELS + 1))
+                local model_train_log="${LOG_DIR}/ImageClassification_${model}_train.log"
+                awk "/Training ${model} start/,/Training ${model} finish/" "$batch_train_log" > "$model_train_log" 2>/dev/null
+                local train_tput="" train_step=""
                 train_tput=$(extract_train_throughput "$model_train_log")
                 train_step=$(extract_step_time "$model_train_log")
-                TRAIN_OK=$((TRAIN_OK + 1))
-                echo -e "  ${COLOR_GREEN}$model TRAIN: OK${COLOR_NC} throughput=${train_tput:-N/A}"
-                JSON_RESULTS+=("$(make_result_json "ImageClassification" "$model" "OK" "$train_tput" "$train_step" "SKIP" "" "" "")")
-            else
-                TRAIN_FAIL=$((TRAIN_FAIL + 1))
-                echo -e "  ${COLOR_RED}$model TRAIN: FAIL${COLOR_NC}"
-                JSON_RESULTS+=("$(make_result_json "ImageClassification" "$model" "FAIL" "" "" "SKIP" "" "" "")")
+                if [ -n "$train_tput" ]; then
+                    TRAIN_OK=$((TRAIN_OK + 1))
+                    echo -e "  ${COLOR_GREEN}$model TRAIN: OK${COLOR_NC} throughput=${train_tput:-N/A}"
+                    JSON_RESULTS+=("$(make_result_json "ImageClassification" "$model" "OK" "$train_tput" "$train_step" "SKIP" "" "" "")")
+                else
+                    TRAIN_FAIL=$((TRAIN_FAIL + 1))
+                    echo -e "  ${COLOR_RED}$model TRAIN: FAIL${COLOR_NC}"
+                    JSON_RESULTS+=("$(make_result_json "ImageClassification" "$model" "FAIL" "" "" "SKIP" "" "" "")")
+                fi
             fi
         done
     fi
 
     if [ "$mode" = "all" ] || [ "$mode" = "eval" ]; then
         local batch_eval_log="${LOG_DIR}/ImageClassification_batch_eval.log"
-        local rc=0
+        echo -e "${COLOR_CYAN}  [BATCH EVAL] ${num_models} models, 2 GPUs 并行${COLOR_NC}"
 
-        echo -e "${COLOR_CYAN}  [BATCH EVAL] ${#IC_MODELS[@]} models via run_all_models_eval.sh${COLOR_NC}"
-        run_ic_batch_eval "$batch_eval_log" || rc=$?
+        local g1_list="${group1_models[*]}"
+        local g2_list="${group2_models[*]}"
+        CUDA_VISIBLE_DEVICES=$gpu0 bash -c "cd ImageClassification/TorchVision && DATA_DIR=../data/imagenet2012 IC_MODEL_TIMEOUT=$IC_MODEL_TIMEOUT IC_MODELS='$g1_list' bash run_all_models_eval.sh" > "${LOG_DIR}/ImageClassification_batch_eval_g1.log" 2>&1 &
+        local pid1=$!
+        CUDA_VISIBLE_DEVICES=$gpu1 bash -c "cd ImageClassification/TorchVision && DATA_DIR=../data/imagenet2012 IC_MODEL_TIMEOUT=$IC_MODEL_TIMEOUT IC_MODELS='$g2_list' bash run_all_models_eval.sh" > "${LOG_DIR}/ImageClassification_batch_eval_g2.log" 2>&1 &
+        local pid2=$!
 
+        declare -A eval_done
+        while kill -0 $pid1 2>/dev/null || kill -0 $pid2 2>/dev/null; do
+            cat "${LOG_DIR}/ImageClassification_batch_eval_g1.log" "${LOG_DIR}/ImageClassification_batch_eval_g2.log" > "$batch_eval_log" 2>/dev/null
+            for model in "${IC_MODELS[@]}"; do
+                if [ -z "${eval_done[$model]}" ] && grep -q "Evaluating ${model} finish:" "$batch_eval_log" 2>/dev/null; then
+                    eval_done[$model]=1
+                    if [ "$mode" = "eval" ]; then
+                        TOTAL_MODELS=$((TOTAL_MODELS + 1))
+                    fi
+                    local model_eval_log="${LOG_DIR}/ImageClassification_${model}_eval.log"
+                    awk "/Evaluating ${model} start/,/Evaluating ${model} finish/" "$batch_eval_log" > "$model_eval_log" 2>/dev/null
+                    local eval_tput="" eval_lat="" eval_metric=""
+                    eval_tput=$(extract_eval_throughput "$model_eval_log")
+                    eval_lat=$(extract_eval_latency "$model_eval_log")
+                    eval_metric=$(extract_metric "$model_eval_log" "ImageClassification")
+                    EVAL_OK=$((EVAL_OK + 1))
+                    echo -e "  ${COLOR_GREEN}$model EVAL: OK${COLOR_NC} throughput=${eval_tput:-N/A} Acc@1=${eval_metric:-N/A}"
+
+                    local idx=0 local dq='"'
+                    for r in "${JSON_RESULTS[@]}"; do
+                        if echo "$r" | grep -q "${dq}model${dq}: ${dq}${model}${dq}"; then
+                            local t_status=$(echo "$r" | grep -oP "${dq}train${dq}:.*?${dq}status${dq}: ${dq}\K[^${dq}]*")
+                            local t_tput=$(echo "$r" | grep -oP "throughput_sps${dq}: \K[^,}]*")
+                            local t_step=$(echo "$r" | grep -oP "step_time_ms${dq}: \K[^,}]*")
+                            JSON_RESULTS[$idx]=$(make_result_json "ImageClassification" "$model" \
+                                "$t_status" "$t_tput" "$t_step" \
+                                "OK" "$eval_tput" "$eval_lat" "Acc@1 $eval_metric")
+                            break
+                        fi
+                        idx=$((idx + 1))
+                    done
+                fi
+            done
+            sleep 2
+        done
+        wait $pid1 2>/dev/null; wait $pid2 2>/dev/null
+
+        # 处理遗漏的模型
+        cat "${LOG_DIR}/ImageClassification_batch_eval_g1.log" "${LOG_DIR}/ImageClassification_batch_eval_g2.log" > "$batch_eval_log" 2>/dev/null
         for model in "${IC_MODELS[@]}"; do
-            if [ "$mode" = "eval" ]; then
-                TOTAL_MODELS=$((TOTAL_MODELS + 1))
-            fi
-            local model_eval_log="${LOG_DIR}/ImageClassification_${model}_eval.log"
-            awk "/Evaluating ${model} start/,/Evaluating ${model} finish/" "$batch_eval_log" > "$model_eval_log" 2>/dev/null
-
-            local eval_tput="" eval_lat="" eval_metric=""
-            if [ $rc -eq 0 ] || [ $rc -eq 124 ]; then
+            if [ -z "${eval_done[$model]}" ]; then
+                if [ "$mode" = "eval" ]; then
+                    TOTAL_MODELS=$((TOTAL_MODELS + 1))
+                fi
+                local model_eval_log="${LOG_DIR}/ImageClassification_${model}_eval.log"
+                awk "/Evaluating ${model} start/,/Evaluating ${model} finish/" "$batch_eval_log" > "$model_eval_log" 2>/dev/null
+                local eval_tput="" eval_lat="" eval_metric=""
                 eval_tput=$(extract_eval_throughput "$model_eval_log")
                 eval_lat=$(extract_eval_latency "$model_eval_log")
                 eval_metric=$(extract_metric "$model_eval_log" "ImageClassification")
-                EVAL_OK=$((EVAL_OK + 1))
-                echo -e "  ${COLOR_GREEN}$model EVAL: OK${COLOR_NC} throughput=${eval_tput:-N/A} Acc@1=${eval_metric:-N/A}"
-
-                # 更新对应的JSON结果
-                local idx=0
-                local dq='"'
-                for r in "${JSON_RESULTS[@]}"; do
-                    if echo "$r" | grep -q "${dq}model${dq}: ${dq}${model}${dq}"; then
-                        local t_status=$(echo "$r" | grep -oP "${dq}train${dq}:.*?${dq}status${dq}: ${dq}\K[^${dq}]*")
-                        local t_tput=$(echo "$r" | grep -oP "throughput_sps${dq}: \K[^,}]*")
-                        local t_step=$(echo "$r" | grep -oP "step_time_ms${dq}: \K[^,}]*")
-                        JSON_RESULTS[$idx]=$(make_result_json "ImageClassification" "$model" \
-                            "$t_status" "$t_tput" "$t_step" \
-                            "OK" "$eval_tput" "$eval_lat" "Acc@1 $eval_metric")
-                        break
-                    fi
-                    idx=$((idx + 1))
-                done
-            else
-                EVAL_FAIL=$((EVAL_FAIL + 1))
-                echo -e "  ${COLOR_RED}$model EVAL: FAIL${COLOR_NC}"
+                if [ -n "$eval_tput" ]; then
+                    EVAL_OK=$((EVAL_OK + 1))
+                    echo -e "  ${COLOR_GREEN}$model EVAL: OK${COLOR_NC} throughput=${eval_tput:-N/A} Acc@1=${eval_metric:-N/A}"
+                    local idx=0 local dq='"'
+                    for r in "${JSON_RESULTS[@]}"; do
+                        if echo "$r" | grep -q "${dq}model${dq}: ${dq}${model}${dq}"; then
+                            local t_status=$(echo "$r" | grep -oP "${dq}train${dq}:.*?${dq}status${dq}: ${dq}\K[^${dq}]*")
+                            local t_tput=$(echo "$r" | grep -oP "throughput_sps${dq}: \K[^,}]*")
+                            local t_step=$(echo "$r" | grep -oP "step_time_ms${dq}: \K[^,}]*")
+                            JSON_RESULTS[$idx]=$(make_result_json "ImageClassification" "$model" \
+                                "$t_status" "$t_tput" "$t_step" \
+                                "OK" "$eval_tput" "$eval_lat" "Acc@1 $eval_metric")
+                            break
+                        fi
+                        idx=$((idx + 1))
+                    done
+                else
+                    EVAL_FAIL=$((EVAL_FAIL + 1))
+                    echo -e "  ${COLOR_RED}$model EVAL: FAIL${COLOR_NC}"
+                fi
             fi
         done
     fi

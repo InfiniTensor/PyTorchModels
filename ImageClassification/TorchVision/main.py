@@ -367,7 +367,7 @@ def train(train_loader, model, criterion, optimizer, profiler, epoch, device, ar
         batch_time.update(time.time() - end)
         end = time.time()
 
-        if i % args.print_freq == 0:
+        if i % args.print_freq == 0 or i == 0:
             progress.display(i + 1)
     
     if profiler: 
@@ -414,7 +414,7 @@ def validate(val_loader, model, criterion, profiler, args, ngpus_per_node):
                 batch_time.update(time.time() - end)
                 end = time.time()
 
-                if i % args.print_freq == 0:
+                if i % args.print_freq == 0 or i == 0:
                     progress.display(i + 1)
             
             if profiler: 
