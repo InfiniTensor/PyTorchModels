@@ -30,9 +30,12 @@ if [ -f env.sh ]; then
 fi
 PLATFORM_ENV=${PLATFORM_ENV:-"UNKNOWN"}
 
-# 确保 CUDA_VISIBLE_DEVICES 生效（由 env.sh 或命令行设置）
-export CUDA_VISIBLE_DEVICES
-echo -e "${COLOR_CYAN}Using GPUs: ${CUDA_VISIBLE_DEVICES}${COLOR_NC}"
+# 确保 usercustomize.py（MUSA/NPU 等硬件适配钩子）在子进程中生效
+export PYTHONPATH="${SCRIPT_DIR}:${PYTHONPATH}"
+
+# 确保 MUSA_VISIBLE_DEVICES 生效（由 env.sh 或命令行设置）
+export MUSA_VISIBLE_DEVICES
+echo -e "${COLOR_CYAN}Using GPUs: ${MUSA_VISIBLE_DEVICES}${COLOR_NC}"
 
 # --- 颜色定义 ---
 COLOR_GREEN='\033[0;32m'
@@ -56,6 +59,19 @@ cleanup() {
     exit 1
 }
 trap cleanup SIGINT SIGTERM
+
+# --- 数据集符号链接 ---
+DATASET_SRC="/data-aisoft/Dataset"
+mkdir -p "${SCRIPT_DIR}/data"
+for ds in VOCdevkit coco lsun squad ml-20mx4x16 imagenet2012 mnist librispeech data_thchs30 complete_data.csv timeseq VOC2012-ESPCN; do
+    if [ -e "${DATASET_SRC}/${ds}" ]; then
+        ln -sfn "${DATASET_SRC}/${ds}" "${SCRIPT_DIR}/data/${ds}"
+    fi
+done
+# Speech scripts reference ../data/LibriSpeech directly
+if [ -e "${DATASET_SRC}/librispeech/LibriSpeech" ]; then
+    ln -sfn "${DATASET_SRC}/librispeech/LibriSpeech" "${SCRIPT_DIR}/data/LibriSpeech"
+fi
 
 # --- 日志目录 ---
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)

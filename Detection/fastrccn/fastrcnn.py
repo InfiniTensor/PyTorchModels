@@ -14,7 +14,7 @@ import sys
 from tqdm import tqdm
 
 # Set environment variable for CUDA visibility
-os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'  # 使用 GPU 0 和 1
+os.environ['MUSA_VISIBLE_DEVICES'] = '0,1'  # 使用 GPU 0 和 1
 os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 
 # Define argument parser
@@ -103,8 +103,8 @@ def get_coco_loader(root, ann_file, transform, batch_size, sample_percentage, sh
     return loader
 
 train_loader = get_coco_loader(
-    root="/data1/shared/Dataset/coco/images/train2017",
-    ann_file="/data1/shared/Dataset/coco/images/annotations/instances_train2017.json",
+    root="/data-aisoft/Dataset/coco/images/train2017",
+    ann_file="/data-aisoft/Dataset/coco/images/annotations/instances_train2017.json",
     transform=transform, 
     batch_size=args.train_batch, 
     sample_percentage=0.5,  # 设置抽样比例为 50%
@@ -112,8 +112,8 @@ train_loader = get_coco_loader(
 )
 
 test_loader = get_coco_loader(
-    root="/data1/shared/Dataset/coco/images/val2017",
-    ann_file="/data1/shared/Dataset/coco/images/annotations/instances_val2017.json",
+    root="/data-aisoft/Dataset/coco/images/val2017",
+    ann_file="/data-aisoft/Dataset/coco/images/annotations/instances_val2017.json",
     transform=transform, 
     batch_size=args.infer_batch, 
     sample_percentage=args.sample,

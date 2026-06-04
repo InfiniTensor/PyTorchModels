@@ -3,10 +3,10 @@
 if [ -e "../data/LibriSpeech" ]; then
     echo "../data/LibriSpeech exists"
 else
-    ln -s /data1/shared/Dataset/librispeech/LibriSpeech ../data/LibriSpeech
+    ln -sf /data-aisoft/Dataset/librispeech/LibriSpeech ../data/LibriSpeech
 fi
 
-export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0,1}
+export MUSA_VISIBLE_DEVICES=${MUSA_VISIBLE_DEVICES:-0,1}
 export HF_ENDPOINT=https://hf-mirror.com
 export LIBRISPEECH_PATH="../data/LibriSpeech"
 

@@ -3,7 +3,7 @@
 set -e
 
 # 多卡训练脚本
-export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0,1}
+export MUSA_VISIBLE_DEVICES=${MUSA_VISIBLE_DEVICES:-0,1}
 
 saved_dir=$1
 num_episodes=$2

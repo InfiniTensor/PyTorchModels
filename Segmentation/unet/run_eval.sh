@@ -7,12 +7,12 @@
 # 确保脚本在遇到错误时停止执行
 set -e
 
-export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0,1}
+export MUSA_VISIBLE_DEVICES=${MUSA_VISIBLE_DEVICES:-0,1}
 
 if [ -e "../data/VOCdevkit" ]; then
     echo "../data/VOCdevkit exists"
 else 
-    ln -s /data1/shared/Dataset/VOCdevkit ../data/VOCdevkit
+    ln -sf /data-aisoft/Dataset/VOCdevkit ../data/VOCdevkit
 fi
 
 # 运行train.py

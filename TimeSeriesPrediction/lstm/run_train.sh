@@ -2,7 +2,7 @@
 
 set -e 
 
-export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0,1}
+export MUSA_VISIBLE_DEVICES=${MUSA_VISIBLE_DEVICES:-0,1}
 
 dataset=$1
 epoch=$2

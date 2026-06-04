@@ -1,5 +1,5 @@
 # 无互联网连接时 - 单卡版
-export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0,1}
+export MUSA_VISIBLE_DEVICES=${MUSA_VISIBLE_DEVICES:-0,1}
 # export HF_ENDPOINT=https://hf-mirror.com
 
 # 检查软连接是否已经存在了
@@ -7,7 +7,7 @@ if [ -e "../data/squad" ]; then
     echo "../data/squad exists"
 else
     # 创建软连接
-    ln -s /data-aisoft/Dataset/squad ../data/squad
+    ln -sf /data-aisoft/Dataset/squad ../data/squad
 fi
 
 export SQUAD_PATH="../data/squad"

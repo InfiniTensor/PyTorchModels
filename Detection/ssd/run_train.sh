@@ -7,7 +7,7 @@
 set -e
 
 # 设置 CUDA 设备
-export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0,1}
+export MUSA_VISIBLE_DEVICES=${MUSA_VISIBLE_DEVICES:-0,1}
 
 # 获取环境变量，并将 ARCH 转换为小写
 DATA_DIR=${DATA_DIR:-""}

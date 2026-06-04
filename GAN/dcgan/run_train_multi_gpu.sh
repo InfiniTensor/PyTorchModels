@@ -27,5 +27,5 @@ rm -rf "$OUTPUT_DIR"
 echo "Creating a new output directory..."
 mkdir "$OUTPUT_DIR"
 
-export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0,1}
+export MUSA_VISIBLE_DEVICES=${MUSA_VISIBLE_DEVICES:-0,1}
 PYTHONUNBUFFERED=1 torchrun --nproc_per_node=4 train.py --dataset fake --cuda

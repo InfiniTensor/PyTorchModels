@@ -56,8 +56,8 @@ class PlatformPatcher(MetaPathFinder):
         # 2. 检测并适配不同的国产硬件平台
         platform_env = os.environ.get('PLATFORM_ENV')
 
-        # 尝试获取 CUDA_VISIBLE_DEVICES 的值
-        cuda_devices = os.environ.get("CUDA_VISIBLE_DEVICES")
+        # 尝试获取 MUSA_VISIBLE_DEVICES 的值
+        cuda_devices = os.environ.get("MUSA_VISIBLE_DEVICES")
         if platform_env == 'ASCEND_NPU':
 
             print(">>> HOOK: 检测到昇腾（ASCEND_NPU）平台...")
@@ -72,7 +72,7 @@ class PlatformPatcher(MetaPathFinder):
                     os.environ["ASCEND_RT_VISIBLE_DEVICES"] = cuda_devices
                     print(f"成功将 ASCEND_RT_VISIBLE_DEVICES 设置为: {cuda_devices}")
                 else:
-                    print("环境变量 CUDA_VISIBLE_DEVICES 未设置或为空，跳过赋值。")
+                    print("环境变量 MUSA_VISIBLE_DEVICES 未设置或为空，跳过赋值。")
 
                 print(">>> HOOK: 成功导入 'torch_npu'。NPU环境适配完成！")
 
@@ -95,7 +95,7 @@ class PlatformPatcher(MetaPathFinder):
                     os.environ["MLU_VISIBLE_DEVICES"] = cuda_devices
                     print(f"成功将 MLU_VISIBLE_DEVICES 设置为: {cuda_devices}")
                 else:
-                    print("环境变量 CUDA_VISIBLE_DEVICES 未设置或为空，跳过赋值。")
+                    print("环境变量 MUSA_VISIBLE_DEVICES 未设置或为空，跳过赋值。")
                 
                 print(">>> HOOK: 成功导入 'torch_mlu'。MLU环境适配完成！")
             except ImportError:
@@ -103,8 +103,108 @@ class PlatformPatcher(MetaPathFinder):
             except Exception as e:
                 print(f">>> HOOK: 错误！导入 'torch_mlu' 时发生异常: {e}")
 
+        elif platform_env in ('MOORE_GPU', 'METAX_GPU'):
+
+            gpu_name = "摩尔线程" if platform_env == 'MOORE_GPU' else "MetaX"
+            print(f">>> HOOK: 检测到{gpu_name}（{platform_env}）平台...")
+            try:
+                import torch_musa
+                torch_musa.overwrite_cuda_api()
+
+                # 代理 torch.cuda 的关键函数到 torch_musa
+                module.cuda.is_available = torch_musa.is_available
+                module.cuda.device_count = torch_musa.device_count
+                module.cuda.current_device = torch_musa.current_device
+                module.cuda.set_device = torch_musa.set_device
+                module.cuda.synchronize = torch_musa.synchronize
+                module.cuda.manual_seed = torch_musa.manual_seed
+                module.cuda.manual_seed_all = torch_musa.manual_seed_all
+
+                # 让 torch.device("cuda") 和 torch.device("cuda:0") 重定向到 "musa"
+                _orig_device = module.device
+
+                class _PatchedDevice:
+                    """拦截 torch.device("cuda[:X]") 调用，重定向到 musa"""
+                    def __init__(self, orig_device_cls):
+                        self._orig = orig_device_cls
+
+                    def __call__(self, type_arg, index=None):
+                        if isinstance(type_arg, str):
+                            if type_arg == "cuda":
+                                return self._orig("musa", index)
+                            if type_arg.startswith("cuda:"):
+                                idx = type_arg.split(":")[1]
+                                return self._orig(f"musa:{idx}")
+                        if isinstance(type_arg, int) and index is not None:
+                            return self._orig(type_arg, index)
+                        return self._orig(type_arg) if index is None else self._orig(type_arg, index)
+
+                    def __instancecheck__(self, instance):
+                        return isinstance(instance, self._orig)
+
+                module.device = _PatchedDevice(_orig_device)
+
+                # 让 Tensor.cuda() 重定向到 Tensor.musa()
+                _orig_tensor_cuda = module.Tensor.cuda
+
+                def _patched_cuda(self_tensor, *args, **kwargs):
+                    return self_tensor.musa(*args, **kwargs)
+
+                module.Tensor.cuda = _patched_cuda
+
+                # 拦截 .to("cuda") / .to("cuda:0") 调用，将字符串替换为 "musa"
+                def _cuda_to_musa_arg(args, kwargs):
+                    """将 args/kwargs 中的 "cuda" / "cuda:X" 替换为 "musa" / "musa:X" """
+                    new_args = []
+                    for a in args:
+                        if isinstance(a, str):
+                            if a == "cuda":
+                                a = "musa"
+                            elif a.startswith("cuda:"):
+                                a = "musa:" + a[5:]
+                        elif isinstance(a, _orig_device):
+                            s = str(a)
+                            if s.startswith("cuda"):
+                                a = _orig_device(s.replace("cuda", "musa", 1))
+                        new_args.append(a)
+                    if "device" in kwargs:
+                        d = kwargs["device"]
+                        if isinstance(d, str):
+                            if d == "cuda":
+                                kwargs["device"] = "musa"
+                            elif d.startswith("cuda:"):
+                                kwargs["device"] = "musa:" + d[5:]
+                        elif isinstance(d, _orig_device):
+                            s = str(d)
+                            if s.startswith("cuda"):
+                                kwargs["device"] = _orig_device(s.replace("cuda", "musa", 1))
+                    return tuple(new_args), kwargs
+
+                _orig_module_to = module.nn.Module.to
+
+                def _patched_module_to(self, *args, **kwargs):
+                    args, kwargs = _cuda_to_musa_arg(args, kwargs)
+                    return _orig_module_to(self, *args, **kwargs)
+
+                module.nn.Module.to = _patched_module_to
+
+                _orig_tensor_to = module.Tensor.to
+
+                def _patched_tensor_to(self, *args, **kwargs):
+                    args, kwargs = _cuda_to_musa_arg(args, kwargs)
+                    return _orig_tensor_to(self, *args, **kwargs)
+
+                module.Tensor.to = _patched_tensor_to
+
+                print(f">>> HOOK: 成功导入 'torch_musa'。{gpu_name}环境适配完成！")
+
+            except ImportError:
+                print(f">>> HOOK: 警告！平台适配失败，无法导入 'torch_musa'")
+            except Exception as e:
+                print(f">>> HOOK: 错误！导入 'torch_musa' 时发生异常: {e}")
+
         else:
-            print(">>> HOOK: 非昇腾或寒武纪平台，跳过特定硬件库的导入。")
+            print(">>> HOOK: 非昇腾、寒武纪或摩尔线程平台，跳过特定硬件库的导入。")
 
         # 将加载好的 torch 模块放入 sys.modules，这是 import 机制的一部分
         sys.modules['torch'] = module

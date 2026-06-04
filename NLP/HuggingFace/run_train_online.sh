@@ -1,5 +1,5 @@
 # 有互联网连接时
-export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0,1}
+export MUSA_VISIBLE_DEVICES=${MUSA_VISIBLE_DEVICES:-0,1}
 export HF_ENDPOINT=https://hf-mirror.com
 
 PYTHONUNBUFFERED=1 python3 qa.py \

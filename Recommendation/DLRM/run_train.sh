@@ -7,13 +7,13 @@
 set -e  # 一旦出现错误，退出脚本
 
 # CUDA设备配置
-export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0,1}
+export MUSA_VISIBLE_DEVICES=${MUSA_VISIBLE_DEVICES:-0,1}
 
 # 获取当前脚本所在目录
 CUR_DIR=$(cd $(dirname $0); pwd)
 
 # 默认配置
-DATASET_DIR=${DATA_DIR:-""}  # /data1/shared/Dataset/ml-20mx4x16
+DATASET_DIR=${DATA_DIR:-""}  # /data-aisoft/Dataset/ml-20mx4x16
 THRESHOLD=${THRESHOLD:-1.0}  # 默认阈值
 ckp_dir=${CUR_DIR}/checkpoints  # 检查点保存路径
 cache_dir=${CUR_DIR}/data  # 缓存目录

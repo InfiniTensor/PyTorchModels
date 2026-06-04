@@ -7,7 +7,7 @@
 
 set -e
 
-export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0,1}
+export MUSA_VISIBLE_DEVICES=${MUSA_VISIBLE_DEVICES:-0,1}
 
 # 读取环境变量，并将 MODEL 转换为小写
 MODEL=${MODEL:-"yolov5s"}
@@ -45,7 +45,7 @@ if [ -e "../data/coco" ]; then
     echo "Dataset ../data/coco exists"
 else
     echo "Linking dataset from $DATA_DIR to ../data/coco"
-    ln -s "$DATA_DIR" ../data
+    ln -sf "$DATA_DIR" ../data
 fi
 
 # 复制字体文件

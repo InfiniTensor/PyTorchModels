@@ -32,7 +32,7 @@ from masr.utils.utils import labels_to_string
 os.environ['MASTER_ADDR'] = 'localhost'
 os.environ['MASTER_PORT'] = '14514'
 os.environ['RANK'] = '0'
-# os.environ["CUDA_VISIBLE_DEVICES"] = "7"
+# os.environ["MUSA_VISIBLE_DEVICES"] = "7"
 os.environ['WORLD_SIZE'] = '1'
 
 class MASRTrainer(object):

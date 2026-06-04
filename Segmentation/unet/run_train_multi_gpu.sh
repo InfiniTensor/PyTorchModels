@@ -3,12 +3,12 @@
 # 多卡训练脚本
 set -e
 
-export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0,1}
+export MUSA_VISIBLE_DEVICES=${MUSA_VISIBLE_DEVICES:-0,1}
 
 if [ -e "../data/VOCdevkit" ]; then
     echo "../data/VOCdevkit exists"
 else
-    ln -s /data1/shared/Dataset/VOCdevkit ../data/VOCdevkit
+    ln -sf /data-aisoft/Dataset/VOCdevkit ../data/VOCdevkit
 fi
 
 torchrun --nproc_per_node=4 train.py \

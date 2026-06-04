@@ -4,12 +4,12 @@ SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 
 set -e
 
-export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0,1}
+export MUSA_VISIBLE_DEVICES=${MUSA_VISIBLE_DEVICES:-0,1}
 
 if [ -e "../data/VOCdevkit" ]; then
     echo "../data/VOCdevkit exists"
 else 
-    ln -s /data1/shared/Dataset/VOCdevkit ../data/VOCdevkit
+    ln -sf /data-aisoft/Dataset/VOCdevkit ../data/VOCdevkit
 fi
 
 python $SCRIPT_DIR/fcn.py \
