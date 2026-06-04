@@ -1,7 +1,12 @@
 import os
 import sys
 import importlib.util
+import types
 from importlib.abc import MetaPathFinder
+
+# Mock visdom for torchnet (visdom fails to build on some platforms)
+if 'visdom' not in sys.modules:
+    sys.modules['visdom'] = types.ModuleType('visdom')
 
 # --- 为了避免魔法行为，提供清晰的日志 ---
 print(f"--- [usercustomize.py v2.0 'Import Hook' in '{__file__}'] ---")
