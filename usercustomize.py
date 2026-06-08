@@ -54,27 +54,31 @@ class PlatformPatcher(MetaPathFinder):
         print(f">> HOOK: 'torch' v{module.__version__} loaded")
 
         # 1.5 绕过 transformers 的 torch.load 安全检查（要求 torch>=2.6）
-        # 注册 meta_path hook：当 transformers 首次被导入后，立刻 patch 掉检查函数
-        _tf_patched = False
+        # 注册 import hook：当 transformers.utils.import_utils 加载后，立刻 patch 掉检查函数
+        class _TfPatcher(MetaPathFinder):
+            _patched = False
 
-        class _TransformersPatcher(MetaPathFinder):
             def find_spec(self, fullname, path, target=None):
-                nonlocal _tf_patched
-                if not _tf_patched and fullname == "transformers":
-                    # transformers 还没加载完，等它加载完后 patch
-                    _tf_patched = True
-                    # 延迟执行：等当前 import 完成后再 patch
-                    import threading
-                    def _do_patch():
-                        try:
-                            import transformers.utils.import_utils as _tf_utils
-                            _tf_utils.check_torch_load_is_safe = lambda: None
-                        except Exception:
-                            pass
-                    threading.Thread(target=_do_patch).start()
+                if not self.__class__._patched and fullname == "transformers.utils.import_utils":
+                    self.__class__._patched = True
+                    # 临时移除自己
+                    self_ref = self
+                    sys.meta_path.remove(self_ref)
+                    try:
+                        spec = importlib.util.find_spec(fullname)
+                    finally:
+                        sys.meta_path.append(self_ref)
+                    if spec and spec.loader and hasattr(spec.loader, 'exec_module'):
+                        _orig = spec.loader.exec_module
+                        def _wrapped(mod):
+                            _orig(mod)
+                            if hasattr(mod, 'check_torch_load_is_safe'):
+                                mod.check_torch_load_is_safe = lambda: None
+                        spec.loader.exec_module = _wrapped
+                    return spec
                 return None
 
-        sys.meta_path.append(_TransformersPatcher())
+        sys.meta_path.insert(0, _TfPatcher())
 
         # 2. 检测并适配不同的国产硬件平台
         platform_env = os.environ.get('PLATFORM_ENV')
