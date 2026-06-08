@@ -19,7 +19,7 @@ export SQUAD_PATH="../data/squad"
 #   tokenizer.json
 #   vocab.txt
 
-model=$1
+model=${1:-"bert-base-uncased"}
 
 declare -A MODELS
 

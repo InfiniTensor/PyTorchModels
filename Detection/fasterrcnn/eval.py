@@ -51,6 +51,8 @@ def eval(dataloader, faster_rcnn, test_num=10000):
             print(f'Average inference latency: {avg_lat:.2f} ms/sample', flush=True)
 
         if ii == test_num: break
+
+    result = eval_detection_voc(
         pred_bboxes, pred_labels, pred_scores,
         gt_bboxes, gt_labels, gt_difficults,
         use_07_metric=True)
