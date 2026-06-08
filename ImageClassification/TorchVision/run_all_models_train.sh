@@ -56,15 +56,30 @@ fi
 
 echo "Training start: $(date +'%m/%d/%Y %T')"
 
+# 默认 batch_size，可通过环境变量覆盖
+default_bs=${IC_BATCH_SIZE:-64}
+
 # 遍历所有模型
 for model in "${models[@]}"; do
     echo "Training $model start: $(date +'%m/%d/%Y %T')"
-    
+
+    # 部分模型在 NPU 上需要更小的 batch_size
+    bs=$default_bs
+    case "$model" in
+        vgg11_bn|vgg13|vgg13_bn|vgg16|vgg16_bn|vgg19|vgg19_bn) bs=32 ;;
+        inception_v3|mobilenet_v2) bs=32 ;;
+        convnext_*) bs=16 ;;
+        efficientnet_b[5-7]) bs=16 ;;
+        regnet_x_16gf|regnet_x_32gf|regnet_x_8gf|regnet_y_16gf|regnet_y_32gf|regnet_y_8gf|regnet_y_128gf) bs=16 ;;
+        resnext101_32x8d|wide_resnet101_2) bs=16 ;;
+        vit_l_16) bs=16 ;;
+    esac
+
     PYTHONUNBUFFERED=1 python main.py \
         -a "$model" \
         --gpu 0 \
         --dummy \
-        --batch-size 64 \
+        --batch-size $bs \
         $DATA_DIR &
 
     # 获取进程 ID
