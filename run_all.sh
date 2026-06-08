@@ -43,7 +43,7 @@ COLOR_CYAN='\033[0;36m'
 COLOR_NC='\033[0m'
 
 # --- 超时配置 ---
-TRAIN_TIMEOUT="3m"
+TRAIN_TIMEOUT="5m"
 EVAL_TIMEOUT="2m"
 
 # --- Ctrl+C 清理所有子进程 ---
