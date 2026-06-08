@@ -58,8 +58,7 @@ python ncf.py \
     --device gpu \
     --workers 8 \
     --do_predict \
-    --cachedir ${cache_dir} \
-    --multiprocessing-distributed
+    --cachedir ${cache_dir}
 
 echo "Training finished successfully"
 

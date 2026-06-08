@@ -430,7 +430,7 @@ run_rl_eval() {
 # --- Recommendation ---
 run_rec_train() {
     local logfile="$1"
-    run_task "$logfile" "$TRAIN_TIMEOUT" "Recommendation/DLRM train" \
+    run_task "$logfile" "5m" "Recommendation/DLRM train" \
         'cd Recommendation/DLRM && DATA_DIR=../data/ml-20mx4x16 bash run_train.sh'
 }
 

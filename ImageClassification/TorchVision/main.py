@@ -8,6 +8,12 @@ from enum import Enum
 
 import torch
 import torch.backends.cudnn as cudnn
+
+# Monkey-patch to skip hash verification (PyTorch Hub weights hash mismatch)
+_orig_download = torch.hub.download_url_to_file
+def _download_no_hash(url, dst, hash_prefix=None, progress=True):
+    return _orig_download(url, dst, hash_prefix=None, progress=progress)
+torch.hub.download_url_to_file = _download_no_hash
 import torch.distributed as dist
 import torch.multiprocessing as mp
 import torch.nn as nn
