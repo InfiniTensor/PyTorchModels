@@ -27,6 +27,19 @@ import warnings
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Union
 
+# Patch torch.load to bypass version check on adapted torch builds
+import torch as _torch
+_orig_torch_load = _torch.load
+def _patched_torch_load(*args, **kwargs):
+    try:
+        return _orig_torch_load(*args, **kwargs)
+    except ValueError as e:
+        if 'torch.load' in str(e) and 'v2.6' in str(e):
+            kwargs['weights_only'] = False
+            return _orig_torch_load(*args, **kwargs)
+        raise
+_torch.load = _patched_torch_load
+
 import datasets
 import evaluate
 import torch

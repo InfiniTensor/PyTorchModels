@@ -69,21 +69,27 @@ fi
 MODEL_PATH="./${MODEL}.pt"
 
 # 下载模型权重
-if [ -e "$MODEL_PATH" ]; then
-    echo "$MODEL_PATH exists"
+if [ -f "$MODEL_PATH" ] && [ -s "$MODEL_PATH" ]; then
+    echo "$MODEL_PATH exists ($(stat -c%s "$MODEL_PATH") bytes)"
 else
+    rm -f "$MODEL_PATH"
     echo "Downloading $MODEL from ${MODELS[$MODEL]} (timeout 60s)..."
-    timeout 60 wget -O "$MODEL_PATH" "${MODELS[$MODEL]}" || echo "Download failed, will use random weights"
+    timeout 60 wget -O "$MODEL_PATH" "${MODELS[$MODEL]}" 2>/dev/null || true
+    # Verify download succeeded (file exists and non-empty)
+    if [ ! -f "$MODEL_PATH" ] || [ ! -s "$MODEL_PATH" ]; then
+        rm -f "$MODEL_PATH"
+        echo "Download failed, will use random weights"
+    fi
 fi
 
 echo "Evaluation Start: $(date +'%m/%d/%Y %T')"
 
 echo "Evaluating $MODEL..."
-if [ -f "$MODEL_PATH" ]; then
+if [ -f "$MODEL_PATH" ] && [ -s "$MODEL_PATH" ]; then
     python3 val.py --weights "$MODEL_PATH" --data coco.yaml --img 640 --max-batches 10
 else
-    echo "WARNING: $MODEL_PATH not found, using random weights for benchmark"
-    python3 val.py --weights "" --cfg "models/${MODEL}.yaml" --data coco.yaml --img 640 --max-batches 10 --task val 2>/dev/null || echo "Eval with random weights completed"
+    echo "WARNING: no valid weights for $MODEL, skipping evaluation"
+    echo "Eval metrics: mAP50: N/A mAP50-95: N/A"
 fi
 
 echo "Evaluation Finish: $(date +'%m/%d/%Y %T')"

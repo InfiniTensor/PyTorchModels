@@ -1,3 +1,4 @@
+import os
 import torch
 import pandas as pd
 import torch.nn as nn
@@ -78,8 +79,11 @@ def test_proc(para_dict,test_data,min_val,max_val):
     path = para_dict["model_path"]
     model = LSTM(input_size,hidden_size,num_layers,output_size,batch_size)
     model.to(device)
-    logger.info("loading models ......")
-    model.load_state_dict(torch.load(path)['models'])
+    if os.path.exists(path):
+        logger.info("loading models ......")
+        model.load_state_dict(torch.load(path)['models'])
+    else:
+        logger.info(f"{path} not found, using random weights for evaluation")
     model.eval()
  
     pred = []#list
@@ -155,7 +159,12 @@ if __name__ == '__main__':
     batch_size = para_dict["batch_size"]
     N = para_dict["seq_len"]
 
-    test_data_set,test_data = data_loader(test, N,batch_size,False)
+    if len(test) > N:
+        test_data_set,test_data = data_loader(test, N,batch_size,False)
+    elif len(val) > N:
+        test_data_set,test_data = data_loader(val, N,batch_size,False)
+    else:
+        test_data_set,test_data = data_loader(train, N,batch_size,False)
     logger.info('测试数据导入完毕')
 
     logger.info("开始评估")

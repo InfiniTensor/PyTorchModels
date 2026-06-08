@@ -47,9 +47,13 @@ cleanup() {
 # 设置脚本退出时执行清理操作，无论是正常退出还是由于错误中断
 trap cleanup EXIT
 
-# 执行数据集预处理
-echo "Dataset preprocessing..."
-python create_data_lists.py --voc07_path=$DATA_DIR/VOC2007 --voc12_path=$DATA_DIR/VOC2012 --output_folder=./data
+# 执行数据集预处理（仅当数据文件不存在时）
+if [ ! -f "./data/TEST_images.json" ]; then
+    echo "Dataset preprocessing..."
+    python create_data_lists.py --voc07_path=$DATA_DIR/VOC2007 --voc12_path=$DATA_DIR/VOC2012 --output_folder=./data
+else
+    echo "Dataset already preprocessed, skipping..."
+fi
 
 
 # 执行 eval.py 进行评估

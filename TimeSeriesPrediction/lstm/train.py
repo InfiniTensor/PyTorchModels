@@ -145,29 +145,34 @@ def train_proc(para_dict, train_data, val_data):
         
         # 验证
         model.eval()
-        val_bar = tqdm(val_data, total=len(val_data), desc='Validating', leave=False)
-        for seq, label in val_bar:
-            seq = seq.to(device)
-            label = label.to(device)
-            with torch.no_grad():
-                y_pred = model(seq)
-                loss = loss_function(y_pred, label)
-                val_loss_tmp += loss.item()
-                val_bar.set_postfix({'val_loss': f'{loss.item():.5f}'})
+        if val_data is not None:
+            val_bar = tqdm(val_data, total=len(val_data), desc='Validating', leave=False)
+            for seq, label in val_bar:
+                seq = seq.to(device)
+                label = label.to(device)
+                with torch.no_grad():
+                    y_pred = model(seq)
+                    loss = loss_function(y_pred, label)
+                    val_loss_tmp += loss.item()
+                    val_bar.set_postfix({'val_loss': f'{loss.item():.5f}'})
 
         # 最优模型
-        if val_loss_tmp < min_val_loss:
+        if val_data is not None and val_loss_tmp < min_val_loss:
             min_val_loss = val_loss_tmp
             best_model = copy.deepcopy(model)
-            torch.save({'models': best_model.state_dict()}, 
+            torch.save({'models': best_model.state_dict()},
                       os.path.join(para_dict["modelpara_path"], 'lstm_best.pt'))
-        
+
         # 损失保存
         train_loss_tmp /= len(train_data)
-        val_loss_tmp /= len(val_data)
+        if val_data is not None:
+            val_loss_tmp /= len(val_data)
+            val_loss.append(val_loss_tmp)
         train_loss.append(train_loss_tmp)
-        val_loss.append(val_loss_tmp)
-        logger.info(f"Val: epoch={epoch_idx+1:3d}/{epoch}: train_loss = {train_loss_tmp:05f}, val_loss = {val_loss_tmp:05f}")
+        if val_data is not None:
+            logger.info(f"Val: epoch={epoch_idx+1:3d}/{epoch}: train_loss = {train_loss_tmp:05f}, val_loss = {val_loss_tmp:05f}")
+        else:
+            logger.info(f"Val: epoch={epoch_idx+1:3d}/{epoch}: train_loss = {train_loss_tmp:05f}")
 
         # 保存模型
         if epoch_idx % para_dict['save_step'] == 0:
@@ -212,12 +217,14 @@ if __name__ == '__main__':
 
     logger.info("训练集的大小为{}".format(train.shape))
     logger.info("验证集的大小为{}".format(val.shape))
- 
+
     batch_size = para_dict["batch_size"]
     N = para_dict["seq_len"]
     train_data_set,train_data = data_loader(train,N,batch_size,True)
     logger.info('训练数据导入完毕')
-    val_data_set,val_data = data_loader(val, N,batch_size,True)
+    val_data = None
+    if len(val) > N:
+        val_data_set,val_data = data_loader(val, N,batch_size,False)
     logger.info('验证数据导入完毕')
  
     logger.info('开始训练')

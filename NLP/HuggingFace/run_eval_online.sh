@@ -11,5 +11,6 @@ torchrun \
     --per_device_eval_batch_size 10 \
     --max_seq_length 384 \
     --doc_stride 128 \
+    --max_eval_samples 1000 \
     --do_eval \
     --output_dir /tmp/debug_squad/

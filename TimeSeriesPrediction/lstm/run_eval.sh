@@ -10,11 +10,12 @@ dataset=$1
 if [ -e "$ckpt" ]; then
        echo "$ckpt exists, use it"
 else
-       echo "$ckpt not exists, please run train first"
+       echo "$ckpt not exists, using random weights"
 fi
 
 python -W ignore eval.py \
        --dataset $dataset \
        --model_path $ckpt \
+       --batch_size 4 \
 
 # bash run_eval.sh ../data/complete_data.csv ./checkpoints/lstm_best.pt

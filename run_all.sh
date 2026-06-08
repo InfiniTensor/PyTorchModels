@@ -338,15 +338,15 @@ run_detection_eval() {
     local logfile="$2"
     case "$model" in
         fasterrcnn)
-            run_task "$logfile" "$EVAL_TIMEOUT" "Detection/fasterrcnn eval" \
+            run_task "$logfile" "3m" "Detection/fasterrcnn eval" \
                 'cd Detection/fasterrcnn && DATA_DIR=../data/VOCdevkit CKPT_DIR=./ bash run_eval.sh'
             ;;
         ssd)
-            run_task "$logfile" "$EVAL_TIMEOUT" "Detection/ssd eval" \
+            run_task "$logfile" "3m" "Detection/ssd eval" \
                 'cd Detection/ssd && DATA_DIR=../data/VOCdevkit bash run_eval.sh'
             ;;
         yolo)
-            run_task "$logfile" "$EVAL_TIMEOUT" "Detection/yolo eval" \
+            run_task "$logfile" "3m" "Detection/yolo eval" \
                 'cd Detection/yolo && MODEL=yolov5s DATA_DIR=../data/coco bash run_eval.sh'
             ;;
     esac
