@@ -56,15 +56,32 @@ fi
 
 echo "Training start: $(date +'%m/%d/%Y %T')"
 
+# 大模型降低 batch_size 避免 OOM (64GB 显存)
+declare -A MODEL_BATCH
+MODEL_BATCH[densenet161]=32
+MODEL_BATCH[densenet201]=32
+MODEL_BATCH[resnet152]=32
+MODEL_BATCH[resnext101_32x8d]=32
+MODEL_BATCH[resnext50_32x4d]=32
+MODEL_BATCH[efficientnet_b4]=32
+MODEL_BATCH[efficientnet_b6]=16
+MODEL_BATCH[vgg16_bn]=32
+MODEL_BATCH[regnet_y_8gf]=32
+MODEL_BATCH[regnet_y_16gf]=16
+MODEL_BATCH[wide_resnet101_2]=32
+MODEL_BATCH[wide_resnet50_2]=32
+MODEL_BATCH[vit_l_32]=32
+
 # 遍历所有模型
 for model in "${models[@]}"; do
     echo "Training $model start: $(date +'%m/%d/%Y %T')"
-    
+    bs=${MODEL_BATCH[$model]:-64}
+
     PYTHONUNBUFFERED=1 python main.py \
         -a "$model" \
         --gpu 0 \
         --dummy \
-        --batch-size 64 \
+        --batch-size $bs \
         $DATA_DIR &
 
     # 获取进程 ID

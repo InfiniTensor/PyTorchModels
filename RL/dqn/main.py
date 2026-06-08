@@ -149,6 +149,7 @@ def infer(model_path):
         episode_return +=reward
         state = next_state
     logger.info("return:%s"%episode_return)
+    print(f'Reward: {episode_return}')
 
     # Print inference throughput and latency
     if total_steps > 0:

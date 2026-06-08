@@ -32,6 +32,17 @@ PLATFORM_ENV=${PLATFORM_ENV:-"UNKNOWN"}
 
 # 确保 CUDA_VISIBLE_DEVICES 生效（由 env.sh 或命令行设置）
 export CUDA_VISIBLE_DEVICES
+if [ -z "$CUDA_VISIBLE_DEVICES" ]; then
+    # 自动检测可用GPU，取前2张
+    all_gpus=$(mx-smi -L 2>/dev/null | grep -c "GPU" || nvidia-smi -L 2>/dev/null | grep -c "GPU" || echo 0)
+    if [ "$all_gpus" -ge 2 ]; then
+        export CUDA_VISIBLE_DEVICES="0,1"
+    elif [ "$all_gpus" -eq 1 ]; then
+        export CUDA_VISIBLE_DEVICES="0"
+    else
+        echo -e "${COLOR_RED}Warning: No GPUs detected${COLOR_NC}"
+    fi
+fi
 echo -e "${COLOR_CYAN}Using GPUs: ${CUDA_VISIBLE_DEVICES}${COLOR_NC}"
 
 # --- 颜色定义 ---
@@ -249,8 +260,20 @@ extract_metric() {
         TimeSeriesPrediction)
             grep -oP 'Acc[=:]\s*\K[\d.]+' "$logfile" 2>/dev/null | tail -1
             ;;
+        GAN)
+            grep -oP 'FID[:\s]*\K[\d.]+' "$logfile" 2>/dev/null | tail -1
+            ;;
+        NLP)
+            grep -oP '"f1"[:\s]*\K[\d.]+' "$logfile" 2>/dev/null | tail -1
+            ;;
+        RL)
+            grep -oP 'Reward[:\s]*\K[\d.]+' "$logfile" 2>/dev/null | tail -1
+            ;;
+        SR)
+            grep -oP '(?:PSNR|SSIM)[:\s]*\K[\d.]+' "$logfile" 2>/dev/null | tail -1
+            ;;
         *)
-            grep -oP '(?:accuracy|Acc@1|mAP|mIoU|F1|Loss)[:\s=]+\K[\d.]+' "$logfile" 2>/dev/null | tail -1
+            grep -oP '(?:accuracy|Acc@1|mAP|mIoU|F1|Reward|PSNR|cer)[:\s=]*\K[\d.]+' "$logfile" 2>/dev/null | tail -1
             ;;
     esac
 }
