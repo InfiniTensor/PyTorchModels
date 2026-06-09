@@ -332,6 +332,10 @@ run_task() {
             if grep -qE '(Train throughput:|Throughput:|Inference throughput:|Evaluate throughput:|Avg it/s:|samples_per_second|Batch Time [0-9]|Average inference latency:)' "$logfile" 2>/dev/null; then
                 echo -e "${COLOR_GREEN}  [EARLY STOP] $task_name - 已获取指标，提前结束${COLOR_NC}"
                 kill $cmd_pid 2>/dev/null
+                pkill -P $cmd_pid 2>/dev/null
+                sleep 1
+                kill -9 $cmd_pid 2>/dev/null
+                pkill -9 -P $cmd_pid 2>/dev/null
                 wait $cmd_pid 2>/dev/null
                 return 0
             fi
@@ -340,6 +344,10 @@ run_task() {
         # 超时
         if [ $elapsed -ge $max_secs ]; then
             kill $cmd_pid 2>/dev/null
+            pkill -P $cmd_pid 2>/dev/null
+            sleep 1
+            kill -9 $cmd_pid 2>/dev/null
+            pkill -9 -P $cmd_pid 2>/dev/null
             wait $cmd_pid 2>/dev/null
             return 124
         fi
