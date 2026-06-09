@@ -557,7 +557,7 @@ DOMAIN_MODELS[RL]="dqn"
 DOMAIN_MODELS[Recommendation]="dlrm"
 DOMAIN_MODELS[SR]="espcn"
 DOMAIN_MODELS[Segmentation]="deeplab fcn lraspp unet"
-DOMAIN_MODELS[Speech]="deepspeech2 wav2vec"
+DOMAIN_MODELS[Speech]="deepspeech2"
 DOMAIN_MODELS[TimeSeriesPrediction]="lstm tcn"
 
 # 有效领域列表
@@ -1019,11 +1019,37 @@ for domain in "${SELECTED_DOMAINS[@]}"; do
     echo -e "${COLOR_BLUE}========================================${COLOR_NC}"
 
     if [ "$domain" = "ImageClassification" ]; then
+        # FILTER_MODELS 过滤 IC 模型列表
+        if [ -n "$FILTER_MODELS" ]; then
+            _saved_ic=("${IC_MODELS[@]}")
+            IC_MODELS=()
+            for m in "${_saved_ic[@]}"; do
+                for fm in $FILTER_MODELS; do
+                    [ "$m" = "$fm" ] && IC_MODELS+=("$m") && break
+                done
+            done
+            if [ ${#IC_MODELS[@]} -eq 0 ]; then
+                echo -e "${COLOR_YELLOW}  无匹配模型，跳过${COLOR_NC}"
+                IC_MODELS=("${_saved_ic[@]}")
+                continue
+            fi
+        fi
         # ImageClassification 使用批量处理
         process_ic_batch "$MODE"
+        if [ -n "$FILTER_MODELS" ]; then
+            IC_MODELS=("${_saved_ic[@]}")
+        fi
     else
         models="${DOMAIN_MODELS[$domain]}"
         for model in $models; do
+            # FILTER_MODELS 过滤：只跑指定模型
+            if [ -n "$FILTER_MODELS" ]; then
+                _skip=1
+                for fm in $FILTER_MODELS; do
+                    [ "$model" = "$fm" ] && _skip=0 && break
+                done
+                [ $_skip -eq 1 ] && continue
+            fi
             process_model "$domain" "$model" "$MODE"
         done
     fi
