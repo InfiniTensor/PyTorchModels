@@ -46,6 +46,11 @@ COLOR_NC='\033[0m'
 TRAIN_TIMEOUT="3m"
 EVAL_TIMEOUT="2m"
 
+# --- Early Stop 配置 ---
+# EARLY_STOP=1: 检测到首个吞吐量指标后立即停止，节省时间
+# EARLY_STOP=0: 跑完或等超时再提取指标
+EARLY_STOP=${EARLY_STOP:-1}
+
 # --- Ctrl+C 清理所有子进程 ---
 cleanup() {
     echo -e "\n${COLOR_YELLOW}正在停止所有进程...${COLOR_NC}"
@@ -302,11 +307,50 @@ run_task() {
         echo -e "${COLOR_CYAN}  [RUN] $task_name (no timeout)${COLOR_NC}"
         bash -c "$@" > "$logfile" 2>&1
         return $?
-    else
-        echo -e "${COLOR_CYAN}  [RUN] $task_name (timeout: ${timeout_val})${COLOR_NC}"
-        timeout "$timeout_val" bash -c "$@" > "$logfile" 2>&1
-        return $?
     fi
+
+    # 超时转秒
+    local max_secs
+    case "$timeout_val" in
+        *m) max_secs=$((${timeout_val%m} * 60)) ;;
+        *s) max_secs=${timeout_val%s} ;;
+        *)  max_secs=$timeout_val ;;
+    esac
+
+    local tag="timeout: ${timeout_val}"
+    [ "$EARLY_STOP" = "1" ] && tag="${tag}, early stop"
+    echo -e "${COLOR_CYAN}  [RUN] $task_name (${tag})${COLOR_NC}"
+
+    # 后台启动命令
+    bash -c "$@" > "$logfile" 2>&1 &
+    local cmd_pid=$!
+
+    local elapsed=0
+    while kill -0 $cmd_pid 2>/dev/null; do
+        # Early stop: 等至少 10 秒再检测，避免误判
+        if [ "$EARLY_STOP" = "1" ] && [ $elapsed -ge 10 ]; then
+            if grep -qE '(Train throughput:|Throughput:|Inference throughput:|Evaluate throughput:|Avg it/s:|samples_per_second|Batch Time [0-9]|Average inference latency:)' "$logfile" 2>/dev/null; then
+                echo -e "${COLOR_GREEN}  [EARLY STOP] $task_name - 已获取指标，提前结束${COLOR_NC}"
+                kill $cmd_pid 2>/dev/null
+                wait $cmd_pid 2>/dev/null
+                return 0
+            fi
+        fi
+
+        # 超时
+        if [ $elapsed -ge $max_secs ]; then
+            kill $cmd_pid 2>/dev/null
+            wait $cmd_pid 2>/dev/null
+            return 124
+        fi
+
+        sleep 2
+        elapsed=$((elapsed + 2))
+    done
+
+    # 进程自然结束
+    wait $cmd_pid 2>/dev/null
+    return $?
 }
 
 # ==============================================================================
