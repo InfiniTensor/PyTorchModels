@@ -54,7 +54,7 @@ python create_data_lists.py --voc07_path=$DATA_DIR/VOC2007 --voc12_path=$DATA_DI
 
 # 执行 eval.py 进行评估
 echo "Evaluate SSD START"
-python eval.py --checkpoint "$CKPT_PATH" --max_batches 10
+PYTHONUNBUFFERED=1 python eval.py --checkpoint "$CKPT_PATH" --batch_size 8 --max_batches 10
 
 echo "Evaluate SSD FINISHED"
 

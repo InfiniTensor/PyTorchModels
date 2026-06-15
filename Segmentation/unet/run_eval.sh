@@ -28,7 +28,7 @@ echo "Evaluating UNet START"
 python eval.py \
        --device cuda \
        --input_size 256 \
-       --classes 22 \
+       --classes 21 \
        --dataset_path ../data \
        --VOC_year 2007 \
 

@@ -216,8 +216,8 @@ class MASRTrainer(object):
         :param resume_model: 恢复训练，当为None则不使用预训练模型
         :param pretrained_model: 预训练模型的路径，当为None则不使用预训练模型
         """
-        # 获取有多少张显卡训练
-        nranks = torch.cuda.device_count()
+        # 获取有多少张显卡训练（强制单卡，避免DDP在NPU上的兼容问题）
+        nranks = 1
         local_rank = 0
         if nranks > 1:
             # 初始化NCCL环境
@@ -353,8 +353,8 @@ class MASRTrainer(object):
                     total_loss += loss.item()
                     total_batches += 1
 
-                    # Print cumulative throughput every 10 batches
-                    if batch_id > 0 and batch_id % 10 == 0 and local_rank == 0:
+                    # Print cumulative throughput every batch
+                    if batch_id > 0 and local_rank == 0:
                         cumulative_time = time.time() - start_epoch
                         cumulative_samples = (batch_id + 1) * batch_size
                         throughput = cumulative_samples / cumulative_time

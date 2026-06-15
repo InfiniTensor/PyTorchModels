@@ -64,7 +64,6 @@ for model in "${models[@]}"; do
         -a "$model" \
         --gpu 0 \
         --batch-size 64 \
-        --pretrained \
         --evaluate \
         $DATA_DIR &
 

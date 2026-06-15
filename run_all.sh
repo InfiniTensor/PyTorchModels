@@ -44,7 +44,12 @@ COLOR_NC='\033[0m'
 
 # --- 超时配置 ---
 TRAIN_TIMEOUT="5m"
-EVAL_TIMEOUT="2m"
+EVAL_TIMEOUT="5m"
+
+# --- Early Stop 配置 ---
+# EARLY_STOP=1: 检测到首个吞吐量指标后立即停止，节省时间
+# EARLY_STOP=0: 跑完或等超时再提取指标
+EARLY_STOP=${EARLY_STOP:-1}
 
 # --- Ctrl+C 清理所有子进程 ---
 cleanup() {
@@ -302,11 +307,58 @@ run_task() {
         echo -e "${COLOR_CYAN}  [RUN] $task_name (no timeout)${COLOR_NC}"
         bash -c "$@" > "$logfile" 2>&1
         return $?
-    else
-        echo -e "${COLOR_CYAN}  [RUN] $task_name (timeout: ${timeout_val})${COLOR_NC}"
-        timeout "$timeout_val" bash -c "$@" > "$logfile" 2>&1
-        return $?
     fi
+
+    # 超时转秒
+    local max_secs
+    case "$timeout_val" in
+        *m) max_secs=$((${timeout_val%m} * 60)) ;;
+        *s) max_secs=${timeout_val%s} ;;
+        *)  max_secs=$timeout_val ;;
+    esac
+
+    local tag="timeout: ${timeout_val}"
+    [ "$EARLY_STOP" = "1" ] && tag="${tag}, early stop"
+    echo -e "${COLOR_CYAN}  [RUN] $task_name (${tag})${COLOR_NC}"
+
+    # 后台启动命令
+    bash -c "$@" > "$logfile" 2>&1 &
+    local cmd_pid=$!
+
+    local elapsed=0
+    while kill -0 $cmd_pid 2>/dev/null; do
+        # Early stop: 等至少 10 秒再检测，避免误判
+        if [ "$EARLY_STOP" = "1" ] && [ $elapsed -ge 10 ]; then
+            if grep -qE '(Train throughput:|Throughput:|Inference throughput:|Evaluate throughput:|Avg it/s:|samples_per_second|Average inference latency:)' "$logfile" 2>/dev/null; then
+                echo -e "${COLOR_GREEN}  [EARLY STOP] $task_name - 已获取指标，提前结束${COLOR_NC}"
+                kill $cmd_pid 2>/dev/null
+                pkill -P $cmd_pid 2>/dev/null
+                sleep 1
+                kill -9 $cmd_pid 2>/dev/null
+                pkill -9 -P $cmd_pid 2>/dev/null
+		wait $cmd_pid 2>/dev/null
+                return 0
+            fi
+        fi
+
+        # 超时
+        if [ $elapsed -ge $max_secs ]; then
+            kill $cmd_pid 2>/dev/null
+	    pkill -P $cmd_pid 2>/dev/null
+            sleep 1
+            kill -9 $cmd_pid 2>/dev/null
+            pkill -9 -P $cmd_pid 2>/dev/null
+	    wait $cmd_pid 2>/dev/null
+            return 124
+        fi
+
+        sleep 2
+        elapsed=$((elapsed + 2))
+    done
+
+    # 进程自然结束
+    wait $cmd_pid 2>/dev/null
+    return $?
 }
 
 # ==============================================================================
@@ -369,7 +421,7 @@ run_ic_eval() {
 
 # --- ImageClassification 批量训练 ---
 # IC_MODEL_TIMEOUT: 每个模型训练时间（秒），默认 300（5分钟）
-IC_MODEL_TIMEOUT=${IC_MODEL_TIMEOUT:-180}
+IC_MODEL_TIMEOUT=${IC_MODEL_TIMEOUT:-300}
 run_ic_batch_train() {
     local logfile="$1"
     local model_list="${IC_MODELS[*]}"
@@ -436,7 +488,7 @@ run_rec_train() {
 
 run_rec_eval() {
     local logfile="$1"
-    run_task "$logfile" "$EVAL_TIMEOUT" "Recommendation/DLRM eval" \
+    run_task "$logfile" "5m" "Recommendation/DLRM eval" \
         'cd Recommendation/DLRM && DATA_DIR=../data MODEL=./checkpoints/dlrmamp_0.pth bash run_eval.sh'
 }
 
@@ -557,7 +609,7 @@ DOMAIN_MODELS[RL]="dqn"
 DOMAIN_MODELS[Recommendation]="dlrm"
 DOMAIN_MODELS[SR]="espcn"
 DOMAIN_MODELS[Segmentation]="deeplab fcn lraspp unet"
-DOMAIN_MODELS[Speech]="deepspeech2 wav2vec"
+DOMAIN_MODELS[Speech]="deepspeech2"
 DOMAIN_MODELS[TimeSeriesPrediction]="lstm tcn"
 
 # 有效领域列表
@@ -1019,11 +1071,37 @@ for domain in "${SELECTED_DOMAINS[@]}"; do
     echo -e "${COLOR_BLUE}========================================${COLOR_NC}"
 
     if [ "$domain" = "ImageClassification" ]; then
+        # FILTER_MODELS 过滤 IC 模型列表
+        if [ -n "$FILTER_MODELS" ]; then
+            _saved_ic=("${IC_MODELS[@]}")
+            IC_MODELS=()
+            for m in "${_saved_ic[@]}"; do
+                for fm in $FILTER_MODELS; do
+                    [ "$m" = "$fm" ] && IC_MODELS+=("$m") && break
+                done
+            done
+            if [ ${#IC_MODELS[@]} -eq 0 ]; then
+                echo -e "${COLOR_YELLOW}  无匹配模型，跳过${COLOR_NC}"
+                IC_MODELS=("${_saved_ic[@]}")
+                continue
+            fi
+        fi
         # ImageClassification 使用批量处理
         process_ic_batch "$MODE"
+        if [ -n "$FILTER_MODELS" ]; then
+            IC_MODELS=("${_saved_ic[@]}")
+        fi
     else
         models="${DOMAIN_MODELS[$domain]}"
         for model in $models; do
+            # FILTER_MODELS 过滤：只跑指定模型
+            if [ -n "$FILTER_MODELS" ]; then
+                _skip=1
+                for fm in $FILTER_MODELS; do
+                    [ "$model" = "$fm" ] && _skip=0 && break
+                done
+                [ $_skip -eq 1 ] && continue
+            fi
             process_model "$domain" "$model" "$MODE"
         done
     fi

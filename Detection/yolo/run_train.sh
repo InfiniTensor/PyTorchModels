@@ -57,7 +57,7 @@ echo "Training Start: $(date +'%m/%d/%Y %T')"
 # 运行 YOLOv5 训练
 echo "Training $MODEL..."
 PYTHONUNBUFFERED=1 python train.py \
-    --batch 64 \
+    --batch 16 \
     --img 640 \
     --epoch 25 \
     --data coco.yaml \

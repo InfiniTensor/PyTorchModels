@@ -80,8 +80,8 @@ def evaluate(test_loader, model, max_batches=0):
             true_labels.extend(labels)
             true_difficulties.extend(difficulties)
 
-            # Print cumulative throughput every 5 batches
-            if i > 0 and i % 5 == 0:
+            # Print cumulative throughput every batch
+            if i > 0:
                 tput = total_samples / total_inference_time if total_inference_time > 0 else 0
                 avg_lat = (total_inference_time / total_samples) * 1000 if total_samples > 0 else 0
                 print(f'Inference throughput: {tput:.2f} samples/s', flush=True)
