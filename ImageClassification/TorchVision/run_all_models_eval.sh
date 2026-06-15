@@ -64,7 +64,6 @@ for model in "${models[@]}"; do
         -a "$model" \
         --gpu 0 \
         --batch-size 64 \
-        --pretrained \
         --evaluate \
         $DATA_DIR &
 
@@ -79,9 +78,6 @@ for model in "${models[@]}"; do
     echo "Stopping eval process (PID: $pid)..."
     pkill -P "$pid" || true
     kill "$pid" 2>/dev/null || true
-
-    # 删除下载的 ckpt
-    rm -f "$HOME/.cache/torch/hub/checkpoints/${model}"*.pth
 
     echo "Evaluating $model finish: $(date +'%m/%d/%Y %T')"
 

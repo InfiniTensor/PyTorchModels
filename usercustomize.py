@@ -146,6 +146,14 @@ class PlatformPatcher(MetaPathFinder):
                 module.cuda.synchronize = torch_musa.synchronize
                 module.cuda.manual_seed = torch_musa.manual_seed
                 module.cuda.manual_seed_all = torch_musa.manual_seed_all
+                module.cuda.get_device_properties = torch_musa.get_device_properties
+                module.cuda.get_device_name = torch_musa.get_device_name
+                module.cuda.get_device_capability = torch_musa.get_device_capability
+                module.cuda.memory_allocated = torch_musa.memory_allocated
+                module.cuda.memory_reserved = torch_musa.memory_reserved
+                module.cuda.max_memory_allocated = torch_musa.max_memory_allocated
+                module.cuda.max_memory_reserved = torch_musa.max_memory_reserved
+                module.cuda.empty_cache = torch_musa.empty_cache
 
                 # 让 torch.device("cuda") 和 torch.device("cuda:0") 重定向到 "musa"
                 _orig_device = module.device

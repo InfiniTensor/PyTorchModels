@@ -109,7 +109,7 @@ dataloader = torch.utils.data.DataLoader(dataset, batch_size=opt.batchSize,
                                          shuffle=True, num_workers=int(opt.workers))
 use_mps = opt.mps and torch.backends.mps.is_available()
 if opt.cuda:
-    device = torch.device("cuda:0")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 elif use_mps:
     device = torch.device("mps")
 else:

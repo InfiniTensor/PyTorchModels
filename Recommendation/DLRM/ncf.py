@@ -136,7 +136,7 @@ def val_epoch(model, args, num_user, output=None, epoch=None):
         import torch_mlu.core.mlu_model as ct
     device = ''
     if args.device == 'gpu':
-        device = 'cuda'
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     elif args.device == 'mlu':
         device = 'mlu'
     nb_users = num_user
@@ -616,8 +616,8 @@ def main():
                     cumulative_time = time.time() - cumulative_iter_start
                     throughput = cumulative_iter_samples / cumulative_time
                     avg_batch = cumulative_time / (i + 1)
-                    print(f'Train throughput: {throughput:.2f} samples/s')
-                    print(f'Batch Time {avg_batch:.6f} ({avg_batch:.6f})')
+                    print(f'Train throughput: {throughput:.2f} samples/s', flush=True)
+                    print(f'Batch Time {avg_batch:.6f} ({avg_batch:.6f})', flush=True)
 
             metric_collector.insert_metrics(
                 net = "DLRM",
@@ -678,8 +678,8 @@ def main():
             train_samples = actual_iters * args.batch_size
             train_throughput = train_samples / train_time
             avg_batch_time = train_time / actual_iters
-            print(f'Train throughput: {train_throughput:.2f} samples/s')
-            print(f'Batch Time {avg_batch_time:.6f} ({avg_batch_time:.6f})')
+            print(f'Train throughput: {train_throughput:.2f} samples/s', flush=True)
+            print(f'Batch Time {avg_batch_time:.6f} ({avg_batch_time:.6f})', flush=True)
 
         # mlperf_log.ncf_print(key=mlperf_log.RUN_FINAL)
     

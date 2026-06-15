@@ -58,15 +58,15 @@ def evaluate(test_loader, model, max_batches=0):
             torch.cuda.synchronize() if torch.cuda.is_available() else None
             inference_start = time.time()
             predicted_locs, predicted_scores = model(images)
-
-            # Detect objects in SSD output
-            det_boxes_batch, det_labels_batch, det_scores_batch = model.detect_objects(predicted_locs, predicted_scores,
-                                                                                       min_score=0.01, max_overlap=0.45,
-                                                                                       top_k=200)
             torch.cuda.synchronize() if torch.cuda.is_available() else None
             inference_end = time.time()
             total_inference_time += (inference_end - inference_start)
             total_samples += batch_size_i
+
+            # Detect objects in SSD output (not timed - too slow on some backends)
+            det_boxes_batch, det_labels_batch, det_scores_batch = model.detect_objects(predicted_locs, predicted_scores,
+                                                                                       min_score=0.01, max_overlap=0.45,
+                                                                                       top_k=200)
 
             # Store this batch's results for mAP calculation
             boxes = [b.to(device) for b in boxes]

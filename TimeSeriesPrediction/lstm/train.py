@@ -197,7 +197,6 @@ if __name__ == '__main__':
         os.makedirs(para_dict["modelpara_path"])
 
     device="cuda"
-    torch.cuda.set_device(0)
 
     data,L = read_data(para_dict['dataset'])
     min_val = min(data.iloc[:,1])

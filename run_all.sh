@@ -46,8 +46,13 @@ COLOR_CYAN='\033[0;36m'
 COLOR_NC='\033[0m'
 
 # --- 超时配置 ---
-TRAIN_TIMEOUT="3m"
-EVAL_TIMEOUT="2m"
+TRAIN_TIMEOUT="5m"
+EVAL_TIMEOUT="5m"
+
+# --- Early Stop 配置 ---
+# EARLY_STOP=1: 检测到首个吞吐量指标后立即停止，节省时间
+# EARLY_STOP=0: 跑完或等超时再提取指标
+EARLY_STOP=${EARLY_STOP:-1}
 
 # --- Ctrl+C 清理所有子进程 ---
 cleanup() {
@@ -59,6 +64,19 @@ cleanup() {
     exit 1
 }
 trap cleanup SIGINT SIGTERM
+
+# --- 清理残留 python 进程，释放 GPU 显存 ---
+PYTHON_PIDS_BASELINE=$(ps -eo pid,cmd | grep -E 'python.*\.py' | grep -v grep | awk '{print $1}' | sort)
+
+cleanup_gpu_python() {
+    local current=$(ps -eo pid,cmd | grep -E 'python.*\.py' | grep -v grep | awk '{print $1}' | sort)
+    local leaked=$(comm -13 <(echo "$PYTHON_PIDS_BASELINE") <(echo "$current"))
+    if [ -n "$leaked" ]; then
+        echo -e "${COLOR_YELLOW}  清理残留 GPU 进程: $(echo $leaked | tr '\n' ' ')${COLOR_NC}"
+        echo "$leaked" | xargs kill -9 2>/dev/null
+        sleep 3
+    fi
+}
 
 # --- 数据集符号链接 ---
 DATASET_SRC="/data-aisoft/Dataset"
@@ -318,11 +336,58 @@ run_task() {
         echo -e "${COLOR_CYAN}  [RUN] $task_name (no timeout)${COLOR_NC}"
         bash -c "$@" > "$logfile" 2>&1
         return $?
-    else
-        echo -e "${COLOR_CYAN}  [RUN] $task_name (timeout: ${timeout_val})${COLOR_NC}"
-        timeout "$timeout_val" bash -c "$@" > "$logfile" 2>&1
-        return $?
     fi
+
+    # 超时转秒
+    local max_secs
+    case "$timeout_val" in
+        *m) max_secs=$((${timeout_val%m} * 60)) ;;
+        *s) max_secs=${timeout_val%s} ;;
+        *)  max_secs=$timeout_val ;;
+    esac
+
+    local tag="timeout: ${timeout_val}"
+    [ "$EARLY_STOP" = "1" ] && tag="${tag}, early stop"
+    echo -e "${COLOR_CYAN}  [RUN] $task_name (${tag})${COLOR_NC}"
+
+    # 后台启动命令
+    bash -c "$@" > "$logfile" 2>&1 &
+    local cmd_pid=$!
+
+    local elapsed=0
+    while kill -0 $cmd_pid 2>/dev/null; do
+        # Early stop: 等至少 10 秒再检测，避免误判
+        if [ "$EARLY_STOP" = "1" ] && [ $elapsed -ge 10 ]; then
+            if grep -qE '(Train throughput:|Throughput:|Inference throughput:|Evaluate throughput:|Avg it/s:|samples_per_second|Batch Time [0-9]|Average inference latency:)' "$logfile" 2>/dev/null; then
+                echo -e "${COLOR_GREEN}  [EARLY STOP] $task_name - 已获取指标，提前结束${COLOR_NC}"
+                kill $cmd_pid 2>/dev/null
+                pkill -P $cmd_pid 2>/dev/null
+                sleep 1
+                kill -9 $cmd_pid 2>/dev/null
+                pkill -9 -P $cmd_pid 2>/dev/null
+		wait $cmd_pid 2>/dev/null
+                return 0
+            fi
+        fi
+
+        # 超时
+        if [ $elapsed -ge $max_secs ]; then
+            kill $cmd_pid 2>/dev/null
+            pkill -P $cmd_pid 2>/dev/null
+            sleep 1
+            kill -9 $cmd_pid 2>/dev/null
+	    pkill -9 -P $cmd_pid 2>/dev/null
+	    wait $cmd_pid 2>/dev/null
+            return 124
+        fi
+
+        sleep 2
+        elapsed=$((elapsed + 2))
+    done
+
+    # 进程自然结束
+    wait $cmd_pid 2>/dev/null
+    return $?
 }
 
 # ==============================================================================
@@ -352,17 +417,18 @@ run_detection_train() {
 run_detection_eval() {
     local model="$1"
     local logfile="$2"
+    local DET_EVAL_TIMEOUT="5m"
     case "$model" in
         fasterrcnn)
-            run_task "$logfile" "$EVAL_TIMEOUT" "Detection/fasterrcnn eval" \
+            run_task "$logfile" "$DET_EVAL_TIMEOUT" "Detection/fasterrcnn eval" \
                 'cd Detection/fasterrcnn && DATA_DIR=../data/VOCdevkit CKPT_DIR=./ bash run_eval.sh'
             ;;
         ssd)
-            run_task "$logfile" "$EVAL_TIMEOUT" "Detection/ssd eval" \
+            run_task "$logfile" "$DET_EVAL_TIMEOUT" "Detection/ssd eval" \
                 'cd Detection/ssd && DATA_DIR=../data/VOCdevkit bash run_eval.sh'
             ;;
         yolo)
-            run_task "$logfile" "$EVAL_TIMEOUT" "Detection/yolo eval" \
+            run_task "$logfile" "$DET_EVAL_TIMEOUT" "Detection/yolo eval" \
                 'cd Detection/yolo && MODEL=yolov5s DATA_DIR=../data/coco bash run_eval.sh'
             ;;
     esac
@@ -418,15 +484,17 @@ run_gan_eval() {
 }
 
 # --- NLP ---
+NLP_TIMEOUT="5m"
+
 run_nlp_train() {
     local logfile="$1"
-    run_task "$logfile" "$TRAIN_TIMEOUT" "NLP/HuggingFace train" \
+    run_task "$logfile" "$NLP_TIMEOUT" "NLP/HuggingFace train" \
         'cd NLP/HuggingFace && bash run_train_online.sh'
 }
 
 run_nlp_eval() {
     local logfile="$1"
-    run_task "$logfile" "$EVAL_TIMEOUT" "NLP/HuggingFace eval" \
+    run_task "$logfile" "$NLP_TIMEOUT" "NLP/HuggingFace eval" \
         'cd NLP/HuggingFace && bash run_eval_online.sh'
 }
 
@@ -444,15 +512,17 @@ run_rl_eval() {
 }
 
 # --- Recommendation ---
+REC_TIMEOUT="5m"
+
 run_rec_train() {
     local logfile="$1"
-    run_task "$logfile" "$TRAIN_TIMEOUT" "Recommendation/DLRM train" \
+    run_task "$logfile" "$REC_TIMEOUT" "Recommendation/DLRM train" \
         'cd Recommendation/DLRM && DATA_DIR=../data/ml-20mx4x16 bash run_train.sh'
 }
 
 run_rec_eval() {
     local logfile="$1"
-    run_task "$logfile" "$EVAL_TIMEOUT" "Recommendation/DLRM eval" \
+    run_task "$logfile" "$REC_TIMEOUT" "Recommendation/DLRM eval" \
         'cd Recommendation/DLRM && DATA_DIR=../data MODEL=./checkpoints/dlrmamp_0.pth bash run_eval.sh'
 }
 
@@ -573,7 +643,7 @@ DOMAIN_MODELS[RL]="dqn"
 DOMAIN_MODELS[Recommendation]="dlrm"
 DOMAIN_MODELS[SR]="espcn"
 DOMAIN_MODELS[Segmentation]="deeplab fcn lraspp unet"
-DOMAIN_MODELS[Speech]="deepspeech2 wav2vec"
+DOMAIN_MODELS[Speech]="deepspeech2"
 DOMAIN_MODELS[TimeSeriesPrediction]="lstm tcn"
 
 # 有效领域列表
@@ -626,6 +696,11 @@ process_model() {
             TRAIN_FAIL=$((TRAIN_FAIL + 1))
             echo -e "  ${COLOR_RED}TRAIN: FAIL (rc=$rc)${COLOR_NC}"
         fi
+    fi
+
+    # train 和 eval 之间清理残留 python 进程
+    if [ "$mode" = "all" ]; then
+        cleanup_gpu_python
     fi
 
     # --- 推理 ---
@@ -689,8 +764,8 @@ process_ic_batch() {
         fi
         i=$((i + 1))
     done
-    local gpu0=${CUDA_VISIBLE_DEVICES%%,*}
-    local gpu1=$(echo "$CUDA_VISIBLE_DEVICES" | cut -d',' -f2)
+    local gpu0=${MUSA_VISIBLE_DEVICES%%,*}
+    local gpu1=$(echo "$MUSA_VISIBLE_DEVICES" | cut -d',' -f2)
     [ -z "$gpu1" ] && gpu1=$gpu0  # 只有1张卡时两组都用同一张
     echo -e "  GPU $gpu0: ${#group1_models[@]} models | GPU $gpu1: ${#group2_models[@]} models"
 
@@ -701,9 +776,9 @@ process_ic_batch() {
         # 两组分别在两张卡上并行训练
         local g1_list="${group1_models[*]}"
         local g2_list="${group2_models[*]}"
-        CUDA_VISIBLE_DEVICES=$gpu0 bash -c "cd ImageClassification/TorchVision && DATA_DIR=../data/imagenet2012 IC_MODEL_TIMEOUT=$IC_MODEL_TIMEOUT IC_MODELS='$g1_list' bash run_all_models_train.sh" > "${LOG_DIR}/ImageClassification_batch_train_g1.log" 2>&1 &
+        MUSA_VISIBLE_DEVICES=$gpu0 bash -c "cd ImageClassification/TorchVision && DATA_DIR=../data/imagenet2012 IC_MODEL_TIMEOUT=$IC_MODEL_TIMEOUT IC_MODELS='$g1_list' bash run_all_models_train.sh" > "${LOG_DIR}/ImageClassification_batch_train_g1.log" 2>&1 &
         local pid1=$!
-        CUDA_VISIBLE_DEVICES=$gpu1 bash -c "cd ImageClassification/TorchVision && DATA_DIR=../data/imagenet2012 IC_MODEL_TIMEOUT=$IC_MODEL_TIMEOUT IC_MODELS='$g2_list' bash run_all_models_train.sh" > "${LOG_DIR}/ImageClassification_batch_train_g2.log" 2>&1 &
+        MUSA_VISIBLE_DEVICES=$gpu1 bash -c "cd ImageClassification/TorchVision && DATA_DIR=../data/imagenet2012 IC_MODEL_TIMEOUT=$IC_MODEL_TIMEOUT IC_MODELS='$g2_list' bash run_all_models_train.sh" > "${LOG_DIR}/ImageClassification_batch_train_g2.log" 2>&1 &
         local pid2=$!
 
         # 合并日志并实时监控
@@ -749,6 +824,9 @@ process_ic_batch() {
                 fi
             fi
         done
+
+        # train 完成后清理残留 python 进程，释放 GPU 显存
+        cleanup_gpu_python
     fi
 
     if [ "$mode" = "all" ] || [ "$mode" = "eval" ]; then
@@ -757,9 +835,9 @@ process_ic_batch() {
 
         local g1_list="${group1_models[*]}"
         local g2_list="${group2_models[*]}"
-        CUDA_VISIBLE_DEVICES=$gpu0 bash -c "cd ImageClassification/TorchVision && DATA_DIR=../data/imagenet2012 IC_MODEL_TIMEOUT=$IC_MODEL_TIMEOUT IC_MODELS='$g1_list' bash run_all_models_eval.sh" > "${LOG_DIR}/ImageClassification_batch_eval_g1.log" 2>&1 &
+        MUSA_VISIBLE_DEVICES=$gpu0 bash -c "cd ImageClassification/TorchVision && DATA_DIR=../data/imagenet2012 IC_MODEL_TIMEOUT=$IC_MODEL_TIMEOUT IC_MODELS='$g1_list' bash run_all_models_eval.sh" > "${LOG_DIR}/ImageClassification_batch_eval_g1.log" 2>&1 &
         local pid1=$!
-        CUDA_VISIBLE_DEVICES=$gpu1 bash -c "cd ImageClassification/TorchVision && DATA_DIR=../data/imagenet2012 IC_MODEL_TIMEOUT=$IC_MODEL_TIMEOUT IC_MODELS='$g2_list' bash run_all_models_eval.sh" > "${LOG_DIR}/ImageClassification_batch_eval_g2.log" 2>&1 &
+        MUSA_VISIBLE_DEVICES=$gpu1 bash -c "cd ImageClassification/TorchVision && DATA_DIR=../data/imagenet2012 IC_MODEL_TIMEOUT=$IC_MODEL_TIMEOUT IC_MODELS='$g2_list' bash run_all_models_eval.sh" > "${LOG_DIR}/ImageClassification_batch_eval_g2.log" 2>&1 &
         local pid2=$!
 
         declare -A eval_done
@@ -1035,11 +1113,37 @@ for domain in "${SELECTED_DOMAINS[@]}"; do
     echo -e "${COLOR_BLUE}========================================${COLOR_NC}"
 
     if [ "$domain" = "ImageClassification" ]; then
+        # FILTER_MODELS 过滤 IC 模型列表
+        if [ -n "$FILTER_MODELS" ]; then
+            _saved_ic=("${IC_MODELS[@]}")
+            IC_MODELS=()
+            for m in "${_saved_ic[@]}"; do
+                for fm in $FILTER_MODELS; do
+                    [ "$m" = "$fm" ] && IC_MODELS+=("$m") && break
+                done
+            done
+            if [ ${#IC_MODELS[@]} -eq 0 ]; then
+                echo -e "${COLOR_YELLOW}  无匹配模型，跳过${COLOR_NC}"
+                IC_MODELS=("${_saved_ic[@]}")
+                continue
+            fi
+        fi
         # ImageClassification 使用批量处理
         process_ic_batch "$MODE"
+        if [ -n "$FILTER_MODELS" ]; then
+            IC_MODELS=("${_saved_ic[@]}")
+        fi
     else
         models="${DOMAIN_MODELS[$domain]}"
         for model in $models; do
+            # FILTER_MODELS 过滤：只跑指定模型
+            if [ -n "$FILTER_MODELS" ]; then
+                _skip=1
+                for fm in $FILTER_MODELS; do
+                    [ "$model" = "$fm" ] && _skip=0 && break
+                done
+                [ $_skip -eq 1 ] && continue
+            fi
             process_model "$domain" "$model" "$MODE"
         done
     fi

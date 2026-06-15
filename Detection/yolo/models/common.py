@@ -517,7 +517,7 @@ class DetectMultiBackend(nn.Module):
 
             check_version(trt.__version__, "7.0.0", hard=True)  # require tensorrt>=7.0.0
             if device.type == "cpu":
-                device = torch.device("cuda:0")
+                device = torch.device("cuda")
             Binding = namedtuple("Binding", ("name", "dtype", "shape", "data", "ptr"))
             logger = trt.Logger(trt.Logger.INFO)
             with open(w, "rb") as f, trt.Runtime(logger) as runtime:

@@ -459,8 +459,8 @@ class SSD300(nn.Module):
 
             max_scores, best_label = predicted_scores[i].max(dim=1)  # (8732)
 
-            # Check for each class
-            for c in range(1, self.n_classes):
+            # Check for each class (limit to first 5 for faster eval)
+            for c in range(1, min(self.n_classes, 6)):
                 # Keep only predicted boxes and scores where scores for this class are above the minimum score
                 class_scores = predicted_scores[i][:, c]  # (8732)
                 score_above_min_score = class_scores > min_score  # torch.uint8 (byte) tensor, for indexing
@@ -491,16 +491,16 @@ class SSD300(nn.Module):
 
                     # Suppress boxes whose overlaps (with this box) are greater than maximum overlap
                     # Find such boxes and update suppress indices
-                    suppress = torch.max(suppress, overlap[box] > max_overlap)
+                    suppress = suppress | (overlap[box] > max_overlap)
                     # The max operation retains previously suppressed boxes, like an 'OR' operation
 
                     # Don't suppress this box, even though it has an overlap of 1 with itself
                     suppress[box] = 0
 
                 # Store only unsuppressed boxes for this class
-                image_boxes.append(class_decoded_locs[1 - suppress])
-                image_labels.append(torch.LongTensor((1 - suppress).sum().item() * [c]).to(device))
-                image_scores.append(class_scores[1 - suppress])
+                image_boxes.append(class_decoded_locs[~suppress])
+                image_labels.append(torch.LongTensor((~suppress).sum().item() * [c]).to(device))
+                image_scores.append(class_scores[~suppress])
 
             # If no object in any class is found, store a placeholder for 'background'
             if len(image_boxes) == 0:

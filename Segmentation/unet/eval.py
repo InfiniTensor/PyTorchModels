@@ -7,7 +7,7 @@ import numpy as np
 from pathlib import Path
 from unet import UNet
 from torchvision import transforms, datasets
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 VOC_COLORMAP = [
     (0, 0, 0),        # Background

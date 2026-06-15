@@ -217,12 +217,8 @@ class MASRTrainer(object):
         :param pretrained_model: 预训练模型的路径，当为None则不使用预训练模型
         """
         # 获取有多少张显卡训练
-        nranks = torch.cuda.device_count()
+        nranks = 1
         local_rank = 0
-        if nranks > 1:
-            # 初始化NCCL环境
-            dist.init_process_group(backend='nccl')
-            local_rank = dist.get_rank()
         if local_rank == 0:
             # 日志记录器
             writer = LogWriter(logdir='./log')
