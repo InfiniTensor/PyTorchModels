@@ -66,7 +66,7 @@ PYTHONUNBUFFERED=1 python train.py \
     --device 0 \
     --nosave \
     --noval \
-    --workers 16
+    --workers 4
 
 echo "Training Finish: $(date +'%m/%d/%Y %T')"
 
