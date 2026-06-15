@@ -324,8 +324,8 @@ def main_worker(gpu, ngpus_per_node, args):
 
 
 def train(train_loader, model, criterion, optimizer, profiler, epoch, device, args, ngpus_per_node):
-    batch_time = AverageMeter('Time', ':6.3f')
-    data_time = AverageMeter('Data', ':6.3f')
+    batch_time = AverageMeter('Time', ':6.6f')
+    data_time = AverageMeter('Data', ':6.6f')
     losses = AverageMeter('Loss', ':.4e')
     top1 = AverageMeter('Acc@1', ':6.2f')
     top5 = AverageMeter('Acc@5', ':6.2f')
@@ -427,7 +427,7 @@ def validate(val_loader, model, criterion, profiler, args, ngpus_per_node):
                 profiler.end()     
                 print(f"Evaluate throughput for is {profiler.throughput()} samples/s!")
 
-    batch_time = AverageMeter('Time', ':6.3f', Summary.NONE)
+    batch_time = AverageMeter('Time', ':6.6f', Summary.NONE)
     losses = AverageMeter('Loss', ':.4e', Summary.NONE)
     top1 = AverageMeter('Acc@1', ':6.2f', Summary.AVERAGE)
     top5 = AverageMeter('Acc@5', ':6.2f', Summary.AVERAGE)

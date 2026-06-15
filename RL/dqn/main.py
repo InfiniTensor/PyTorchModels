@@ -111,7 +111,7 @@ def infer(model_path):
     # 加载模型
     q_net_loaded = DQN(n_states, n_actions).to(device)
     if os.path.exists(model_path):
-        q_net_loaded.load_state_dict(torch.load(model_path, map_location=device))
+        q_net_loaded.load_state_dict(torch.load(model_path, map_location="cpu"))
         logger.info(f'Loaded weights from {model_path}')
     else:
         logger.warning(f'{model_path} not found, using random weights for throughput benchmark')

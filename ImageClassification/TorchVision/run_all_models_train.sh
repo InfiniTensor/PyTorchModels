@@ -59,12 +59,19 @@ echo "Training start: $(date +'%m/%d/%Y %T')"
 # 遍历所有模型
 for model in "${models[@]}"; do
     echo "Training $model start: $(date +'%m/%d/%Y %T')"
-    
+
+    # 大模型降低 batch size 避免 OOM
+    batch_size=64
+    case "$model" in
+        densenet161|densenet169) batch_size=32 ;;
+        densenet201|efficientnet_b5|efficientnet_b6) batch_size=16 ;;
+    esac
+
     PYTHONUNBUFFERED=1 python main.py \
         -a "$model" \
         --gpu 0 \
         --dummy \
-        --batch-size 64 \
+        --batch-size "$batch_size" \
         $DATA_DIR &
 
     # 获取进程 ID

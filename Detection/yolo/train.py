@@ -288,8 +288,8 @@ def train(hyp, opt, device, callbacks):
             )
         del ckpt, csd
 
-    # DP mode
-    if cuda and RANK == -1 and torch.cuda.device_count() > 1:
+    # DP mode (skip on Cambricon MLU, DataParallel is incompatible with torch_mlu)
+    if cuda and RANK == -1 and torch.cuda.device_count() > 1 and not hasattr(torch, 'mlu'):
         LOGGER.warning(
             "WARNING ⚠️ DP not recommended, use torch.distributed.run for best DDP Multi-GPU results.\n"
             "See Multi-GPU Tutorial at https://docs.ultralytics.com/yolov5/tutorials/multi_gpu_training to get started."

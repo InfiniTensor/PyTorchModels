@@ -6,12 +6,11 @@ else
     ln -s /data-aisoft/Dataset/data_thchs30 ../data_thchs30
 fi
 
-if [ -e "./cache" ]; then
-    echo "./cache exists"
+if [ -e "./cache/manifest.train" ]; then
+    echo "./cache exists, skip data_preprocess"
 else
-    mkdir cache
+    mkdir -p cache
+    python data_preprocess.py
 fi
-
-python data_preprocess.py
 
 python train.py
