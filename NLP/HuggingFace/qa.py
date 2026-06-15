@@ -422,7 +422,33 @@ def main():
         if args.test_file is not None:
             data_files["test"] = args.test_file
         extension = args.train_file.split(".")[-1]
-        raw_datasets = load_dataset(extension, data_files=data_files)
+        # SQuAD v2 JSON is nested; flatten it for load_dataset('json', ...)
+        import json as _json
+        def _flatten_squad(path):
+            with open(path, "r", encoding="utf-8") as f:
+                squad = _json.load(f)
+            rows = []
+            for article in squad["data"]:
+                for para in article["paragraphs"]:
+                    ctx = para["context"]
+                    for qa in para["qas"]:
+                        row = {"id": qa["id"], "title": article["title"],
+                               "context": ctx, "question": qa["question"],
+                               "answers": {"answer_start": [a["answer_start"] for a in qa.get("answers", [])],
+                                           "text": [a["text"] for a in qa.get("answers", [])]}}
+                        rows.append(row)
+            return rows
+
+        import tempfile
+        _flat_dir = tempfile.mkdtemp(prefix="squad_flat_")
+        for split_name, fpath in data_files.items():
+            if fpath.endswith(".json"):
+                flat = _flatten_squad(fpath)
+                out = os.path.join(_flat_dir, f"{split_name}.json")
+                with open(out, "w", encoding="utf-8") as f:
+                    _json.dump(flat, f)
+                data_files[split_name] = out
+        raw_datasets = load_dataset("json", data_files=data_files)
     # See more about loading any type of standard or custom dataset (from files, python dict, pandas DataFrame, etc) at
     # https://huggingface.co/docs/datasets/loading_datasets.
 

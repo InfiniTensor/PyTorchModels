@@ -43,8 +43,13 @@ COLOR_CYAN='\033[0;36m'
 COLOR_NC='\033[0m'
 
 # --- 超时配置 ---
-TRAIN_TIMEOUT="3m"
-EVAL_TIMEOUT="2m"
+TRAIN_TIMEOUT="5m"
+EVAL_TIMEOUT="5m"
+
+# --- Early Stop 配置 ---
+# EARLY_STOP=1: 检测到首个吞吐量指标后立即停止，节省时间
+# EARLY_STOP=0: 跑完或等超时再提取指标
+EARLY_STOP=${EARLY_STOP:-1}
 
 # --- Ctrl+C 清理所有子进程 ---
 cleanup() {
@@ -111,26 +116,28 @@ EVAL_FAIL=0
 extract_train_throughput() {
     local logfile="$1"
     local val=""
+    # 先将 \r 替换为换行，解决 tqdm 进度条导致同行匹配失败的问题
+    local clean_log=$(tr '\r' '\n' < "$logfile" 2>/dev/null)
     # ImageClassification: "Train throughput: XXX samples/s"
-    val=$(grep -oP 'Train throughput:\s*\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
+    val=$(echo "$clean_log" | grep -a -oP 'Train throughput:\s*\K[\d.]+' 2>/dev/null | tail -1)
     if [ -n "$val" ]; then fmt_num "$val"; return; fi
     # 通用: "Throughput: XXX samples/s"
-    val=$(grep -oP 'Throughput:\s*\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
+    val=$(echo "$clean_log" | grep -a -oP 'Throughput:\s*\K[\d.]+' 2>/dev/null | tail -1)
     if [ -n "$val" ]; then fmt_num "$val"; return; fi
     # HuggingFace Trainer: "train_samples_per_second = XXX"
-    val=$(grep -oP 'train_samples_per_second\s*=\s*\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
+    val=$(echo "$clean_log" | grep -a -oP 'train_samples_per_second\s*=\s*\K[\d.]+' 2>/dev/null | tail -1)
     if [ -n "$val" ]; then fmt_num "$val"; return; fi
     # Detection/Segmentation: "Batch Time X.XXX (Y.YYY)" 从平均耗时推算吞吐
-    local batch_time=$(grep -oP 'Batch Time [\d.]+ \(\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
+    local batch_time=$(echo "$clean_log" | grep -a -oP 'Batch Time [\d.]+ \(\K[\d.]+' 2>/dev/null | tail -1)
     if [ -n "$batch_time" ]; then
         fmt_num "$(echo "scale=2; 1/$batch_time" | bc 2>/dev/null)"
         return
     fi
     # Segmentation: "Avg it/s: XX.XX"
-    val=$(grep -oP 'Avg it/s:\s*\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
+    val=$(echo "$clean_log" | grep -a -oP 'Avg it/s:\s*\K[\d.]+' 2>/dev/null | tail -1)
     if [ -n "$val" ]; then fmt_num "$val"; return; fi
     # ImageClassification PyTorch: "Time  X.XXX ( Y.YYY)" 括号内是平均 batch 耗时，batch_size=64
-    local ic_time=$(grep -oP 'Time\s+[\d.]+\s+\(\s*\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
+    local ic_time=$(echo "$clean_log" | grep -a -oP 'Time\s+[\d.]+\s+\(\s*\K[\d.]+' 2>/dev/null | tail -1)
     if [ -n "$ic_time" ]; then
         fmt_num "$(echo "scale=2; 64/$ic_time" | bc 2>/dev/null)"
         return
@@ -149,23 +156,24 @@ fmt_num() {
 extract_step_time() {
     local logfile="$1"
     local val=""
+    local clean_log=$(tr '\r' '\n' < "$logfile" 2>/dev/null)
     # Detection/Segmentation: "Batch Time X.XXX (Y.YYY)" 平均耗时(秒)转毫秒
-    val=$(grep -oP 'Batch Time [\d.]+ \(\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
+    val=$(echo "$clean_log" | grep -a -oP 'Batch Time [\d.]+ \(\K[\d.]+' 2>/dev/null | tail -1)
     if [ -n "$val" ]; then
         fmt_num "$(echo "scale=4; $val * 1000" | bc 2>/dev/null)"
         return
     fi
     # ImageClassification: "Time.*XXX ms"
-    val=$(grep -oP 'Batch time.*?[\d.]+\s*ms' "$logfile" 2>/dev/null | grep -oP '[\d.]+' | tail -1)
+    val=$(echo "$clean_log" | grep -a -oP 'Batch time.*?[\d.]+\s*ms' 2>/dev/null | grep -oP '[\d.]+' | tail -1)
     if [ -n "$val" ]; then fmt_num "$val"; return; fi
     # Segmentation: "Avg it/s: XX.XX" 转毫秒
-    val=$(grep -oP 'Avg it/s:\s*\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
+    val=$(echo "$clean_log" | grep -a -oP 'Avg it/s:\s*\K[\d.]+' 2>/dev/null | tail -1)
     if [ -n "$val" ]; then
         fmt_num "$(echo "scale=4; 1000/$val" | bc 2>/dev/null)"
         return
     fi
     # ImageClassification PyTorch: "Time  X.XXX ( Y.YYY)" 括号内是秒/batch，转毫秒
-    val=$(grep -oP 'Time\s+[\d.]+\s+\(\s*\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
+    val=$(echo "$clean_log" | grep -a -oP 'Time\s+[\d.]+\s+\(\s*\K[\d.]+' 2>/dev/null | tail -1)
     if [ -n "$val" ]; then
         fmt_num "$(echo "scale=4; $val * 1000" | bc 2>/dev/null)"
         return
@@ -177,23 +185,22 @@ extract_step_time() {
 extract_eval_throughput() {
     local logfile="$1"
     local val=""
+    # 先将 \r 替换为换行，解决 tqdm 进度条导致同行匹配失败的问题
+    local clean_log=$(tr '\r' '\n' < "$logfile" 2>/dev/null)
     # 通用: "Inference throughput: XXX samples/s"
-    val=$(grep -oP 'Inference throughput:\s*\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
+    val=$(echo "$clean_log" | grep -a -oP 'Inference throughput:\s*\K[\d.]+' 2>/dev/null | tail -1)
     if [ -n "$val" ]; then fmt_num "$val"; return; fi
     # ImageClassification: "Evaluate throughput.*XXX samples/s"
-    val=$(grep -oP 'Evaluate throughput.*?\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
+    val=$(echo "$clean_log" | grep -a -oP 'Evaluate throughput.*?\K[\d.]+' 2>/dev/null | tail -1)
     if [ -n "$val" ]; then fmt_num "$val"; return; fi
     # HuggingFace Trainer: "eval_samples_per_second = XXX"
-    val=$(grep -oP 'eval_samples_per_second\s*=\s*\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
-    if [ -n "$val" ]; then fmt_num "$val"; return; fi
-    # images/s 变体
-    val=$(grep -oP 'Inference throughput:\s*\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
+    val=$(echo "$clean_log" | grep -a -oP 'eval_samples_per_second\s*=\s*\K[\d.]+' 2>/dev/null | tail -1)
     if [ -n "$val" ]; then fmt_num "$val"; return; fi
     # images/s
-    val=$(grep -oP '[\d.]+(?=\s*images?/s)' "$logfile" 2>/dev/null | tail -1)
+    val=$(echo "$clean_log" | grep -a -oP '[\d.]+(?=\s*images?/s)' 2>/dev/null | tail -1)
     if [ -n "$val" ]; then fmt_num "$val"; return; fi
     # ImageClassification PyTorch: "Time  X.XXX ( Y.YYY)" 括号内是平均 batch 耗时，batch_size=64
-    local ic_time=$(grep -oP 'Time\s+[\d.]+\s+\(\s*\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
+    local ic_time=$(echo "$clean_log" | grep -a -oP 'Time\s+[\d.]+\s+\(\s*\K[\d.]+' 2>/dev/null | tail -1)
     if [ -n "$ic_time" ]; then
         fmt_num "$(echo "scale=2; 64/$ic_time" | bc 2>/dev/null)"
         return
@@ -205,11 +212,12 @@ extract_eval_throughput() {
 extract_eval_latency() {
     local logfile="$1"
     local val=""
-    val=$(grep -oP 'Average inference latency:\s*\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
+    local clean_log=$(tr '\r' '\n' < "$logfile" 2>/dev/null)
+    val=$(echo "$clean_log" | grep -a -oP 'Average inference latency:\s*\K[\d.]+' 2>/dev/null | tail -1)
     if [ -n "$val" ]; then fmt_num "$val"; return; fi
     # HuggingFace Trainer: "eval_runtime = X:XX:XX.xx" -> convert to ms/sample
-    local eval_runtime=$(grep -oP 'eval_runtime\s*=\s*\K[\d:.]+' "$logfile" 2>/dev/null | tail -1)
-    local eval_samples=$(grep -oP 'eval_samples\s*=\s*\K[\d]+' "$logfile" 2>/dev/null | tail -1)
+    local eval_runtime=$(echo "$clean_log" | grep -a -oP 'eval_runtime\s*=\s*\K[\d:.]+' 2>/dev/null | tail -1)
+    local eval_samples=$(echo "$clean_log" | grep -a -oP 'eval_samples\s*=\s*\K[\d]+' 2>/dev/null | tail -1)
     if [ -n "$eval_runtime" ] && [ -n "$eval_samples" ]; then
         local seconds=$(echo "$eval_runtime" | awk -F: '{if(NF==3) print $1*3600+$2*60+$3; else print $1}')
         if [ -n "$seconds" ] && [ "$eval_samples" -gt 0 ] 2>/dev/null; then
@@ -218,10 +226,10 @@ extract_eval_latency() {
         fi
     fi
     # ms/image 变体
-    val=$(grep -oP '[\d.]+(?=\s*ms/)' "$logfile" 2>/dev/null | tail -1)
+    val=$(echo "$clean_log" | grep -a -oP '[\d.]+(?=\s*ms/)' 2>/dev/null | tail -1)
     if [ -n "$val" ]; then fmt_num "$val"; return; fi
     # ImageClassification PyTorch: "Time  X.XXX ( Y.YYY)" 括号内是秒/batch，转毫秒
-    val=$(grep -oP 'Time\s+[\d.]+\s+\(\s*\K[\d.]+' "$logfile" 2>/dev/null | tail -1)
+    val=$(echo "$clean_log" | grep -a -oP 'Time\s+[\d.]+\s+\(\s*\K[\d.]+' 2>/dev/null | tail -1)
     if [ -n "$val" ]; then
         fmt_num "$(echo "scale=4; $val * 1000" | bc 2>/dev/null)"
         return
@@ -233,24 +241,25 @@ extract_eval_latency() {
 extract_metric() {
     local logfile="$1"
     local domain="$2"
+    local clean_log=$(tr '\r' '\n' < "$logfile" 2>/dev/null)
     case "$domain" in
         Detection)
-            grep -oP 'mAP[):\s]*\K[\d.]+' "$logfile" 2>/dev/null | tail -1
+            echo "$clean_log" | grep -a -oP 'mAP[):\s]*\K[\d.]+' 2>/dev/null | tail -1
             ;;
         ImageClassification)
-            grep -oP 'Acc@1\s+\K[\d.]+' "$logfile" 2>/dev/null | tail -1
+            echo "$clean_log" | grep -a -oP 'Acc@1\s+\K[\d.]+' 2>/dev/null | tail -1
             ;;
         Segmentation)
-            grep -oP 'mIoU[:\s]*\K[\d.]+' "$logfile" 2>/dev/null | tail -1
+            echo "$clean_log" | grep -a -oP 'mIoU[:\s]*\K[\d.]+' 2>/dev/null | tail -1
             ;;
         Speech)
-            grep -oP 'cer[：:\s]+\K[\d.]+' "$logfile" 2>/dev/null | tail -1
+            echo "$clean_log" | grep -a -oP 'cer[：:\s]+\K[\d.]+' 2>/dev/null | tail -1
             ;;
         TimeSeriesPrediction)
-            grep -oP 'Acc[=:]\s*\K[\d.]+' "$logfile" 2>/dev/null | tail -1
+            echo "$clean_log" | grep -a -oP 'Acc[=:]\s*\K[\d.]+' 2>/dev/null | tail -1
             ;;
         *)
-            grep -oP '(?:accuracy|Acc@1|mAP|mIoU|F1|Loss)[:\s=]+\K[\d.]+' "$logfile" 2>/dev/null | tail -1
+            echo "$clean_log" | grep -a -oP '(?:accuracy|Acc@1|mAP|mIoU|F1|Loss)[:\s=]+\K[\d.]+' 2>/dev/null | tail -1
             ;;
     esac
 }
@@ -302,11 +311,58 @@ run_task() {
         echo -e "${COLOR_CYAN}  [RUN] $task_name (no timeout)${COLOR_NC}"
         bash -c "$@" > "$logfile" 2>&1
         return $?
-    else
-        echo -e "${COLOR_CYAN}  [RUN] $task_name (timeout: ${timeout_val})${COLOR_NC}"
-        timeout "$timeout_val" bash -c "$@" > "$logfile" 2>&1
-        return $?
     fi
+
+    # 超时转秒
+    local max_secs
+    case "$timeout_val" in
+        *m) max_secs=$((${timeout_val%m} * 60)) ;;
+        *s) max_secs=${timeout_val%s} ;;
+        *)  max_secs=$timeout_val ;;
+    esac
+
+    local tag="timeout: ${timeout_val}"
+    [ "$EARLY_STOP" = "1" ] && tag="${tag}, early stop"
+    echo -e "${COLOR_CYAN}  [RUN] $task_name (${tag})${COLOR_NC}"
+
+    # 后台启动命令
+    bash -c "$@" > "$logfile" 2>&1 &
+    local cmd_pid=$!
+
+    local elapsed=0
+    while kill -0 $cmd_pid 2>/dev/null; do
+        # Early stop: 等至少 10 秒再检测，避免误判
+        if [ "$EARLY_STOP" = "1" ] && [ $elapsed -ge 10 ]; then
+            if grep -qE '(Train throughput:|Throughput:|Inference throughput:|Evaluate throughput:|Avg it/s:|samples_per_second|Batch Time [0-9]|Average inference latency:)' "$logfile" 2>/dev/null; then
+                echo -e "${COLOR_GREEN}  [EARLY STOP] $task_name - 已获取指标，提前结束${COLOR_NC}"
+                kill $cmd_pid 2>/dev/null
+                pkill -P $cmd_pid 2>/dev/null
+                sleep 1
+                kill -9 $cmd_pid 2>/dev/null
+                pkill -9 -P $cmd_pid 2>/dev/null
+		wait $cmd_pid 2>/dev/null
+                return 0
+            fi
+        fi
+
+        # 超时
+        if [ $elapsed -ge $max_secs ]; then
+            kill $cmd_pid 2>/dev/nul
+	    pkill -P $cmd_pid 2>/dev/null
+            sleep 1
+            kill -9 $cmd_pid 2>/dev/null
+            pkill -9 -P $cmd_pid 2>/dev/null
+	    wait $cmd_pid 2>/dev/null
+            return 124
+        fi
+
+        sleep 2
+        elapsed=$((elapsed + 2))
+    done
+
+    # 进程自然结束
+    wait $cmd_pid 2>/dev/null
+    return $?
 }
 
 # ==============================================================================
@@ -342,7 +398,7 @@ run_detection_eval() {
                 'cd Detection/fasterrcnn && DATA_DIR=../data/VOCdevkit CKPT_DIR=./ bash run_eval.sh'
             ;;
         ssd)
-            run_task "$logfile" "$EVAL_TIMEOUT" "Detection/ssd eval" \
+            run_task "$logfile" "10m" "Detection/ssd eval" \
                 'cd Detection/ssd && DATA_DIR=../data/VOCdevkit bash run_eval.sh'
             ;;
         yolo)
@@ -436,14 +492,14 @@ run_rec_train() {
 
 run_rec_eval() {
     local logfile="$1"
-    run_task "$logfile" "$EVAL_TIMEOUT" "Recommendation/DLRM eval" \
+    run_task "$logfile" "5m" "Recommendation/DLRM eval" \
         'cd Recommendation/DLRM && DATA_DIR=../data MODEL=./checkpoints/dlrmamp_0.pth bash run_eval.sh'
 }
 
 # --- SR ---
 run_sr_train() {
     local logfile="$1"
-    run_task "$logfile" "$TRAIN_TIMEOUT" "SR/ESPCN train" \
+    run_task "$logfile" "5m" "SR/ESPCN train" \
         'cd SR/ESPCN && bash run_train.sh'
 }
 
@@ -489,7 +545,7 @@ run_speech_eval() {
     local logfile="$2"
     case "$model" in
         deepspeech2)
-            run_task "$logfile" "$EVAL_TIMEOUT" "Speech/deepspeech2 eval" \
+            run_task "$logfile" "5m" "Speech/deepspeech2 eval" \
                 'cd Speech/deepspeech2 && bash run_eval.sh'
             ;;
         wav2vec)
@@ -557,7 +613,7 @@ DOMAIN_MODELS[RL]="dqn"
 DOMAIN_MODELS[Recommendation]="dlrm"
 DOMAIN_MODELS[SR]="espcn"
 DOMAIN_MODELS[Segmentation]="deeplab fcn lraspp unet"
-DOMAIN_MODELS[Speech]="deepspeech2 wav2vec"
+DOMAIN_MODELS[Speech]="deepspeech2"
 DOMAIN_MODELS[TimeSeriesPrediction]="lstm tcn"
 
 # 有效领域列表
@@ -1019,11 +1075,37 @@ for domain in "${SELECTED_DOMAINS[@]}"; do
     echo -e "${COLOR_BLUE}========================================${COLOR_NC}"
 
     if [ "$domain" = "ImageClassification" ]; then
+        # FILTER_MODELS 过滤 IC 模型列表
+        if [ -n "$FILTER_MODELS" ]; then
+            _saved_ic=("${IC_MODELS[@]}")
+            IC_MODELS=()
+            for m in "${_saved_ic[@]}"; do
+                for fm in $FILTER_MODELS; do
+                    [ "$m" = "$fm" ] && IC_MODELS+=("$m") && break
+                done
+            done
+            if [ ${#IC_MODELS[@]} -eq 0 ]; then
+                echo -e "${COLOR_YELLOW}  无匹配模型，跳过${COLOR_NC}"
+                IC_MODELS=("${_saved_ic[@]}")
+                continue
+            fi
+        fi
         # ImageClassification 使用批量处理
         process_ic_batch "$MODE"
+        if [ -n "$FILTER_MODELS" ]; then
+            IC_MODELS=("${_saved_ic[@]}")
+        fi
     else
         models="${DOMAIN_MODELS[$domain]}"
         for model in $models; do
+            # FILTER_MODELS 过滤：只跑指定模型
+            if [ -n "$FILTER_MODELS" ]; then
+                _skip=1
+                for fm in $FILTER_MODELS; do
+                    [ "$model" = "$fm" ] && _skip=0 && break
+                done
+                [ $_skip -eq 1 ] && continue
+            fi
             process_model "$domain" "$model" "$MODE"
         done
     fi

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+export CUDA_VISIBLE_DEVICES=0
+
 if [ -e "../data/data_thchs30" ]; then
     echo "../data/data_thchs30 exists"
 else
