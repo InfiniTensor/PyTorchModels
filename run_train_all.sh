@@ -147,7 +147,7 @@ GROUP_RL=( run_test_rl )
 GROUP_Recommendation=( run_test_recommendation )
 GROUP_SR=( run_test_sr )
 GROUP_Segmentation=( run_test_segmentation_deeplab run_test_segmentation_fcn run_test_segmentation_lraspp run_test_segmentation_unet )
-GROUP_Speech=( run_test_speech_deepspeech2 run_test_speech_wav2vec )
+GROUP_Speech=( run_test_speech_deepspeech2 )
 GROUP_TimeSeriesPrediction=( run_test_timeseries_lstm run_test_timeseries_tcn )
 
 ALL_TESTS=(

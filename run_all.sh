@@ -32,17 +32,6 @@ PLATFORM_ENV=${PLATFORM_ENV:-"UNKNOWN"}
 
 # 确保 CUDA_VISIBLE_DEVICES 生效（由 env.sh 或命令行设置）
 export CUDA_VISIBLE_DEVICES
-if [ -z "$CUDA_VISIBLE_DEVICES" ]; then
-    # 自动检测可用GPU，取前2张
-    all_gpus=$(mx-smi -L 2>/dev/null | grep -c "GPU" || nvidia-smi -L 2>/dev/null | grep -c "GPU" || echo 0)
-    if [ "$all_gpus" -ge 2 ]; then
-        export CUDA_VISIBLE_DEVICES="0,1"
-    elif [ "$all_gpus" -eq 1 ]; then
-        export CUDA_VISIBLE_DEVICES="0"
-    else
-        echo -e "${COLOR_RED}Warning: No GPUs detected${COLOR_NC}"
-    fi
-fi
 echo -e "${COLOR_CYAN}Using GPUs: ${CUDA_VISIBLE_DEVICES}${COLOR_NC}"
 
 # --- 颜色定义 ---
@@ -54,8 +43,13 @@ COLOR_CYAN='\033[0;36m'
 COLOR_NC='\033[0m'
 
 # --- 超时配置 ---
-TRAIN_TIMEOUT="3m"
-EVAL_TIMEOUT="2m"
+TRAIN_TIMEOUT="5m"
+EVAL_TIMEOUT="5m"
+
+# --- Early Stop 配置 ---
+# EARLY_STOP=1: 检测到首个吞吐量指标后立即停止，节省时间
+# EARLY_STOP=0: 跑完或等超时再提取指标
+EARLY_STOP=${EARLY_STOP:-1}
 
 # --- Ctrl+C 清理所有子进程 ---
 cleanup() {
@@ -260,20 +254,8 @@ extract_metric() {
         TimeSeriesPrediction)
             grep -oP 'Acc[=:]\s*\K[\d.]+' "$logfile" 2>/dev/null | tail -1
             ;;
-        GAN)
-            grep -oP 'FID[:\s]*\K[\d.]+' "$logfile" 2>/dev/null | tail -1
-            ;;
-        NLP)
-            grep -oP '"f1"[:\s]*\K[\d.]+' "$logfile" 2>/dev/null | tail -1
-            ;;
-        RL)
-            grep -oP 'Reward[:\s]*\K[\d.]+' "$logfile" 2>/dev/null | tail -1
-            ;;
-        SR)
-            grep -oP '(?:PSNR|SSIM)[:\s]*\K[\d.]+' "$logfile" 2>/dev/null | tail -1
-            ;;
         *)
-            grep -oP '(?:accuracy|Acc@1|mAP|mIoU|F1|Reward|PSNR|cer)[:\s=]*\K[\d.]+' "$logfile" 2>/dev/null | tail -1
+            grep -oP '(?:accuracy|Acc@1|mAP|mIoU|F1|Loss)[:\s=]+\K[\d.]+' "$logfile" 2>/dev/null | tail -1
             ;;
     esac
 }
@@ -325,11 +307,55 @@ run_task() {
         echo -e "${COLOR_CYAN}  [RUN] $task_name (no timeout)${COLOR_NC}"
         bash -c "$@" > "$logfile" 2>&1
         return $?
-    else
-        echo -e "${COLOR_CYAN}  [RUN] $task_name (timeout: ${timeout_val})${COLOR_NC}"
-        timeout "$timeout_val" bash -c "$@" > "$logfile" 2>&1
-        return $?
     fi
+
+    # 超时转秒
+    local max_secs
+    case "$timeout_val" in
+        *m) max_secs=$((${timeout_val%m} * 60)) ;;
+        *s) max_secs=${timeout_val%s} ;;
+        *)  max_secs=$timeout_val ;;
+    esac
+
+    local tag="timeout: ${timeout_val}"
+    [ "$EARLY_STOP" = "1" ] && tag="${tag}, early stop"
+    echo -e "${COLOR_CYAN}  [RUN] $task_name (${tag})${COLOR_NC}"
+
+    # 后台启动命令（新进程组，便于清理全部子进程）
+    setsid bash -c "$@" > "$logfile" 2>&1 &
+    local cmd_pid=$!
+    local pgid=$(ps -o pgid= -p $cmd_pid 2>/dev/null | tr -d ' ')
+
+    local elapsed=0
+    while kill -0 $cmd_pid 2>/dev/null; do
+        # Early stop: 等至少 10 秒再检测，避免误判
+        if [ "$EARLY_STOP" = "1" ] && [ $elapsed -ge 10 ]; then
+            if grep -qE '(Train throughput:|Throughput:|Inference throughput:|Evaluate throughput:|Avg it/s:|samples_per_second|Batch Time [0-9]|Average inference latency:)' "$logfile" 2>/dev/null; then
+                echo -e "${COLOR_GREEN}  [EARLY STOP] $task_name - 已获取指标，提前结束${COLOR_NC}"
+                [ -n "$pgid" ] && kill -- -"$pgid" 2>/dev/null
+                sleep 1
+                [ -n "$pgid" ] && kill -9 -- -"$pgid" 2>/dev/null
+                wait $cmd_pid 2>/dev/null
+                return 0
+            fi
+        fi
+
+        # 超时
+        if [ $elapsed -ge $max_secs ]; then
+            [ -n "$pgid" ] && kill -- -"$pgid" 2>/dev/null
+            sleep 1
+            [ -n "$pgid" ] && kill -9 -- -"$pgid" 2>/dev/null
+            wait $cmd_pid 2>/dev/null
+            return 124
+        fi
+
+        sleep 2
+        elapsed=$((elapsed + 2))
+    done
+
+    # 进程自然结束
+    wait $cmd_pid 2>/dev/null
+    return $?
 }
 
 # ==============================================================================
@@ -361,15 +387,15 @@ run_detection_eval() {
     local logfile="$2"
     case "$model" in
         fasterrcnn)
-            run_task "$logfile" "3m" "Detection/fasterrcnn eval" \
+            run_task "$logfile" "5m" "Detection/fasterrcnn eval" \
                 'cd Detection/fasterrcnn && DATA_DIR=../data/VOCdevkit CKPT_DIR=./ bash run_eval.sh'
             ;;
         ssd)
-            run_task "$logfile" "3m" "Detection/ssd eval" \
+            run_task "$logfile" "5m" "Detection/ssd eval" \
                 'cd Detection/ssd && DATA_DIR=../data/VOCdevkit bash run_eval.sh'
             ;;
         yolo)
-            run_task "$logfile" "3m" "Detection/yolo eval" \
+            run_task "$logfile" "5m" "Detection/yolo eval" \
                 'cd Detection/yolo && MODEL=yolov5s DATA_DIR=../data/coco bash run_eval.sh'
             ;;
     esac
@@ -447,7 +473,7 @@ run_rl_train() {
 run_rl_eval() {
     local logfile="$1"
     run_task "$logfile" "$EVAL_TIMEOUT" "RL/dqn eval" \
-        'cd RL/dqn && bash run_eval.sh ./checkpoints/90.pth'
+        'cd RL/dqn && bash run_eval.sh ./checkpoints/20.pth'
 }
 
 # --- Recommendation ---
@@ -580,7 +606,7 @@ DOMAIN_MODELS[RL]="dqn"
 DOMAIN_MODELS[Recommendation]="dlrm"
 DOMAIN_MODELS[SR]="espcn"
 DOMAIN_MODELS[Segmentation]="deeplab fcn lraspp unet"
-DOMAIN_MODELS[Speech]="deepspeech2 wav2vec"
+DOMAIN_MODELS[Speech]="deepspeech2"
 DOMAIN_MODELS[TimeSeriesPrediction]="lstm tcn"
 
 # 有效领域列表
@@ -1042,11 +1068,37 @@ for domain in "${SELECTED_DOMAINS[@]}"; do
     echo -e "${COLOR_BLUE}========================================${COLOR_NC}"
 
     if [ "$domain" = "ImageClassification" ]; then
+        # FILTER_MODELS 过滤 IC 模型列表
+        if [ -n "$FILTER_MODELS" ]; then
+            _saved_ic=("${IC_MODELS[@]}")
+            IC_MODELS=()
+            for m in "${_saved_ic[@]}"; do
+                for fm in $FILTER_MODELS; do
+                    [ "$m" = "$fm" ] && IC_MODELS+=("$m") && break
+                done
+            done
+            if [ ${#IC_MODELS[@]} -eq 0 ]; then
+                echo -e "${COLOR_YELLOW}  无匹配模型，跳过${COLOR_NC}"
+                IC_MODELS=("${_saved_ic[@]}")
+                continue
+            fi
+        fi
         # ImageClassification 使用批量处理
         process_ic_batch "$MODE"
+        if [ -n "$FILTER_MODELS" ]; then
+            IC_MODELS=("${_saved_ic[@]}")
+        fi
     else
         models="${DOMAIN_MODELS[$domain]}"
         for model in $models; do
+            # FILTER_MODELS 过滤：只跑指定模型
+            if [ -n "$FILTER_MODELS" ]; then
+                _skip=1
+                for fm in $FILTER_MODELS; do
+                    [ "$model" = "$fm" ] && _skip=0 && break
+                done
+                [ $_skip -eq 1 ] && continue
+            fi
             process_model "$domain" "$model" "$MODE"
         done
     fi

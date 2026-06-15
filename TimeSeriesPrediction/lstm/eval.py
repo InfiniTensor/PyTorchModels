@@ -140,7 +140,6 @@ if __name__ == '__main__':
     para_dict = vars(args)
     
     device="cuda"
-    torch.cuda.set_device(0)
 
     data,L = read_data(para_dict['dataset'])
     # data = torch.Tensor(data).to(device)

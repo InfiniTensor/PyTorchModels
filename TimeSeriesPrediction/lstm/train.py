@@ -136,8 +136,12 @@ def train_proc(para_dict, train_data, val_data):
 
         # 计算epoch统计信息
         epoch_time = time.time() - epoch_start_time
-        avg_loss = train_loss_tmp / total_batches
-        avg_it_per_sec = total_batches / epoch_time
+        if total_batches > 0:
+            avg_loss = train_loss_tmp / total_batches
+            avg_it_per_sec = total_batches / epoch_time
+        else:
+            avg_loss = 0
+            avg_it_per_sec = 0
         
         # 打印epoch统计信息
         print(f"\nEpoch {epoch_idx+1:3d}/{epoch} | Avg Loss: {avg_loss:.4f} | "
@@ -164,7 +168,8 @@ def train_proc(para_dict, train_data, val_data):
                       os.path.join(para_dict["modelpara_path"], 'lstm_best.pt'))
 
         # 损失保存
-        train_loss_tmp /= len(train_data)
+        if len(train_data) > 0:
+            train_loss_tmp /= len(train_data)
         if val_data is not None:
             val_loss_tmp /= len(val_data)
             val_loss.append(val_loss_tmp)
@@ -202,7 +207,6 @@ if __name__ == '__main__':
         os.makedirs(para_dict["modelpara_path"])
 
     device="cuda"
-    torch.cuda.set_device(0)
 
     data,L = read_data(para_dict['dataset'])
     min_val = min(data.iloc[:,1])

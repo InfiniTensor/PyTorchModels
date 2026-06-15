@@ -63,7 +63,6 @@ PYTHONUNBUFFERED=1 python train.py \
     --data coco.yaml \
     --weights "" \
     --cfg "models/${MODEL}.yaml" \
-    --device 0 \
     --nosave \
     --noval \
     --workers 16
