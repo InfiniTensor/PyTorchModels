@@ -11,51 +11,7 @@ from utils import array_tool as at
 # from utils.vis_tool import Visualizer
 
 from utils.config import opt
-import torch
-
-
-class ConfusionMeter:
-    """Maintains a confusion matrix (K x K matrix where K = number of classes)."""
-    def __init__(self, k):
-        self.k = k
-        self.matrix = torch.zeros(k, k)
-
-    def add(self, output, target):
-        output = output.cpu().view(-1)
-        target = target.cpu().view(-1)
-        assert output.shape == target.shape
-        for o, t in zip(output, target):
-            o = int(o)
-            t = int(t)
-            if 0 <= t < self.k and 0 <= o < self.k:
-                self.matrix[t][o] += 1
-
-    def reset(self):
-        self.matrix.zero_()
-
-    def value(self):
-        return self.matrix
-
-
-class AverageValueMeter:
-    """Computes and stores the average and current value."""
-    def __init__(self):
-        self.reset()
-
-    def add(self, value, n=1):
-        self.val = value
-        self.sum += value * n
-        self.count += n
-        self.mean = self.sum / self.count
-
-    def reset(self):
-        self.val = 0
-        self.sum = 0
-        self.count = 0
-        self.mean = 0
-
-    def value(self):
-        return self.mean, self.sum
+from torchnet.meter import ConfusionMeter, AverageValueMeter
 
 LossTuple = namedtuple('LossTuple',
                        ['rpn_loc_loss',
@@ -183,9 +139,6 @@ class FasterRCNNTrainer(nn.Module):
         rpn_cls_loss = F.cross_entropy(rpn_score, gt_rpn_label.cuda(), ignore_index=-1)
         _gt_rpn_label = gt_rpn_label[gt_rpn_label > -1]
         _rpn_score = at.tonumpy(rpn_score)[at.tonumpy(gt_rpn_label) > -1]
-        # rpn_score shape is [num_anchors, 2]; after mask -> [N_valid, 2]
-        # take argmax to get class predictions -> [N_valid]
-        _rpn_score = _rpn_score.argmax(axis=1)
         self.rpn_cm.add(at.totensor(_rpn_score, False), _gt_rpn_label.data.long())
 
         # ------------------ ROI losses (fast rcnn loss) -------------------#
@@ -204,10 +157,7 @@ class FasterRCNNTrainer(nn.Module):
 
         roi_cls_loss = nn.CrossEntropyLoss()(roi_score, gt_roi_label.cuda())
 
-        _roi_score = at.totensor(roi_score, False)
-        # roi_score shape is [N_sample, num_classes]; take argmax -> [N_sample]
-        _roi_score = _roi_score.argmax(dim=1)
-        self.roi_cm.add(_roi_score, gt_roi_label.data.long())
+        self.roi_cm.add(at.totensor(roi_score, False), gt_roi_label.data.long())
 
         losses = [rpn_loc_loss, rpn_cls_loss, roi_loc_loss, roi_cls_loss]
         losses = losses + [sum(losses)]

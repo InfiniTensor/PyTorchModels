@@ -23,12 +23,12 @@ ckpt_path="$ckpt_dir/fasterrcnn.pth"
 
 ckpt_url="https://cloud.tsinghua.edu.cn/seafhttp/files/1db6485b-ef12-42b3-b9e7-a9b86be648bc/fasterrcnn.pth"
 
-# 检查模型文件是否存在且非空
-if [ -s "$ckpt_path" ]; then
+# 检查模型文件是否存在
+if [ -e "$ckpt_path" ]; then
     echo "$ckpt_path exists"
 else
     echo "Download $ckpt_path from url $ckpt_url"
-    wget "$ckpt_url" -O "$ckpt_path" || echo "WARNING: Download failed, will use random weights"
+    wget "$ckpt_url" -O "$ckpt_path"
 fi
 
 echo "Evaluate FasterRCNN START"

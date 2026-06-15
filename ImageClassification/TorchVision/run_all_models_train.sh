@@ -65,7 +65,6 @@ for model in "${models[@]}"; do
         --gpu 0 \
         --dummy \
         --batch-size 64 \
-        -j 2 \
         $DATA_DIR &
 
     # 获取进程 ID

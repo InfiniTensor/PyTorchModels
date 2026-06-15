@@ -69,23 +69,11 @@ fi
 MODEL_PATH="./${MODEL}.pt"
 
 # 下载模型权重
-if [ -e "$MODEL_PATH" ] && [ -s "$MODEL_PATH" ]; then
+if [ -e "$MODEL_PATH" ]; then
     echo "$MODEL_PATH exists"
 else
     echo "Downloading $MODEL from ${MODELS[$MODEL]}"
-    wget -O "$MODEL_PATH" "${MODELS[$MODEL]}" || true
-    # 如果下载失败，用模型配置文件生成随机权重
-    if [ ! -s "$MODEL_PATH" ]; then
-        echo "Download failed, creating random weights from model config"
-        python3 -c "
-import torch
-from models.yolo import Model
-model = Model('models/${MODEL}.yaml', ch=3, nc=80)
-ckpt = {'model': model, 'optimizer': None, 'epoch': -1, 'best_fitness': None}
-torch.save(ckpt, '${MODEL_PATH}')
-print('Random weights saved to ${MODEL_PATH}')
-"
-    fi
+    wget -O "$MODEL_PATH" "${MODELS[$MODEL]}"
 fi
 
 echo "Evaluation Start: $(date +'%m/%d/%Y %T')"

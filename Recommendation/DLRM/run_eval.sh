@@ -38,19 +38,12 @@ if [ ! -d "${DATASET_DIR}" ]; then
     exit 1
 fi
 
-# 开始推理
-echo "Starting eval with checkpoint ${PYTORCH_INFER_CHECKPOINT} and dataset ${DATASET_DIR}"
-
-# 如果 checkpoint 不存在，不传 --resume 参数，使用随机权重做吞吐量测试
-RESUME_ARG="--resume ${PYTORCH_INFER_CHECKPOINT}"
-if [ ! -f "${PYTORCH_INFER_CHECKPOINT}" ]; then
-    echo "WARNING: Checkpoint ${PYTORCH_INFER_CHECKPOINT} not found, using random weights for throughput benchmark"
-    RESUME_ARG=""
-fi
+# 开始训练
+echo "Starting training with checkpoint ${PYTORCH_INFER_CHECKPOINT} and dataset ${DATASET_DIR}"
 
 python ncf.py \
     --data ${DATASET_DIR} \
-    $RESUME_ARG \
+    --resume ${PYTORCH_INFER_CHECKPOINT} \
     -l 0.0002 \
     -b 65536 \
     --layers 256 256 128 64 \

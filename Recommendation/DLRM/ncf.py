@@ -473,7 +473,7 @@ def main():
         traced_criterion = torch.jit.trace(criterion.forward, (torch.rand(local_batch,1),torch.rand(local_batch,1)))
         args.start_epoch = 0
         if args.resume:
-            if args.resume and os.path.isfile(args.resume):
+            if os.path.isfile(args.resume):
                 print("=> Loading checkpoint: {}".format(args.resume))
                 resume_point = torch.load(args.resume, map_location=torch.device('cpu'))
                 resume_point_replace = {}
@@ -721,7 +721,7 @@ def main():
         # mlperf_log.ncf_print(key=mlperf_log.OPT_HP_ADAM_BETA2, value=args.beta2)
         # mlperf_log.ncf_print(key=mlperf_log.OPT_HP_ADAM_EPSILON, value=args.eps)
         # mlperf_log.ncf_print(key=mlperf_log.MODEL_HP_LOSS_FN, value=mlperf_log.BCE)
-        if args.resume and os.path.isfile(args.resume):
+        if os.path.isfile(args.resume):
             if os.path.exists(args.ckpdir) and len(os.listdir(args.ckpdir)) > 0:
                 if os.path.isfile(args.ckpdir + '/' +'dlrmamp_' + str(args.start_epoch) + '.pth'):
                     args.resume = args.ckpdir + '/' +'dlrmamp_' + str(args.start_epoch) + '.pth'
@@ -746,8 +746,9 @@ def main():
             else:
                 resume_point_replace = resume_point['state_dict']
             model.load_state_dict(resume_point_replace, strict=True if args.device=='gpu' else False)
-        elif args.resume:
-            print("WARNING: Checkpoint {} not found, using random weights".format(args.resume))
+        else:
+            print("ERROR: Fail to load Resume checkpoint from {}, file not exist".format(args.resume))
+            return
 
         begin = time.time()
 

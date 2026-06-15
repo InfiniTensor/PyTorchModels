@@ -17,7 +17,7 @@ def decom_vgg16():
         if not opt.load_path:
             model.load_state_dict(t.load(opt.caffe_pretrain_path))
     else:
-        model = vgg16(weights=None)
+        model = vgg16(not opt.load_path)
 
     features = list(model.features)[:30]
     classifier = model.classifier

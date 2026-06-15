@@ -7,7 +7,7 @@ if [ -e "../data/squad" ]; then
     echo "../data/squad exists"
 else
     # 创建软连接
-    ln -s /data-aisoft/Dataset/squad ../data/squad
+    ln -s /data1/shared/Dataset/squad ../data/squad
 fi
 
 export SQUAD_PATH="../data/squad"

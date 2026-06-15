@@ -28,7 +28,7 @@ class DQN(nn.Module):
 
 def train(save_path,num_episodes,lr):  
     # 初始化环境  
-    env = gym.make('CartPole-v1', render_mode="rgb_array")  
+    env = gym.make('CartPole-v1', render_mode="human")  
     n_states = env.observation_space.shape[0]  
     n_actions = env.action_space.n  
     
@@ -102,7 +102,7 @@ def train(save_path,num_episodes,lr):
     env.close()
 
 def infer(model_path):
-    env = gym.make('CartPole-v1', render_mode="rgb_array")  
+    env = gym.make('CartPole-v1', render_mode="human")  
     n_states = env.observation_space.shape[0]  
     n_actions = env.action_space.n  
     

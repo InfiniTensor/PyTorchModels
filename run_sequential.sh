@@ -21,23 +21,12 @@
 #     单模型:      Detection/fasterrcnn     加 /模型名 跑单个模型
 #
 #   测试分组:
-#     1.  single     单模型合集 (GAN + NLP + RL + Recommendation + SR)   共 5 模型
-#     2.  ts         TimeSeriesPrediction                                 共 2 模型
-#     3.  speech     Speech                                               共 2 模型
-#     4.  det        Detection                                            共 3 模型
-#     5.  seg        Segmentation                                         共 4 模型
-#     6.  ic1        图像分类(1/12)  alexnet convnext_tiny densenet121 densenet161 densenet169
-#     7.  ic2        图像分类(2/12)  densenet201 efficientnet_b0 efficientnet_b1 efficientnet_b2 efficientnet_b3
-#     8.  ic3        图像分类(3/12)  efficientnet_b4 efficientnet_b5 efficientnet_b6 googlenet inception_v3
-#     9.  ic4        图像分类(4/12)  mnasnet0_5 mnasnet0_75 mnasnet1_0 mnasnet1_3 mobilenet_v2
-#     10. ic5        图像分类(5/12)  mobilenet_v3_large mobilenet_v3_small regnet_x_16gf regnet_x_1_6gf regnet_x_3_2gf
-#     11. ic6        图像分类(6/12)  regnet_x_400mf regnet_x_800mf regnet_x_8gf regnet_y_16gf regnet_y_1_6gf
-#     12. ic7        图像分类(7/12)  regnet_y_3_2gf regnet_y_400mf regnet_y_800mf regnet_y_8gf resnet101
-#     13. ic8        图像分类(8/12)  resnet152 resnet18 resnet34 resnet50 resnext101_32x8d
-#     14. ic9        图像分类(9/12)  resnext50_32x4d shufflenet_v2_x0_5 shufflenet_v2_x1_0 shufflenet_v2_x1_5 shufflenet_v2_x2_0
-#     15. ic10       图像分类(10/12) squeezenet1_0 squeezenet1_1 vgg11 vgg11_bn vgg13
-#     16. ic11       图像分类(11/12) vgg13_bn vgg16 vgg16_bn vgg19 vgg19_bn
-#     17. ic12       图像分类(12/12) vit_b_16 vit_b_32 vit_l_32 wide_resnet101_2 wide_resnet50_2
+#     1. single     单模型合集 (GAN + NLP + RL + Recommendation + SR)   共 5 模型
+#     2. ts         TimeSeriesPrediction                                 共 2 模型
+#     3. speech     Speech                                               共 2 模型
+#     4. det        Detection                                            共 3 模型
+#     5. seg        Segmentation                                         共 4 模型
+#     6. ic         ImageClassification                                  共 60 模型
 #
 # ==============================================================================
 
@@ -61,25 +50,14 @@ COLOR_CYAN='\033[0;36m'
 COLOR_NC='\033[0m'
 
 # --- 测试分组定义 ---
-# "分组简称|run_all.sh参数|中文名|环境变量(可选)"
+# "分组简称|run_all.sh参数|中文名"
 declare -a TEST_GROUPS=(
-    "single|GAN NLP RL Recommendation SR|单模型合集(GAN+NLP+RL+Rec+SR)|"
-    "ts|TimeSeriesPrediction|时序预测|"
-    "speech|Speech|语音识别|"
-    "det|Detection|目标检测|"
-    "seg|Segmentation|语义分割|"
-    "ic1|ImageClassification|图像分类(1/12)|IC_MODELS='alexnet convnext_tiny densenet121 densenet161 densenet169'"
-    "ic2|ImageClassification|图像分类(2/12)|IC_MODELS='densenet201 efficientnet_b0 efficientnet_b1 efficientnet_b2 efficientnet_b3'"
-    "ic3|ImageClassification|图像分类(3/12)|IC_MODELS='efficientnet_b4 efficientnet_b5 efficientnet_b6 googlenet inception_v3'"
-    "ic4|ImageClassification|图像分类(4/12)|IC_MODELS='mnasnet0_5 mnasnet0_75 mnasnet1_0 mnasnet1_3 mobilenet_v2'"
-    "ic5|ImageClassification|图像分类(5/12)|IC_MODELS='mobilenet_v3_large mobilenet_v3_small regnet_x_16gf regnet_x_1_6gf regnet_x_3_2gf'"
-    "ic6|ImageClassification|图像分类(6/12)|IC_MODELS='regnet_x_400mf regnet_x_800mf regnet_x_8gf regnet_y_16gf regnet_y_1_6gf'"
-    "ic7|ImageClassification|图像分类(7/12)|IC_MODELS='regnet_y_3_2gf regnet_y_400mf regnet_y_800mf regnet_y_8gf resnet101'"
-    "ic8|ImageClassification|图像分类(8/12)|IC_MODELS='resnet152 resnet18 resnet34 resnet50 resnext101_32x8d'"
-    "ic9|ImageClassification|图像分类(9/12)|IC_MODELS='resnext50_32x4d shufflenet_v2_x0_5 shufflenet_v2_x1_0 shufflenet_v2_x1_5 shufflenet_v2_x2_0'"
-    "ic10|ImageClassification|图像分类(10/12)|IC_MODELS='squeezenet1_0 squeezenet1_1 vgg11 vgg11_bn vgg13'"
-    "ic11|ImageClassification|图像分类(11/12)|IC_MODELS='vgg13_bn vgg16 vgg16_bn vgg19 vgg19_bn'"
-    "ic12|ImageClassification|图像分类(12/12)|IC_MODELS='vit_b_16 vit_b_32 vit_l_32 wide_resnet101_2 wide_resnet50_2'"
+    "single|GAN NLP RL Recommendation SR|单模型合集(GAN+NLP+RL+Rec+SR)"
+    "ts|TimeSeriesPrediction|时序预测"
+    "speech|Speech|语音识别"
+    "det|Detection|目标检测"
+    "seg|Segmentation|语义分割"
+    "ic|ImageClassification|图像分类"
 )
 TOTAL_DEF_GROUPS=${#TEST_GROUPS[@]}
 
@@ -109,7 +87,7 @@ usage_exit() {
     echo "  可用分组:"
     local i=1
     for g in "${TEST_GROUPS[@]}"; do
-        IFS='|' read -r short args cn env <<< "$g"
+        IFS='|' read -r short args cn <<< "$g"
         printf "    %-3s %-22s %s\n" "$i." "$short" "$cn"
         i=$((i + 1))
     done
@@ -161,7 +139,7 @@ parse_arg() {
     # 3) 名称/简称匹配
     if [ -z "$group_idx" ]; then
         for ((i=0; i<TOTAL_DEF_GROUPS; i++)); do
-            IFS='|' read -r short args cn env <<< "${TEST_GROUPS[$i]}"
+            IFS='|' read -r short args cn <<< "${TEST_GROUPS[$i]}"
             if [ "$base_arg" = "$short" ] || echo "$args" | grep -qw "$base_arg"; then
                 group_idx=$i
                 break
@@ -222,7 +200,7 @@ for task in "${TASKS[@]}"; do
     t_idx="${task%%:*}"
     t_filter=""
     [[ "$task" == *:* ]] && t_filter="${task#*:}"
-    IFS='|' read -r short args cn env <<< "${TEST_GROUPS[$t_idx]}"
+    IFS='|' read -r short args cn <<< "${TEST_GROUPS[$t_idx]}"
     if [ -n "$t_filter" ]; then
         echo -e "  ${run_idx}. ${cn} → 仅 ${t_filter}"
     else
@@ -239,7 +217,7 @@ for task in "${TASKS[@]}"; do
     t_filter=""
     [[ "$task" == *:* ]] && t_filter="${task#*:}"
 
-    IFS='|' read -r group_name group_args group_cn group_env <<< "${TEST_GROUPS[$t_idx]}"
+    IFS='|' read -r group_name group_args group_cn <<< "${TEST_GROUPS[$t_idx]}"
 
     # 日志文件名：有模型过滤时加上模型名
     if [ -n "$t_filter" ]; then
@@ -257,18 +235,13 @@ for task in "${TASKS[@]}"; do
     echo -e "${COLOR_BLUE}  ▶ 第 ${run_idx}/${TOTAL_TASKS} 个任务: ${task_desc}${COLOR_NC}"
     echo -e "${COLOR_BLUE}    域: ${group_args}${COLOR_NC}"
     [ -n "$t_filter" ] && echo -e "${COLOR_BLUE}    模型: ${t_filter}${COLOR_NC}"
-    [ -n "$group_env" ] && echo -e "${COLOR_BLUE}    环境变量: ${group_env}${COLOR_NC}"
     echo -e "${COLOR_BLUE}    日志: ${LOG_FILE}${COLOR_NC}"
     echo -e "${COLOR_BLUE}=========================================================${COLOR_NC}"
     run_idx=$((run_idx + 1))
 
     group_start=$(date +%s)
 
-    # 执行 run_all.sh（支持通过 group_env 传递额外环境变量）
-    # 用 eval export 正确处理带引号的环境变量值
-    if [ -n "$group_env" ]; then
-        eval "export ${group_env}"
-    fi
+    # 执行 run_all.sh
     if [ -n "$t_filter" ]; then
         FILTER_MODELS="$t_filter" bash run_all.sh "$MODE" $group_args 2>&1 | tee "$LOG_FILE"
         rc=${PIPESTATUS[0]}
@@ -356,7 +329,7 @@ SUMMARY_FILE="${SEQ_LOG_DIR}/summary.txt"
         t_idx="${task%%:*}"
         t_filter=""
         [[ "$task" == *:* ]] && t_filter="${task#*:}"
-        IFS='|' read -r group_name group_args group_cn group_env <<< "${TEST_GROUPS[$t_idx]}"
+        IFS='|' read -r group_name group_args group_cn <<< "${TEST_GROUPS[$t_idx]}"
         if [ -n "$t_filter" ]; then
             echo "  ${group_cn}/${t_filter}: ${SEQ_LOG_DIR}/${group_name}_${t_filter}_report.txt"
         else
@@ -374,17 +347,15 @@ if [ $FAIL_GROUPS -gt 0 ]; then
         t_idx="${task%%:*}"
         t_filter=""
         [[ "$task" == *:* ]] && t_filter="${task#*:}"
-        IFS='|' read -r group_name group_args group_cn group_env <<< "${TEST_GROUPS[$t_idx]}"
+        IFS='|' read -r group_name group_args group_cn <<< "${TEST_GROUPS[$t_idx]}"
         desc="${group_cn}"
         [ -n "$t_filter" ] && desc="${group_cn}/${t_filter}"
         for status in "${GROUP_STATUS[@]}"; do
             if echo "$status" | grep -q "^${desc}: FAIL"; then
-                local retry_env=""
-                [ -n "$group_env" ] && retry_env="$group_env "
                 if [ -n "$t_filter" ]; then
-                    echo -e "  ${COLOR_CYAN}${retry_env}FILTER_MODELS=$t_filter bash run_all.sh $MODE $group_args${COLOR_NC}"
+                    echo -e "  ${COLOR_CYAN}FILTER_MODELS=$t_filter bash run_all.sh $MODE $group_args${COLOR_NC}"
                 else
-                    echo -e "  ${COLOR_CYAN}${retry_env}bash run_all.sh $MODE $group_args${COLOR_NC}"
+                    echo -e "  ${COLOR_CYAN}bash run_all.sh $MODE $group_args${COLOR_NC}"
                 fi
                 break
             fi

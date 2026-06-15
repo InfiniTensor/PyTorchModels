@@ -163,8 +163,8 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
                                                                   batch_time=batch_time,
                                                                   data_time=data_time, loss=losses), flush=True)
 
-        # Print cumulative throughput after first batch and then every 50 iterations
-        if i > 0 and (i <= 2 or i % 50 == 0):
+        # Print cumulative throughput every 50 iterations
+        if i > 0 and i % 50 == 0:
             cumulative_time = time.time() - cumulative_start
             throughput = cumulative_samples / cumulative_time
             avg_batch = cumulative_time / (i + 1)

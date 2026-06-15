@@ -47,9 +47,6 @@ cleanup() {
 # 设置脚本退出时执行清理操作，无论是正常退出还是由于错误中断
 trap cleanup EXIT
 
-# 创建数据目录
-mkdir -p ./data
-
 # 执行数据集预处理
 echo "Dataset preprocessing..."
 python create_data_lists.py --voc07_path=$DATA_DIR/VOC2007 --voc12_path=$DATA_DIR/VOC2012 --output_folder=./data
@@ -57,7 +54,7 @@ python create_data_lists.py --voc07_path=$DATA_DIR/VOC2007 --voc12_path=$DATA_DI
 
 # 执行 eval.py 进行评估
 echo "Evaluate SSD START"
-python eval.py --checkpoint "$CKPT_PATH" --max_batches 3
+python eval.py --checkpoint "$CKPT_PATH" --max_batches 10
 
 echo "Evaluate SSD FINISHED"
 

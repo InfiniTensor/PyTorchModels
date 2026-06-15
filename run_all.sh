@@ -56,18 +56,8 @@ cleanup() {
     echo -e "\n${COLOR_YELLOW}正在停止所有进程...${COLOR_NC}"
     # 杀掉当前进程组内所有子进程
     pkill -P $$ 2>/dev/null || true
-    # 杀掉所有相关 python 进程（确保 GPU 释放）
     pkill -f "run_all_models" 2>/dev/null || true
     pkill -f "main.py" 2>/dev/null || true
-    pkill -f "train.py" 2>/dev/null || true
-    pkill -f "eval.py" 2>/dev/null || true
-    pkill -f "val.py" 2>/dev/null || true
-    pkill -f "ncf.py" 2>/dev/null || true
-    sleep 1
-    # 强制清理残留
-    pkill -9 -f "main.py" 2>/dev/null || true
-    pkill -9 -f "train.py" 2>/dev/null || true
-    pkill -9 -f "eval.py" 2>/dev/null || true
     exit 1
 }
 trap cleanup SIGINT SIGTERM
@@ -93,9 +83,8 @@ IC_MODELS=(
     regnet_x_16gf regnet_x_1_6gf regnet_x_3_2gf
     regnet_x_400mf regnet_x_800mf regnet_x_8gf
     regnet_y_16gf regnet_y_1_6gf regnet_y_3_2gf
-    regnet_y_400mf regnet_y_800mf regnet_y_8gf
-    resnet18 resnet34 resnet50 resnet101 resnet152
-    resnext101_32x8d resnext50_32x4d
+    regnet_y_400mf regnet_y_800mf regnet_y_8gf resnet101 resnet152
+    resnet18 resnet34 resnet50 resnext101_32x8d resnext50_32x4d
     shufflenet_v2_x0_5 shufflenet_v2_x1_0 shufflenet_v2_x1_5 shufflenet_v2_x2_0
     squeezenet1_0 squeezenet1_1 vgg11 vgg11_bn vgg13 vgg13_bn vgg16
     vgg16_bn vgg19 vgg19_bn vit_b_16 vit_b_32 vit_l_32
@@ -332,10 +321,9 @@ run_task() {
     [ "$EARLY_STOP" = "1" ] && tag="${tag}, early stop"
     echo -e "${COLOR_CYAN}  [RUN] $task_name (${tag})${COLOR_NC}"
 
-    # 后台启动命令（用 setsid 创建新进程组，确保能杀干净）
-    setsid bash -c "$@" > "$logfile" 2>&1 &
+    # 后台启动命令
+    bash -c "$@" > "$logfile" 2>&1 &
     local cmd_pid=$!
-    local cmd_pgid=$(ps -o pgid= -p $cmd_pid 2>/dev/null | tr -d ' ')
 
     local elapsed=0
     while kill -0 $cmd_pid 2>/dev/null; do
@@ -343,11 +331,9 @@ run_task() {
         if [ "$EARLY_STOP" = "1" ] && [ $elapsed -ge 10 ]; then
             if grep -qE '(Train throughput:|Throughput:|Inference throughput:|Evaluate throughput:|Avg it/s:|samples_per_second|Batch Time [0-9]|Average inference latency:)' "$logfile" 2>/dev/null; then
                 echo -e "${COLOR_GREEN}  [EARLY STOP] $task_name - 已获取指标，提前结束${COLOR_NC}"
-                [ -n "$cmd_pgid" ] && kill -- -$cmd_pgid 2>/dev/null
                 kill $cmd_pid 2>/dev/null
                 pkill -P $cmd_pid 2>/dev/null
                 sleep 1
-                [ -n "$cmd_pgid" ] && kill -9 -- -$cmd_pgid 2>/dev/null
                 kill -9 $cmd_pid 2>/dev/null
                 pkill -9 -P $cmd_pid 2>/dev/null
                 wait $cmd_pid 2>/dev/null
@@ -357,11 +343,9 @@ run_task() {
 
         # 超时
         if [ $elapsed -ge $max_secs ]; then
-            [ -n "$cmd_pgid" ] && kill -- -$cmd_pgid 2>/dev/null
             kill $cmd_pid 2>/dev/null
             pkill -P $cmd_pid 2>/dev/null
             sleep 1
-            [ -n "$cmd_pgid" ] && kill -9 -- -$cmd_pgid 2>/dev/null
             kill -9 $cmd_pid 2>/dev/null
             pkill -9 -P $cmd_pid 2>/dev/null
             wait $cmd_pid 2>/dev/null

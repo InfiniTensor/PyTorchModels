@@ -50,8 +50,6 @@ def eval(dataloader, faster_rcnn, test_num=10000):
             print(f'Average inference latency: {avg_lat:.2f} ms/sample', flush=True)
 
         if ii == test_num: break
-
-    result = eval_detection_voc(
         pred_bboxes, pred_labels, pred_scores,
         gt_bboxes, gt_labels, gt_difficults,
         use_07_metric=True)
@@ -84,13 +82,11 @@ def main(**kwargs):
     print('model construct completed')
     trainer = FasterRCNNTrainer(faster_rcnn).cuda()
     if opt.load_path:
-        try:
-            trainer.load(opt.load_path)
-            print('load pretrained model from %s' % opt.load_path)
-        except Exception as e:
-            print(f'WARNING: Failed to load checkpoint ({e}), using random weights for throughput benchmark')
+        trainer.load(opt.load_path)
+        print('load pretrained model from %s' % opt.load_path)
     else:
-        print("ckpt path not found, using random weights for throughput benchmark")
+        print("ckpt path not found")
+        return 
 
     eval_result = eval(test_dataloader, faster_rcnn, test_num=opt.test_num)
 

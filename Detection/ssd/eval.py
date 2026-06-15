@@ -16,8 +16,8 @@ def parse_args():
     # Adding arguments
     parser.add_argument('--data', type=str, default='./data', help='Path to dataset folder')
     parser.add_argument('--keep_difficult', type=bool, default=True, help='Whether to keep difficult objects in mAP calculation')
-    parser.add_argument('--batch_size', type=int, default=8, help='Batch size for evaluation')
-    parser.add_argument('--workers', type=int, default=2, help='Number of workers for DataLoader')
+    parser.add_argument('--batch_size', type=int, default=64, help='Batch size for evaluation')
+    parser.add_argument('--workers', type=int, default=4, help='Number of workers for DataLoader')
     parser.add_argument('--device', type=str, choices=['cpu', 'cuda'], default='cuda', help='Device to run the model on (cpu or cuda)')
     parser.add_argument('--checkpoint', type=str, default='./checkpoint_ssd300.pth.tar', help='Path to model checkpoint')
     parser.add_argument('--max_batches', type=int, default=0, help='Max batches for eval (0=all)')
@@ -80,8 +80,8 @@ def evaluate(test_loader, model, max_batches=0):
             true_labels.extend(labels)
             true_difficulties.extend(difficulties)
 
-            # Print cumulative throughput every batch (first few batches) then every 5
-            if i > 0 and (i < 3 or i % 5 == 0):
+            # Print cumulative throughput every 5 batches
+            if i > 0 and i % 5 == 0:
                 tput = total_samples / total_inference_time if total_inference_time > 0 else 0
                 avg_lat = (total_inference_time / total_samples) * 1000 if total_samples > 0 else 0
                 print(f'Inference throughput: {tput:.2f} samples/s', flush=True)
@@ -113,15 +113,9 @@ if __name__ == '__main__':
     # Set device (CPU or GPU)
     device = torch.device(args.device if torch.cuda.is_available() else 'cpu')
 
-    # Load model checkpoint or create fresh model for throughput benchmarking
-    try:
-        checkpoint = torch.load(args.checkpoint, weights_only=False)
-        model = checkpoint['model']
-        print(f'Loaded checkpoint from {args.checkpoint}')
-    except Exception as e:
-        print(f'WARNING: Failed to load checkpoint ({e}), using random weights for throughput benchmark')
-        from model import SSD300, MultiBoxLoss
-        model = SSD300(n_classes=21)
+    # Load model checkpoint
+    checkpoint = torch.load(args.checkpoint, weights_only=False)
+    model = checkpoint['model']
     model = model.to(device)
 
     # Switch to eval mode

@@ -1,10 +1,12 @@
 from math import log10
 
 import torch
+from torchnet.meter import meter
 
 
-class PSNRMeter:
+class PSNRMeter(meter.Meter):
     def __init__(self):
+        super(PSNRMeter, self).__init__()
         self.reset()
 
     def reset(self):
