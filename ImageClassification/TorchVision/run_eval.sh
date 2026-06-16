@@ -48,7 +48,6 @@ python main.py \
     -a "$ARCH" \
     --gpu 0 \
     --batch-size 64 \
-    --pretrained \
     --evaluate \
     $DATA_DIR 
 

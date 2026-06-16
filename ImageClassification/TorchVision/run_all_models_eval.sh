@@ -64,7 +64,6 @@ for model in "${models[@]}"; do
         -a "$model" \
         --gpu 0 \
         --batch-size 64 \
-        --pretrained \
         --evaluate \
         $DATA_DIR &
 
@@ -77,14 +76,18 @@ for model in "${models[@]}"; do
 
     # 终止推理进程及其子进程
     echo "Stopping eval process (PID: $pid)..."
-    pkill -P "$pid" || true
-    kill "$pid" 2>/dev/null || true
+    pkill -9 -P "$pid" 2>/dev/null || true
+    kill -9 "$pid" 2>/dev/null || true
+    wait "$pid" 2>/dev/null || true
+
+    # 清理 multiprocessing 残留（防止 AF_UNIX path too long）
+    rm -rf /tmp/torch_* /tmp/pytorch_* 2>/dev/null || true
 
     # 删除下载的 ckpt
     rm -f "$HOME/.cache/torch/hub/checkpoints/${model}"*.pth
 
     echo "Evaluating $model finish: $(date +'%m/%d/%Y %T')"
 
-    # 等待输出缓冲区冲刷
+    # 等待输出缓冲区冲刷和 GPU 显存释放
     sleep 5
 done

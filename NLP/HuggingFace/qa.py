@@ -1009,6 +1009,11 @@ def main():
         prediction = post_processing_function(eval_examples, eval_dataset, outputs_numpy)
         eval_metric = metric.compute(predictions=prediction.predictions, references=prediction.label_ids)
         logger.info(f"Evaluation metrics: {eval_metric}")
+        # Print explicit metric for benchmark extraction
+        if 'f1' in eval_metric:
+            print(f"F1: {eval_metric['f1']:.4f}", flush=True)
+        elif 'exact_match' in eval_metric:
+            print(f"Accuracy: {eval_metric['exact_match']:.4f}", flush=True)
 
         # Print inference throughput and latency
         if total_samples > 0:

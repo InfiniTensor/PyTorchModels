@@ -4,4 +4,4 @@ export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0,1}
 
 python data_utils.py --upscale_factor 2
 
-python train.py --upscale_factor 2 --num_epochs 2
+python train.py --upscale_factor 2 --num_epochs 1 --num_batches 50

@@ -815,8 +815,8 @@ def main():
 
         def on_step_end(self, args, state, control, **kwargs):
             self.global_step += 1
-            self.total_samples += args.per_device_train_batch_size
-            if self.global_step > 0 and self.global_step % 10 == 0:
+            self.total_samples += args.per_device_train_batch_size * max(1, args.world_size)
+            if self.global_step > 0 and self.global_step % 2 == 0:
                 elapsed = time.time() - self.train_start_time
                 throughput = self.total_samples / elapsed
                 avg_batch = elapsed / self.global_step

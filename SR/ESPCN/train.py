@@ -30,7 +30,7 @@ class AverageMeter:
         return self.sum / self.count if self.count > 0 else 0
 
 
-def train_one_epoch(model, train_loader, criterion, optimizer, device):
+def train_one_epoch(model, train_loader, criterion, optimizer, device, num_batches=0):
     model.train()
     meter_loss = AverageMeter()
     meter_psnr = PSNRMeter()
@@ -56,6 +56,9 @@ def train_one_epoch(model, train_loader, criterion, optimizer, device):
             print(f'Train throughput: {throughput:.2f} samples/s')
             print(f'Batch Time {avg_batch:.6f} ({avg_batch:.6f})')
 
+        if num_batches > 0 and batch_idx + 1 >= num_batches:
+            break
+
     return meter_loss.value(), meter_psnr.value()
 
 
@@ -79,10 +82,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Train Super Resolution')
     parser.add_argument('--upscale_factor', default=3, type=int, help='super resolution upscale factor')
     parser.add_argument('--num_epochs', default=100, type=int, help='super resolution epochs number')
+    parser.add_argument('--num_batches', default=0, type=int, help='limit batches per epoch (0=no limit)')
     opt = parser.parse_args()
 
     UPSCALE_FACTOR = opt.upscale_factor
     NUM_EPOCHS = opt.num_epochs
+    NUM_BATCHES = opt.num_batches
     os.makedirs('epochs', exist_ok=True)
 
     train_set = DatasetFromFolder(
@@ -111,7 +116,7 @@ if __name__ == "__main__":
 
         # Train
         epoch_start = time.time()
-        train_loss, train_psnr = train_one_epoch(model, train_loader, criterion, optimizer, device)
+        train_loss, train_psnr = train_one_epoch(model, train_loader, criterion, optimizer, device, num_batches=NUM_BATCHES)
         epoch_time = time.time() - epoch_start
         print(f"[Train] Loss: {train_loss:.4f}, PSNR: {train_psnr:.2f} dB")
 

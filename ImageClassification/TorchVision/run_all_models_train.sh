@@ -76,11 +76,15 @@ for model in "${models[@]}"; do
 
     # 终止训练进程及其子进程
     echo "Stopping training process (PID: $pid)..."
-    pkill -P "$pid" || true
-    kill "$pid" 2>/dev/null || true
+    pkill -9 -P "$pid" 2>/dev/null || true
+    kill -9 "$pid" 2>/dev/null || true
+    wait "$pid" 2>/dev/null || true
+
+    # 清理 multiprocessing 残留（防止 AF_UNIX path too long）
+    rm -rf /tmp/torch_* /tmp/pytorch_* 2>/dev/null || true
 
     echo "Training $model finish: $(date +'%m/%d/%Y %T')"
 
-    # 等待缓冲区刷新
+    # 等待缓冲区刷新和 GPU 显存释放
     sleep 5
 done

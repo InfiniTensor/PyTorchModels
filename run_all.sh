@@ -375,7 +375,7 @@ run_detection_train() {
                 'cd Detection/fasterrcnn && DATA_DIR=../data/VOCdevkit bash run_train.sh'
             ;;
         ssd)
-            run_task "$logfile" "$TRAIN_TIMEOUT" "Detection/ssd train" \
+            run_task "$logfile" "10m" "Detection/ssd train" \
                 'cd Detection/ssd && DATA_DIR=../data/VOCdevkit bash run_train.sh'
             ;;
         yolo)
@@ -394,7 +394,7 @@ run_detection_eval() {
                 'cd Detection/fasterrcnn && DATA_DIR=../data/VOCdevkit CKPT_DIR=./ bash run_eval.sh'
             ;;
         ssd)
-            run_task "$logfile" "$EVAL_TIMEOUT" "Detection/ssd eval" \
+            run_task "$logfile" "10m" "Detection/ssd eval" \
                 'cd Detection/ssd && DATA_DIR=../data/VOCdevkit bash run_eval.sh'
             ;;
         yolo)

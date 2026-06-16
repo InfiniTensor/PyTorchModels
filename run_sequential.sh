@@ -11,22 +11,35 @@
 #     ./run_sequential.sh all 1 3                      # 跑第1、3组
 #     ./run_sequential.sh train 4-6                    # 跑第4到6组（仅训练）
 #     ./run_sequential.sh eval Detection Speech        # 按名称跑指定域
-#     ./run_sequential.sh all Detection/fasterrcnn     # 跑单个模型
-#     ./run_sequential.sh all det/yolo seg/unet ic/resnet18
+#     ./run_sequential.sh all ic3                      # 跑 IC 第3组
+#     ./run_sequential.sh all ic1 ic5 ic9              # 跑多个 IC 子组
+#     ./run_sequential.sh all 6-11                     # 跑 IC 第1~6组
+#     ./run_sequential.sh all det/fasterrcnn           # 跑单个模型
 #
 #   指定组的方式（可混用）:
 #     数字编号:    1 3 5                    第1、3、5组
 #     范围:        2-4                      第2到4组
-#     域名/简称:   Detection                按名称匹配
+#     域名/简称:   Detection / ic3          按名称匹配
 #     单模型:      Detection/fasterrcnn     加 /模型名 跑单个模型
 #
 #   测试分组:
-#     1. single     单模型合集 (GAN + NLP + RL + Recommendation + SR)   共 5 模型
-#     2. ts         TimeSeriesPrediction                                 共 2 模型
-#     3. speech     Speech                                               共 2 模型
-#     4. det        Detection                                            共 3 模型
-#     5. seg        Segmentation                                         共 4 模型
-#     6. ic         ImageClassification                                  共 60 模型
+#     1.  single    单模型合集 (GAN+NLP+RL+Rec+SR)   共 5 模型
+#     2.  ts        时序预测                         共 2 模型
+#     3.  speech    语音识别                         共 2 模型
+#     4.  det       目标检测                         共 3 模型
+#     5.  seg       语义分割                         共 4 模型
+#     6.  ic1       IC-G1  alexnet~densenet169       共 5 模型
+#     7.  ic2       IC-G2  densenet201~efficientnet_b3  共 5 模型
+#     8.  ic3       IC-G3  efficientnet_b4~inception_v3  共 5 模型
+#     9.  ic4       IC-G4  mnasnet0_5~mobilenet_v2   共 5 模型
+#     10. ic5       IC-G5  mobilenet_v3_large~regnet_x_3_2gf  共 5 模型
+#     11. ic6       IC-G6  regnet_x_400mf~regnet_y_1_6gf      共 5 模型
+#     12. ic7       IC-G7  regnet_y_3_2gf~resnet101  共 5 模型
+#     13. ic8       IC-G8  resnet152~resnext101_32x8d 共 5 模型
+#     14. ic9       IC-G9  resnext50_32x4d~shufflenet_v2_x2_0  共 5 模型
+#     15. ic10      IC-G10 squeezenet1_0~vgg13       共 5 模型
+#     16. ic11      IC-G11 vgg13_bn~vgg19_bn         共 5 模型
+#     17. ic12      IC-G12 vit_b_16~wide_resnet50_2  共 5 模型
 #
 # ==============================================================================
 
@@ -49,6 +62,21 @@ COLOR_BLUE='\033[0;34m'
 COLOR_CYAN='\033[0;36m'
 COLOR_NC='\033[0m'
 
+# --- IC 子组模型列表 ---
+declare -A IC_GROUP_MODELS
+IC_GROUP_MODELS[ic1]="alexnet convnext_tiny densenet121 densenet161 densenet169"
+IC_GROUP_MODELS[ic2]="densenet201 efficientnet_b0 efficientnet_b1 efficientnet_b2 efficientnet_b3"
+IC_GROUP_MODELS[ic3]="efficientnet_b4 efficientnet_b5 efficientnet_b6 googlenet inception_v3"
+IC_GROUP_MODELS[ic4]="mnasnet0_5 mnasnet0_75 mnasnet1_0 mnasnet1_3 mobilenet_v2"
+IC_GROUP_MODELS[ic5]="mobilenet_v3_large mobilenet_v3_small regnet_x_16gf regnet_x_1_6gf regnet_x_3_2gf"
+IC_GROUP_MODELS[ic6]="regnet_x_400mf regnet_x_800mf regnet_x_8gf regnet_y_16gf regnet_y_1_6gf"
+IC_GROUP_MODELS[ic7]="regnet_y_3_2gf regnet_y_400mf regnet_y_800mf regnet_y_8gf resnet101"
+IC_GROUP_MODELS[ic8]="resnet152 resnet18 resnet34 resnet50 resnext101_32x8d"
+IC_GROUP_MODELS[ic9]="resnext50_32x4d shufflenet_v2_x0_5 shufflenet_v2_x1_0 shufflenet_v2_x1_5 shufflenet_v2_x2_0"
+IC_GROUP_MODELS[ic10]="squeezenet1_0 squeezenet1_1 vgg11 vgg11_bn vgg13"
+IC_GROUP_MODELS[ic11]="vgg13_bn vgg16 vgg16_bn vgg19 vgg19_bn"
+IC_GROUP_MODELS[ic12]="vit_b_16 vit_b_32 vit_l_32 wide_resnet101_2 wide_resnet50_2"
+
 # --- 测试分组定义 ---
 # "分组简称|run_all.sh参数|中文名"
 declare -a TEST_GROUPS=(
@@ -57,7 +85,18 @@ declare -a TEST_GROUPS=(
     "speech|Speech|语音识别"
     "det|Detection|目标检测"
     "seg|Segmentation|语义分割"
-    "ic|ImageClassification|图像分类"
+    "ic1|ImageClassification|IC-G1(alexnet~densenet169)"
+    "ic2|ImageClassification|IC-G2(densenet201~efficientnet_b3)"
+    "ic3|ImageClassification|IC-G3(efficientnet_b4~inception_v3)"
+    "ic4|ImageClassification|IC-G4(mnasnet0_5~mobilenet_v2)"
+    "ic5|ImageClassification|IC-G5(mobilenet_v3_large~regnet_x_3_2gf)"
+    "ic6|ImageClassification|IC-G6(regnet_x_400mf~regnet_y_1_6gf)"
+    "ic7|ImageClassification|IC-G7(regnet_y_3_2gf~resnet101)"
+    "ic8|ImageClassification|IC-G8(resnet152~resnext101_32x8d)"
+    "ic9|ImageClassification|IC-G9(resnext50_32x4d~shufflenet_v2_x2_0)"
+    "ic10|ImageClassification|IC-G10(squeezenet1_0~vgg13)"
+    "ic11|ImageClassification|IC-G11(vgg13_bn~vgg19_bn)"
+    "ic12|ImageClassification|IC-G12(vit_b_16~wide_resnet50_2)"
 )
 TOTAL_DEF_GROUPS=${#TEST_GROUPS[@]}
 
@@ -81,14 +120,14 @@ usage_exit() {
     echo "  指定分组的方式（可混用）:"
     echo "    数字编号    1 3 5                  第1、3、5组"
     echo "    范围        2-4                    第2到4组"
-    echo "    域名/简称   Detection              按名称匹配"
+    echo "    域名/简称   Detection / ic3        按名称匹配"
     echo "    单模型      Detection/fasterrcnn   加 /模型名 跑单个模型"
     echo ""
     echo "  可用分组:"
     local i=1
     for g in "${TEST_GROUPS[@]}"; do
         IFS='|' read -r short args cn <<< "$g"
-        printf "    %-3s %-22s %s\n" "$i." "$short" "$cn"
+        printf "    %-3s %-10s %s\n" "$i." "$short" "$cn"
         i=$((i + 1))
     done
     exit 1
@@ -245,6 +284,10 @@ for task in "${TASKS[@]}"; do
     if [ -n "$t_filter" ]; then
         FILTER_MODELS="$t_filter" bash run_all.sh "$MODE" $group_args 2>&1 | tee "$LOG_FILE"
         rc=${PIPESTATUS[0]}
+    elif [ -n "${IC_GROUP_MODELS[$group_name]}" ]; then
+        # IC 子组：通过 IC_MODELS 环境变量指定模型列表
+        IC_MODELS="${IC_GROUP_MODELS[$group_name]}" bash run_all.sh "$MODE" $group_args 2>&1 | tee "$LOG_FILE"
+        rc=${PIPESTATUS[0]}
     else
         bash run_all.sh "$MODE" $group_args 2>&1 | tee "$LOG_FILE"
         rc=${PIPESTATUS[0]}
@@ -261,11 +304,14 @@ for task in "${TASKS[@]}"; do
         GROUP_STATUS+=("${task_desc}: FAIL (${group_duration}s, rc=$rc)")
         FAIL_GROUPS=$((FAIL_GROUPS + 1))
         echo -e "\n${COLOR_RED}❌ ${task_desc} 失败 (耗时 ${group_duration}s, rc=$rc)${COLOR_NC}"
+        # 生成复测命令
+        local_cmd="bash run_all.sh $MODE $group_args"
         if [ -n "$t_filter" ]; then
-            echo -e "${COLOR_RED}   复测命令: FILTER_MODELS=$t_filter bash run_all.sh $MODE $group_args${COLOR_NC}"
-        else
-            echo -e "${COLOR_RED}   复测命令: bash run_all.sh $MODE $group_args${COLOR_NC}"
+            local_cmd="FILTER_MODELS=$t_filter bash run_all.sh $MODE $group_args"
+        elif [ -n "${IC_GROUP_MODELS[$group_name]}" ]; then
+            local_cmd="IC_MODELS='${IC_GROUP_MODELS[$group_name]}' bash run_all.sh $MODE $group_args"
         fi
+        echo -e "${COLOR_RED}   复测命令: $local_cmd${COLOR_NC}"
     fi
 
     # 从日志中提取简要报告
@@ -354,6 +400,8 @@ if [ $FAIL_GROUPS -gt 0 ]; then
             if echo "$status" | grep -q "^${desc}: FAIL"; then
                 if [ -n "$t_filter" ]; then
                     echo -e "  ${COLOR_CYAN}FILTER_MODELS=$t_filter bash run_all.sh $MODE $group_args${COLOR_NC}"
+                elif [ -n "${IC_GROUP_MODELS[$group_name]}" ]; then
+                    echo -e "  ${COLOR_CYAN}IC_MODELS='${IC_GROUP_MODELS[$group_name]}' bash run_all.sh $MODE $group_args${COLOR_NC}"
                 else
                     echo -e "  ${COLOR_CYAN}bash run_all.sh $MODE $group_args${COLOR_NC}"
                 fi
