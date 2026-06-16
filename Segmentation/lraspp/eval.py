@@ -76,7 +76,8 @@ def eval(model,
             gt = target.squeeze(1).cpu().numpy()
             evaluator.add_batch(gt, pred)
 
-        print(evaluator.Mean_Intersection_over_Union())
+        miou = evaluator.Mean_Intersection_over_Union()
+        print(f'mIoU: {miou}')
 
     # Print inference throughput and latency
     if total_samples > 0:

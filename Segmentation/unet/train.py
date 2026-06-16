@@ -155,7 +155,7 @@ def main():
     classes = args.classes
     batch_size = args.batch_size
     year = args.VOC_year
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     transform = transforms.Compose([
         transforms.Resize((input_size, input_size)),

@@ -7,7 +7,7 @@ import numpy as np
 from pathlib import Path
 from unet import UNet
 from torchvision import transforms, datasets
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 VOC_COLORMAP = [
     (0, 0, 0),        # Background
@@ -106,7 +106,8 @@ def eval(num_classes):
             gt = target.cpu().numpy()
             evaluator.add_batch(gt, pred)
 
-        print(evaluator.Mean_Intersection_over_Union())
+        miou = evaluator.Mean_Intersection_over_Union()
+        print(f'mIoU: {miou}')
 
     # Print inference throughput and latency
     if total_samples > 0:
