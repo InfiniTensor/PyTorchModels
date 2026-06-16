@@ -30,6 +30,15 @@ if [ -f env.sh ]; then
 fi
 PLATFORM_ENV=${PLATFORM_ENV:-"UNKNOWN"}
 
+# 设备可见变量名：MOORE_GPU 用 MUSA_VISIBLE_DEVICES，其余平台用 CUDA_VISIBLE_DEVICES。
+# env.sh / usercustomize.py 以 CUDA_VISIBLE_DEVICES 为单一真源并映射到厂商变量；
+# 这里仅用于 per-task 指定单卡时给子进程设对驱动识别的变量。
+if [ "$PLATFORM_ENV" = "MOORE_GPU" ]; then
+    DEV_VAR="MUSA_VISIBLE_DEVICES"
+else
+    DEV_VAR="CUDA_VISIBLE_DEVICES"
+fi
+
 # 确保 CUDA_VISIBLE_DEVICES 生效（由 env.sh 或命令行设置）
 export CUDA_VISIBLE_DEVICES
 echo -e "${COLOR_CYAN}Using GPUs: ${CUDA_VISIBLE_DEVICES}${COLOR_NC}"
@@ -737,9 +746,9 @@ process_ic_batch() {
         # 两组分别在两张卡上并行训练
         local g1_list="${group1_models[*]}"
         local g2_list="${group2_models[*]}"
-        CUDA_VISIBLE_DEVICES=$gpu0 bash -c "cd ImageClassification/TorchVision && DATA_DIR=../data/imagenet2012 IC_MODEL_TIMEOUT=$IC_MODEL_TIMEOUT IC_MODELS='$g1_list' bash run_all_models_train.sh" > "${LOG_DIR}/ImageClassification_batch_train_g1.log" 2>&1 &
+        env "${DEV_VAR}=$gpu0" bash -c "cd ImageClassification/TorchVision && DATA_DIR=../data/imagenet2012 IC_MODEL_TIMEOUT=$IC_MODEL_TIMEOUT IC_MODELS='$g1_list' bash run_all_models_train.sh" > "${LOG_DIR}/ImageClassification_batch_train_g1.log" 2>&1 &
         local pid1=$!
-        CUDA_VISIBLE_DEVICES=$gpu1 bash -c "cd ImageClassification/TorchVision && DATA_DIR=../data/imagenet2012 IC_MODEL_TIMEOUT=$IC_MODEL_TIMEOUT IC_MODELS='$g2_list' bash run_all_models_train.sh" > "${LOG_DIR}/ImageClassification_batch_train_g2.log" 2>&1 &
+        env "${DEV_VAR}=$gpu1" bash -c "cd ImageClassification/TorchVision && DATA_DIR=../data/imagenet2012 IC_MODEL_TIMEOUT=$IC_MODEL_TIMEOUT IC_MODELS='$g2_list' bash run_all_models_train.sh" > "${LOG_DIR}/ImageClassification_batch_train_g2.log" 2>&1 &
         local pid2=$!
 
         # 合并日志并实时监控
@@ -793,9 +802,9 @@ process_ic_batch() {
 
         local g1_list="${group1_models[*]}"
         local g2_list="${group2_models[*]}"
-        CUDA_VISIBLE_DEVICES=$gpu0 bash -c "cd ImageClassification/TorchVision && DATA_DIR=../data/imagenet2012 IC_MODEL_TIMEOUT=$IC_MODEL_TIMEOUT IC_MODELS='$g1_list' bash run_all_models_eval.sh" > "${LOG_DIR}/ImageClassification_batch_eval_g1.log" 2>&1 &
+        env "${DEV_VAR}=$gpu0" bash -c "cd ImageClassification/TorchVision && DATA_DIR=../data/imagenet2012 IC_MODEL_TIMEOUT=$IC_MODEL_TIMEOUT IC_MODELS='$g1_list' bash run_all_models_eval.sh" > "${LOG_DIR}/ImageClassification_batch_eval_g1.log" 2>&1 &
         local pid1=$!
-        CUDA_VISIBLE_DEVICES=$gpu1 bash -c "cd ImageClassification/TorchVision && DATA_DIR=../data/imagenet2012 IC_MODEL_TIMEOUT=$IC_MODEL_TIMEOUT IC_MODELS='$g2_list' bash run_all_models_eval.sh" > "${LOG_DIR}/ImageClassification_batch_eval_g2.log" 2>&1 &
+        env "${DEV_VAR}=$gpu1" bash -c "cd ImageClassification/TorchVision && DATA_DIR=../data/imagenet2012 IC_MODEL_TIMEOUT=$IC_MODEL_TIMEOUT IC_MODELS='$g2_list' bash run_all_models_eval.sh" > "${LOG_DIR}/ImageClassification_batch_eval_g2.log" 2>&1 &
         local pid2=$!
 
         declare -A eval_done
