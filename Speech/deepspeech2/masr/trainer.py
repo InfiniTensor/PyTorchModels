@@ -216,8 +216,11 @@ class MASRTrainer(object):
         :param resume_model: 恢复训练，当为None则不使用预训练模型
         :param pretrained_model: 预训练模型的路径，当为None则不使用预训练模型
         """
-        # 获取有多少张显卡训练
-        nranks = torch.cuda.device_count()
+        # 获取有多少张显卡训练（NPU/moore 的 DDP 兼容性问题，强制单卡）
+        if os.environ.get('PLATFORM_ENV') in ('ASCEND_NPU', 'MOORE_GPU'):
+            nranks = 1
+        else:
+            nranks = torch.cuda.device_count()
         local_rank = 0
         if nranks > 1:
             # 初始化NCCL环境

@@ -1,12 +1,14 @@
 import argparse
 import functools
+import os
 
 from masr.trainer import MASRTrainer
 from masr.utils.utils import add_arguments, print_arguments
 
 parser = argparse.ArgumentParser(description=__doc__)
 add_arg = functools.partial(add_arguments, argparser=parser)
-add_arg('batch_size',       int,    16,                       '训练的批量大小')
+_ds_batch = 4 if os.environ.get('PLATFORM_ENV') == 'METAX_GPU' else 16
+add_arg('batch_size',       int,    _ds_batch,                '训练的批量大小')
 add_arg('local_rank',       int,    -1,                       '多卡训练的节点')
 add_arg('num_workers',      int,    6,                        '读取数据的线程数量')
 add_arg('num_epoch',        int,    30,                       '训练的轮数')

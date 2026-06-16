@@ -294,7 +294,10 @@ def train(hyp, opt, device, callbacks):
             "WARNING ⚠️ DP not recommended, use torch.distributed.run for best DDP Multi-GPU results.\n"
             "See Multi-GPU Tutorial at https://docs.ultralytics.com/yolov5/tutorials/multi_gpu_training to get started."
         )
-        model = torch.nn.DataParallel(model)
+        try:
+            model = torch.nn.DataParallel(model)
+        except (TypeError, AssertionError):
+            LOGGER.warning("DataParallel not supported on this device, using single device.")
 
     # SyncBatchNorm
     if opt.sync_bn and cuda and RANK != -1:
