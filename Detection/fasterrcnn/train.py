@@ -32,7 +32,7 @@ def eval(dataloader, faster_rcnn, test_num=10000):
         pred_bboxes += pred_bboxes_
         pred_labels += pred_labels_
         pred_scores += pred_scores_
-        if ii == test_num: break
+        if ii >= int(test_num): break
 
     result = eval_detection_voc(
         pred_bboxes, pred_labels, pred_scores,
