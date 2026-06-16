@@ -19,6 +19,14 @@
 # ---- 1) 目标平台 ----
 export PLATFORM_ENV="${PLATFORM_ENV:-NVIDIA_GPU}"
 
+# ---- 1b) 平台适配钩子加载路径 ----
+# usercustomize.py / sitecustomize.py 位于仓库根；加入 PYTHONPATH 后，Python 启动
+# 时由 site.py 自动加载：sitecustomize 无条件加载（不受 ENABLE_USER_SITE 限制），
+# 再由它间接加载 usercustomize 以安装平台 import 钩子。这样在 ENABLE_USER_SITE=False
+# 的环境（部分 venv / spack python）也能正常适配。
+_REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export PYTHONPATH="${_REPO_DIR}${PYTHONPATH:+:${PYTHONPATH}}"
+
 # ---- 2) 数据集物理根目录 ----
 # 所有 run_*.sh / .py 中的数据路径统一通过 $DATASET_ROOT 引用，换机器只改这里。
 # 兼容旧变量 DATA_DIR：若 DATASET_ROOT 未设而 DATA_DIR 已设，则沿用 DATA_DIR。

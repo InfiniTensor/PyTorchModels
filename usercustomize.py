@@ -5,7 +5,7 @@ import importlib.util
 from importlib.abc import MetaPathFinder
 
 # --- 为了避免魔法行为，提供清晰的日志 ---
-print(f"--- [usercustomize.py v3.0 'Unified 7-Platform Import Hook' in '{__file__}'] ---")
+print(f"--- [usercustomize.py v3.1 'Unified 7-Platform Import Hook' in '{__file__}'] ---")
 print(">>> 统一适配钩子已准备就绪，等待 'torch' 导入...")
 
 # --- 全局：cambricon (torchnet) 依赖 visdom，但部分平台环境装不上 visdom ---
@@ -34,6 +34,9 @@ class PlatformPatcher(MetaPathFinder):
       - MOORE_GPU    : import torch_musa + overwrite_cuda_api + cuda->musa 全套重定向
       - 其余(NVIDIA/HYGON_DCU/SUGON_DCU/ILLUVATAR_GPU/METAX_GPU): 纯 CUDA 兼容透传
         （这些厂商库自身提供 CUDA 兼容层，torch.cuda 直接可用，无需导入额外库）
+
+    注：部分 venv（如含 infinicore 的 .pth）会在本钩子安装前提前导入 torch，
+    导致 find_spec 无法拦截。对此在模块顶层增加预加载兜底（见文件末尾）。
     """
     _patch_applied = False
 
@@ -58,21 +61,24 @@ class PlatformPatcher(MetaPathFinder):
         return None
 
     def execute_with_patch(self, original_loader_exec, module):
-        """先执行原始的 torch 加载，再按平台应用适配补丁"""
+        """torch 被 import hook 拦截并加载后调用：执行原加载再应用平台适配"""
         original_loader_exec(module)
-        print(f">>> HOOK: 'torch' v{module.__version__} loaded")
+        print(f">>> HOOK: 'torch' v{module.__version__} loaded (via import hook)")
+        PlatformPatcher._apply_platform_patch(module)
+        sys.modules['torch'] = module
 
-        # 统一以 CUDA_VISIBLE_DEVICES 作为可见设备的单一真源；
-        # 各平台的原生设备变量（ASCEND_RT_/MLU_/MUSA_VISIBLE_DEVICES）
-        # 由 env.sh 或下面的分支负责映射。
+    @staticmethod
+    def _apply_platform_patch(module):
+        """按 PLATFORM_ENV 对已加载的 torch 模块应用适配。
+        可被 import hook（execute_with_patch）或预加载兜底调用，是单一适配入口。"""
         cuda_devices = os.environ.get("CUDA_VISIBLE_DEVICES")
 
         if _PLATFORM == 'MOORE_GPU':
-            self._patch_moore(module)
+            PlatformPatcher._patch_moore(module)
         elif _PLATFORM == 'ASCEND_NPU':
-            self._patch_ascend(cuda_devices)
+            PlatformPatcher._patch_ascend(cuda_devices)
         elif _PLATFORM == 'CAMBRICON_MLU':
-            self._patch_cambricon(cuda_devices)
+            PlatformPatcher._patch_cambricon(cuda_devices)
         else:
             # NVIDIA_GPU / HYGON_DCU / SUGON_DCU / ILLUVATAR_GPU / METAX_GPU
             # 纯 CUDA 兼容，不导入额外硬件库
@@ -80,10 +86,9 @@ class PlatformPatcher(MetaPathFinder):
             #     走 musa 兼容层，把 'METAX_GPU' 加入上面的 _patch_moore 条件即可。
             print(f">>> HOOK: 平台 {_PLATFORM} 走纯 CUDA 兼容路径，跳过特定硬件库的导入。")
 
-        sys.modules['torch'] = module
-
     # ---------------- ASCEND_NPU ----------------
-    def _patch_ascend(self, cuda_devices):
+    @staticmethod
+    def _patch_ascend(cuda_devices):
         print(">>> HOOK: 检测到昇腾（ASCEND_NPU）平台...")
         try:
             import torch_npu
@@ -102,7 +107,8 @@ class PlatformPatcher(MetaPathFinder):
             print(f">>> HOOK: 错误！导入 'torch_npu' 时发生异常: {e}")
 
     # ---------------- CAMBRICON_MLU ----------------
-    def _patch_cambricon(self, cuda_devices):
+    @staticmethod
+    def _patch_cambricon(cuda_devices):
         print(">>> HOOK: 检测到寒武纪（CAMBRICON_MLU）平台...")
         try:
             import torch_mlu
@@ -121,11 +127,12 @@ class PlatformPatcher(MetaPathFinder):
             print(f">>> HOOK: 错误！导入 'torch_mlu' 时发生异常: {e}")
 
     # ---------------- MOORE_GPU (musa 全套重定向) ----------------
-    def _patch_moore(self, module):
+    @staticmethod
+    def _patch_moore(module):
         print(">>> HOOK: 检测到摩尔线程（MOORE_GPU）平台...")
 
         # 仅 MOORE 才安装 transformers 的 torch.load 安全校验绕过（要求 torch>=2.6）
-        self._install_transformers_patch()
+        PlatformPatcher._install_transformers_patch()
 
         try:
             import torch_musa
@@ -270,3 +277,12 @@ def install_hook():
 
 # 在 usercustomize.py 被 Python 加载时，立即安装钩子
 install_hook()
+
+# --- 预加载兜底 ---
+# 部分 venv（如 site-packages 含 infinicore 等 .pth 文件）会在本钩子安装前就提前
+# import torch，导致上面的 find_spec 拦截不到。此时直接对已加载的 torch 应用平台适配。
+# （NVIDIA 等透传平台即便走到这里也只是打印一行，无副作用。）
+_torch_preloaded = sys.modules.get('torch')
+if _torch_preloaded is not None:
+    print(">>> HOOK: 检测到 torch 已被提前导入（可能由 .pth 触发），import hook 无法拦截，直接应用平台适配。")
+    PlatformPatcher._apply_platform_patch(_torch_preloaded)
