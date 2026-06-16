@@ -3,7 +3,7 @@
 if [ -e "../data/LibriSpeech" ]; then
     echo "../data/LibriSpeech exists"
 else
-    ln -s /data1/shared/Dataset/librispeech/LibriSpeech ../data/LibriSpeech
+    ln -sfn "${DATASET_ROOT:-/data1/shared/Dataset}/librispeech/LibriSpeech" ../data/LibriSpeech
 fi
 
 export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0,1}

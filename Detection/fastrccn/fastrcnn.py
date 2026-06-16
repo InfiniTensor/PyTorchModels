@@ -17,6 +17,9 @@ from tqdm import tqdm
 os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'  # 使用 GPU 0 和 1
 os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 
+# Dataset root (configurable via DATASET_ROOT env var)
+_DATASET_ROOT = os.environ.get('DATASET_ROOT', '/data1/shared/Dataset')
+
 # Define argument parser
 parser = argparse.ArgumentParser()
 parser.add_argument("--train_batch", default=30, type=int, help="Default value of train_batch is 30.")
@@ -103,19 +106,19 @@ def get_coco_loader(root, ann_file, transform, batch_size, sample_percentage, sh
     return loader
 
 train_loader = get_coco_loader(
-    root="/data1/shared/Dataset/coco/images/train2017",
-    ann_file="/data1/shared/Dataset/coco/images/annotations/instances_train2017.json",
-    transform=transform, 
-    batch_size=args.train_batch, 
+    root=f"{_DATASET_ROOT}/coco/images/train2017",
+    ann_file=f"{_DATASET_ROOT}/coco/images/annotations/instances_train2017.json",
+    transform=transform,
+    batch_size=args.train_batch,
     sample_percentage=0.5,  # 设置抽样比例为 50%
     shuffle=True
 )
 
 test_loader = get_coco_loader(
-    root="/data1/shared/Dataset/coco/images/val2017",
-    ann_file="/data1/shared/Dataset/coco/images/annotations/instances_val2017.json",
-    transform=transform, 
-    batch_size=args.infer_batch, 
+    root=f"{_DATASET_ROOT}/coco/images/val2017",
+    ann_file=f"{_DATASET_ROOT}/coco/images/annotations/instances_val2017.json",
+    transform=transform,
+    batch_size=args.infer_batch,
     sample_percentage=args.sample,
     shuffle=False
 )

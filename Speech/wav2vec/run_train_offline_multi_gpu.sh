@@ -4,7 +4,7 @@
 if [ -e "../data/LibriSpeech" ]; then
     echo "../data/LibriSpeech exists"
 else
-    ln -s /data-aisoft/Dataset/librispeech/LibriSpeech ../data/LibriSpeech
+    ln -sfn "${DATASET_ROOT:-/data1/shared/Dataset}/librispeech/LibriSpeech" ../data/LibriSpeech
 fi
 
 export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0,1}
@@ -39,7 +39,7 @@ PYTHONUNBUFFERED=1 torchrun --nproc_per_node=4 speech_recognition.py \
     --save_total_limit="3" \
     --freeze_feature_extractor \
     --gradient_checkpointing \
-    --chars_to_ignore , ? . ! - \; \: " " % ' " \
+    --chars_to_ignore , ? . ! - \; \: \" " % ' " \
     --fp16 \
     --group_by_length \
     --do_train
