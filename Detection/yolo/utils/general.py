@@ -40,7 +40,7 @@ try:
 
     assert hasattr(ultralytics, "__version__")  # verify package is not directory
 except (ImportError, AssertionError):
-    os.system("pip install -U ultralytics")
+    pass  # os.system("pip install -U ultralytics")
     import ultralytics
 
 from ultralytics.utils.checks import check_requirements
